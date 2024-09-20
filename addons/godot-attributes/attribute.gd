@@ -13,7 +13,7 @@
 class_name Attribute extends Node
 
 ## Internal time unit used to appropriately set it to the [PauseTracker].
-const INTERNAL_TIME_UNIT: TimeUtil.TimeUnit = TimeUtil.TimeUnit.MICROSECONDS
+const INTERNAL_TIME_UNIT: AttributeUtil.TimeUnit = AttributeUtil.TimeUnit.MICROSECONDS
 
 ## Helper function currently for [method Time.get_ticks_usec], created so that
 ## it can be swapped to other time units if deemed necessary.
@@ -182,7 +182,7 @@ signal spec_apply_blocked(blocked: AttributeEffectSpec, blocked_by: AttributeEff
 
 ## The [PauseTracker] used by this [Attribute] to track pausing. Usually this
 ## can be left untouched. Must NOT be null.
-@export var pause_tracker: PauseTracker
+@export var pause_tracker: AttributePauseTracker
 
 ## The [AttributeContainer] this attribute belongs to stored as a [WeakRef] for
 ## circular reference safety.

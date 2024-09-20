@@ -17,7 +17,7 @@ enum ValueType {
 			ValueType.STATIC:
 				return _value
 		if type == ValueType.STATIC:
-			return value
+			return _value
 		return 0.0 # TODO return attribute value
 
 ## Any [AttributeEffectModifier]s that can apply to the value.
