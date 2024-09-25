@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://c02lt4kveqpmd"]
+
+[ext_resource type="Script" path="res://addons/godot-attributes/attribute.gd" id="1_i8dne"]
+
+[node name="TestAttribute" type="Node"]
+script = ExtResource("1_i8dne")

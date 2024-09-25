@@ -8,4 +8,5 @@ func _meets_condition(attribute: Attribute, spec: AttributeEffectSpec) -> bool:
 	if spec.get_effect().is_permanent():
 		var wrapped: WrappedAttribute = attribute as WrappedAttribute
 		wrapped.get_maximum_value()
+		# TODO (what was this for?)
 	return true

@@ -21,8 +21,8 @@ enum ValueType {
 		return 0.0 # TODO return attribute value
 
 ## Any [AttributeEffectModifier]s that can apply to the value.
-@export var value_modifiers: AttributeEffectModifierArray = AttributeEffectModifierArray.new()
+@export var modifiers: AttributeEffectModifierArray = AttributeEffectModifierArray.new()
 
-## Returns [member value] modified by [member value_modifiers].
+## Returns [member value] modified by [member modifiers].
 func get_modified(attribute: Attribute, spec: AttributeEffectSpec) -> float:
-	return value_modifiers.modify_value(_value, attribute, spec)
+	return modifiers.modify_value(_value, attribute, spec)

@@ -120,7 +120,6 @@ signal spec_add_blocked(blocked: AttributeEffectSpec, blocked_by: AttributeEffec
 ## as [param blocked].
 signal spec_apply_blocked(blocked: AttributeEffectSpec, blocked_by: AttributeEffectSpec)
 
-
 ## The ID of the attribute.
 @export var id: StringName:
 	set(_value):
@@ -128,7 +127,8 @@ signal spec_apply_blocked(blocked: AttributeEffectSpec, blocked_by: AttributeEff
 		update_configuration_warnings()
 
 ## The base value of the attribute which permanent effects will apply to.
-## [br]WARNING: Setting this directly can break the current value, use [method set_base_value].
+## [br]WARNING: Setting this directly (not including in the editor inspector) can break the 
+## current value, use [method set_base_value].
 @export var _base_value: float:
 	set(value):
 		var prev_base_value: float = _base_value
@@ -299,7 +299,6 @@ func __process() -> void:
 	# Lock
 	_locked = true
 	_can_stop_applying = true
-	
 	# Iterate all specs
 	var index: int = -1
 	for spec: AttributeEffectSpec in _specs.iterate():
@@ -859,7 +858,7 @@ func remove_specs(specs: Array[AttributeEffectSpec]) -> bool:
 	var temporary_removed: bool = false
 	for index: int in _specs.iterate_reverse():
 		var spec: AttributeEffectSpec = _specs._array[index]
-		if specs.has(specs):
+		if specs.has(spec):
 			_remove_spec_at_index(spec, index, true)
 			removed = true
 			if spec.get_effect().is_temporary() && spec.get_effect().has_value:

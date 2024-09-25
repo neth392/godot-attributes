@@ -3,12 +3,16 @@
 @tool
 class_name AttributeContainer extends Node
 
+## Emitted when the [param attribute] is added to this container.
 signal attribute_added(attribute: Attribute)
 
+## Emitted when the [param attriubte] is removed from this container.
 signal attribute_removed(attribute: Attribute)
 
+## Emitted when [param tag] is added to this container.
 signal tag_added(tag: StringName)
 
+## Emitted when [param tag] is removed from this container.
 signal tag_removed(tag: StringName)
 
 ## Tags to be added to the internal _tags [Dictionary] in _ready.
@@ -37,6 +41,7 @@ func _exit_tree() -> void:
 
 func _get_configuration_warnings() -> PackedStringArray:
 	var warnings: PackedStringArray = PackedStringArray()
+	
 	var ids: PackedStringArray = PackedStringArray()
 	
 	for child: Node in get_children():

@@ -3,8 +3,9 @@
 [ext_resource type="Script" path="res://addons/godot-attributes/attribute.gd" id="1_auulm"]
 [ext_resource type="PackedScene" uid="uid://yd7swdg0u6k5" path="res://addons/godot-attributes/util/attribute_pause_tracker.tscn" id="2_40s6w"]
 
-[node name="Attribute" type="Node"]
+[node name="Attribute" type="Node" node_paths=PackedStringArray("pause_tracker")]
 script = ExtResource("1_auulm")
+pause_tracker = NodePath("AttributePauseTracker")
 
 [node name="AttributePauseTracker" parent="." instance=ExtResource("2_40s6w")]
 time_unit = 2
