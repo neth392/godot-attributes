@@ -17,7 +17,3 @@ config/icon="res://icon.svg"
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/godot-attributes/plugin.cfg", "res://addons/gut/plugin.cfg")
-
-[global_group]
-
-attribute_container="Contains all AttributeContainers in the scene tree."

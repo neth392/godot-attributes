@@ -186,13 +186,12 @@ signal spec_apply_blocked(blocked: AttributeEffectSpec, blocked_by: AttributeEff
 
 ## The [AttributeContainer] this attribute belongs to stored as a [WeakRef] for
 ## circular reference safety.
-var _container: WeakRef
+var _container_ref: WeakRef
 
 ## Cluster of all added [AttributeEffectSpec]s.
 var _specs: AttributeEffectSpecArray
 
-## Internal storage of [member _specs]'s size for disabling processing when no effects
-## are active, for performance gains.
+## Internally stores if 
 var _has_specs: bool = false:
 	set(value):
 		var prev: bool = _has_specs
@@ -215,16 +214,13 @@ var _current_value: float:
 
 ## A lock mechanism to ensure code ran from signals emitted from this attribute does not
 ## attempt any unsafe changes that would break the logic & predictability of effects.
-var _locked: bool = false
+#var _locked: bool = false
 
-## For use in [method __process] ONLY. Per testing, it is more efficient to use
-## a global dictionary than create a new one every frame.
+# For use in [method __process] ONLY. Per testing, it is more efficient to use
+# a global dictionary than create a new one every frame.
 var __process_to_remove: Dictionary[int, AttributeEffectSpec] = {}
 
 var _history: AttributeHistory
-
-## The tick the scene tree was paused at.
-var _paused_at_tick: int = -1
 
 ## Internal flag to prevent further effects from applying.
 var _stop_applying: bool = false
@@ -781,9 +777,6 @@ func add_specs(specs: Array[AttributeEffectSpec], sort_by_priority: bool = true)
 			# Update the current value
 			if _base_value != spec._last_prior_attribute_value:
 				update_current_value()
-	
-	# Process if specs is not empty
-	_has_specs = !_specs.is_empty()
 	
 	_locked = false
 

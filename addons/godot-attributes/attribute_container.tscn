@@ -2,5 +2,5 @@
 
 [ext_resource type="Script" path="res://addons/godot-attributes/attribute_container.gd" id="1_gp3xo"]
 
-[node name="AttributeContainer" type="Node" groups=["attribute_container"]]
+[node name="AttributeContainer" type="Node"]
 script = ExtResource("1_gp3xo")

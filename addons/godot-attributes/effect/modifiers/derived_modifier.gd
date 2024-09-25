@@ -39,6 +39,7 @@ _value_to_use: Attribute.Value = Attribute.Value.CURRENT_VALUE) -> DerivedModifi
 # Internal cache of the [Attribute] instance.
 var _cache: WeakRef
 
+
 func _modify(value: float, attribute: Attribute, spec: AttributeEffectSpec) -> float:
 	var derived_from: Attribute = get_derived_from(attribute)
 	assert(derived_from != null, "could not find attribute @ node path (%s)" % attribute_path) 
@@ -50,6 +51,7 @@ func _modify(value: float, attribute: Attribute, spec: AttributeEffectSpec) -> f
 		_:
 			assert(false, "no implementation for Attribute.Value(value_to_use)=%s" % value_to_use)
 			return 0
+
 
 func get_derived_from(source_node: Node) -> Attribute:
 	var derived_from: Attribute = _cache.get_ref()
