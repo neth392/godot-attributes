@@ -1,6 +1,6 @@
-## Represents an individual instance of an [AttributeEffect] that is applied
-## to an [Attribute].
-class_name AttributeEffectSpec extends Resource
+## Represents an individual instance of an [AttributeEffect] that is or 
+## can be actively applied to an [Attribute].
+class_name ActiveAttributeEffect extends Resource
 
 ## The remaining duration in seconds, can not be set to less than 0.0.
 var remaining_duration: float:
@@ -8,7 +8,7 @@ var remaining_duration: float:
 		var previous: float = remaining_duration
 		remaining_duration = max(0.0, _value)
 
-## Customizable metadata for this [AttributeEffectSpec], for use with conditions,
+## Customizable metadata for this [ActiveAttributeEffect], for use with conditions,
 ## callbacks, etc. Not in use by the Attribute system itself, but used with some of
 ## the built in conditions, callbacks, & modifiers.
 var meta: Dictionary[Variant, Variant] = {}
@@ -18,7 +18,7 @@ var meta: Dictionary[Variant, Variant] = {}
 ## delay.
 var remaining_period: float = 0.0
 
-## The pending value that will be set directly to the [Attribute] by this spec.
+## The pending value that will be set directly to the [Attribute] by this active effect.
 ## Based on 
 var pending_attribute_value: float
 
@@ -61,7 +61,7 @@ func _init(effect: AttributeEffect) -> void:
 	_effect = effect
 
 
-## Returns the [AttributeEffect] instance this spec was created for.
+## Returns the [AttributeEffect] instance this effect was created for.
 func get_effect() -> AttributeEffect:
 	return _effect
 
@@ -73,7 +73,7 @@ func is_initialized() -> bool:
 	return _initialized
 
 
-## De-initializes the spec (only if already initialized), setting [member remaining_period] 
+## De-initializes the active effect (only if already initialized), setting [member remaining_period] 
 ## and [member remaining_duration] to 0.0.
 func deinitialize() -> void:
 	if is_initialized():
@@ -82,30 +82,30 @@ func deinitialize() -> void:
 		_initialized = false
 
 
-## Returns true if this spec is currently added to an [Attribute].
+## Returns true if this active effect is currently added to an [Attribute].
 func is_added() -> bool:
 	return _is_added
 
 
-## Returns the tick this spec was added to an [Attribute] on.
+## Returns the tick this active effect was added to an [Attribute] on.
 func get_tick_added_on() -> int:
 	return _tick_added_on
 
 
-## Returns the last tick (see [method Attribute._get_ticks]) this spec was processed on. This
+## Returns the last tick (see [method Attribute._get_ticks]) this active effect was processed on. This
 ## tick may be unreliable to determine when it was last processed if scene tree pausing has
 ## been activated, as this is adjusted accordingly.
 func get_tick_last_processed() -> int:
 	return _tick_last_processed
 
 
-## Returns the last [method Time.get_ticks_msec] this spec was applied on. -1 if it has not
+## Returns the last [method Time.get_ticks_msec] this active effect was applied on. -1 if it has not
 ## yet been applied. Always returns -1 for TEMPORARY effects.
 func get_tick_last_applied() -> int:
 	return _tick_last_applied
 
 
-## Returns the amount of time, in seconds, since this spec last applied to the [Attribute].
+## Returns the amount of time, in seconds, since this active effect last applied to the [Attribute].
 ## If [method has_applied] returns false, 0.0 is returned.
 func get_seconds_since_last_apply() -> float:
 	if !has_applied():
@@ -119,14 +119,14 @@ func has_applied() -> bool:
 	return _tick_last_applied > -1
 
 
-## Returns the total amount of duration, in seconds, this spec has been active for.
+## Returns the total amount of duration, in seconds, this active effect has been active for.
 ## [b]NOTE: Includes any time the [Attribute] spent in a paused state.[/b] Use
 ## [method get_active_duration] to omit the time spent paused.
 func get_total_duration() -> float:
 	return Attribute._ticks_to_seconds(Attribute._get_ticks() - _tick_added_on)
 
 
-## Returns total amount of duration, in seconds, this spec has been active for. Does not
+## Returns total amount of duration, in seconds, this active effect has been active for. Does not
 ## include time that was passed when an [Attribute] was paused.
 func get_active_duration() -> float:
 	return _active_duration
@@ -139,14 +139,14 @@ func get_active_expected_duration() -> float:
 
 
 ### Returns the value retrieved from [member AttributeEffect.value] that is pending
-### application to the [Attribute]. If this spec is not in a pending state, 0.0 is returned.
+### application to the [Attribute]. If this active effect is not in a pending state, 0.0 is returned.
 #func get_pending_effect_value() -> float:
 	#return _pending_effect_value
 #
 #
 ### Returns the value derived from appling the effect's [AttributeEffectCalculator] on the
 ### [method get_pending_effect_value] & Attribute's value. This is the value that will be set
-### directly to the [Attribute]. If this spec is not in a pending state, 0.0 is returned.
+### directly to the [Attribute]. If this active effect is not in a pending state, 0.0 is returned.
 #func get_pending_calculated_value() -> float:
 	#return _pending_calculated_value
 #
@@ -156,19 +156,19 @@ func get_active_expected_duration() -> float:
 	#return _last_effect_value
 
 
-## If currently blocked, returns the [AttributeEffectCondition] that blocked this spec
+## If currently blocked, returns the [AttributeEffectCondition] that blocked this active effect
 ## when being added to an effect or in applying. Returns null if not currently blocked.
 func get_last_blocked_by() -> AttributeEffectCondition:
 	return _last_blocked_by
 
 
 ## Returns the [enum Attribute.AddEffectResult] from the last attempt to add this
-## spec to an [Attribute].
+## active effect to an [Attribute].
 func get_last_add_result() -> Attribute.AddEffectResult:
 	return _last_add_result
 
 
-## Amount of times this [AttributeEffectSpec] was applied to an [Attribute]. Does not
+## Amount of times this [ActiveAttributeEffect] was applied to an [Attribute]. Does not
 ## track for TEMPORARY effects, thus the value is always 0 in that case.
 func get_apply_count() -> int:
 	return _apply_count
@@ -180,14 +180,14 @@ func is_applying() -> bool:
 	return _is_applying
 
 
-## Returns true if [method get_effect] has an apply limit & this spec's [method get_apply_count]
+## Returns true if [method get_effect] has an apply limit & this active effect's [method get_apply_count]
 ## has either met or exceeded the [member AttributeEffect.apply_limit_amount].
 func hit_apply_limit() -> bool:
 	return _effect.has_apply_limit() && _apply_count >= _effect.apply_limit_amount
 
 
 ## Returns true if the effect expired due to duration, false if not. Can be useful
-## to see if this spec was manually removed from an [Attribute] or if it expired.
+## to see if this active effect was manually removed from an [Attribute] or if it expired.
 func is_expired() -> bool:
 	return !_effect.is_instant() && _effect.has_duration() && _expired
 
@@ -206,4 +206,4 @@ func _clear_pending_values() -> void:
 
 
 func _to_string() -> String:
-	return "AttributeEffectSpec(_effect.id:%s)" % _effect.id
+	return "ActiveAttributeEffect(_effect.id:%s)" % _effect.id

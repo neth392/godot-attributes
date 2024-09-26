@@ -31,7 +31,7 @@ enum Mode {
 @export var mode: Mode
 
 
-func _meets_condition(attribute: Attribute, spec: AttributeEffectSpec) -> bool:
+func _meets_condition(attribute: Attribute, active: ActiveAttributeEffect) -> bool:
 	assert(attribute != null, "attribute is null")
 	if groups.is_empty():
 		return true

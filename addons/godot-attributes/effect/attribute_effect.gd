@@ -3,7 +3,7 @@
 class_name AttributeEffect extends Resource
 
 ## The type of effect.
-## [br] NOTE: This enum's structure determines the ordering of [AttributeEffectSpecArray].
+## [br] NOTE: This enum's structure determines the ordering of [ActiveAttributeEffectArray].
 enum Type {
 	## Makes temporary changes to an [Attribute] reflected in 
 	## [method Attribute.get_current_value].
@@ -19,11 +19,11 @@ enum StackMode {
 	## Stacking is not allowed and an assertion will be called
 	## if there is an attempt to stack this effect on an [Attribute].
 	DENY_ERROR = 1,
-	## Attribute effects are seperate, a new [AttributeEffectSpec] is created
+	## Attribute effects are seperate, a new [ActiveAttributeEffect] is created
 	## for every instance added to an [Attribute].
 	SEPERATE = 2,
-	## Attribute effects are combined into one [AttributeEffectSpec] whose
-	## [member AttributeEffectSpec._stack_count] is increased accordingly.
+	## Attribute effects are combined into one [ActiveAttributeEffect] whose
+	## [member ActiveAttributeEffect._stack_count] is increased accordingly.
 	COMBINE = 3,
 }
 
@@ -85,16 +85,16 @@ enum DurationType {
 @export_group("Signals")
 
 ## If true, [signal Attribute.effect_added] will be emitted every time an
-## [AttributeEffectSpec] of this effect is added to an [Attribute].
+## [ActiveAttributeEffect] of this effect is added to an [Attribute].
 @export var _emit_added_signal: bool = false
 
 ## If true, [signal Attribute.effect_applied] will be emitted every time an
-## [AttributeEffectSpec] of this effect is successfully applied on an [Attribute].
+## [ActiveAttributeEffect] of this effect is successfully applied on an [Attribute].
 ## [br]NOTE: ONLY AVAILABLE FOR [enum Type.PERMANENT] as TEMPORARY effects are not reliably applied.
 @export var _emit_applied_signal: bool = false
 
 ## If true, [signal Attribute.effect_removed] will be emitted every time an
-## [AttributeEffectSpec] of this effect is removed from an [Attribute].
+## [ActiveAttributeEffect] of this effect is removed from an [Attribute].
 @export var _emit_removed_signal: bool = false
 
 @export_group("Duration")
@@ -392,11 +392,9 @@ func apply_calculator(attr_base_value: float, attr_current_value: float, effect_
 	return value_calculator._calculate(attr_base_value, attr_current_value, effect_value)
 
 
-## Shorthand function to create an [AttributeEffectSpec] for this [AttributeEffect].
-## [br]Can be overridden for custom [AttributeEffectSpec] implementations if you know
-## what you are doing.
-func to_spec() -> AttributeEffectSpec:
-	return AttributeEffectSpec.new(self)
+## Shorthand function to create an [ActiveAttributeEffect] for this [AttributeEffect].
+func create_active_effect() -> ActiveAttributeEffect:
+	return ActiveAttributeEffect.new(self)
 
 
 ## TBD: Make this more verbose?
@@ -468,7 +466,7 @@ func can_emit_added_signal() -> bool:
 
 
 ## Whether or not this effect should cause [signal Attriubte.effect_added] to be
-## emitted when a spec of this effect is added.
+## emitted when an active effect of this effect is added.
 func should_emit_added_signal() -> bool:
 	return can_emit_added_signal() && _emit_added_signal
 
@@ -479,7 +477,7 @@ func can_emit_applied_signal() -> bool:
 
 
 ## Whether or not this effect should cause [signal Attriubte.effect_applied] to be
-## emitted when a spec of this effect is applied.
+## emitted when an active effect of this effect is applied.
 func should_emit_applied_signal() -> bool:
 	return can_emit_applied_signal() && _emit_applied_signal
 
@@ -490,7 +488,7 @@ func can_emit_removed_signal() -> bool:
 
 
 ## Whether or not this effect should cause [signal Attriubte.effect_removed] to be
-## emitted when a spec of this effect is removed.
+## emitted when an active effect of this effect is removed.
 func should_emit_removed_signal() -> bool:
 	return can_emit_removed_signal() && _emit_removed_signal
 
@@ -551,10 +549,10 @@ func assert_has_period() -> void:
 	assert(has_period(), "effect does not have a period_in_seconds")
 
 
-## [method assert]s that [member AttributeEffectSpec._effect] for [param spec]
+## [method assert]s that [member ActiveAttributeEffect._effect] for [param active]
 ## is equal to this instance.
-func assert_spec_is_self(spec: AttributeEffectSpec) -> void:
-	assert(spec._effect == self, "self != spec._effect (%s)" % spec._effect)
+func assert_active_is_self(active: ActiveAttributeEffect) -> void:
+	assert(active._effect == self, "self != active effect._effect (%s)" % active._effect)
 
 
 ## Returns true if this effect supports [member _log_history].

@@ -44,20 +44,20 @@ enum ProcessFunction {
 	NONE = 99,
 }
 
-## The result of adding an [AttributeEffectSpec] to an [Attribute].
+## The result of adding an [ActiveAttributeEffect] to an [Attribute].
 enum AddEffectResult {
 	## No attempt to add the effect to an [Attribute] was ever made.
 	NEVER_ADDED = 0,
 	## Successfully added.
 	ADDED = 1,
-	## Added to an existing [AttributeEffectSpec] via stacking.
+	## Added to an existing [ActiveAttributeEffect] via stacking.
 	STACKED = 2,
 	## Blocked by an [AttributeEffectCondition], retrieve it via
 	## [method get_last_blocked_by].
 	BLOCKED_BY_CONDITION = 3,
 	## Blocked by a condition of a BLOCKER [AttributeEffect].
 	BLOCKED_BY_BLOCKER = 4,
-	## Another spec of the same effect is already present on the [Attribute] and 
+	## Another active of the same effect is already present on the [Attribute] and 
 	## stack_mode is set to DENY.
 	STACK_DENIED = 5,
 	## Effect is instant & can't be "added", but only applied. This does not indicate
@@ -82,43 +82,42 @@ enum SamePrioritySortingMethod {
 ## Emitted when the value returned by [method get_current_value] changes.
 signal current_value_changed(prev_current_value: float)
 
-## Emitted when [member _base_value] changes. [param spec] is what caused the
+## Emitted when [member _base_value] changes. [param active] is what caused the
 ## change, or null if [method set_base_value] was used directly.
-signal base_value_changed(prev_base_value: float, spec: AttributeEffectSpec)
+signal base_value_changed(prev_base_value: float, active: ActiveAttributeEffect)
 
 ####################
 ## Effect Signals ##
 ####################
 
-## Emitted after the [param spec] was added to this [Attribute]. If the
-## relative [AttributeEffect] is of [enum AttributEffect.DurationType.INSTANT] then
-## [method has_effect] will return false when called with [param spec].
-signal spec_added(spec: AttributeEffectSpec)
+## Emitted after the [param active] was added to this [Attribute]. Not called for instant
+## effects.
+signal active_added(active: ActiveAttributeEffect)
 
-## Emitted when the [param spec] is applied. Only emitted for [enum AttributeEffect.Type.PERMANENT]
-## effects, not [enum AttributeEffect.Type.TEMPORARY].
-signal permanent_spec_applied(spec: AttributeEffectSpec)
+## Emitted when the [param active] is applied. Only emitted for [enum AttributeEffect.Type.PERMANENT]
+## effects, not for [enum AttributeEffect.Type.TEMPORARY].
+signal active_applied(active: ActiveAttributeEffect)
 
-## Emitted when the [param spec] was removed. To determine if it was manual
-## or due to expiration, see [method AttributeEffectSpec.expired].
-signal spec_removed(spec: AttributeEffectSpec)
+## Emitted when the [param active] was removed. To determine if it was manual
+## or due to expiration, see [method ActiveAttributeEffect.expired].
+signal active_removed(active: ActiveAttributeEffect)
 
-## Emitted when the [param spec] had its stack count changed.
-signal spec_stack_count_changed(spec: AttributeEffectSpec, previous_stack_count: int)
+## Emitted when the [param active] had its stack count changed.
+signal active_stack_count_changed(active: ActiveAttributeEffect, previous_stack_count: int)
 
 ## Emitted after [param blocked] was blocked from being added to
 ## this [Attribute] by an [AttributeEffectCondition], accessible via 
-## [method AttributeEffectSpec.get_last_blocked_by]. [param blocked_by] is the owner
+## [method ActiveAttributeEffect.get_last_blocked_by]. [param blocked_by] is the owner
 ## of that condition, and could (but not always in the case of BLOCKER effects) be the same
 ## as [param blocked].
-signal spec_add_blocked(blocked: AttributeEffectSpec, blocked_by: AttributeEffectSpec)
+signal active_add_blocked(blocked: ActiveAttributeEffect, blocked_by: ActiveAttributeEffect)
 
 ## Emitted after [param blocked] was blocked from being applied to
 ## this [Attribute] by an [AttributeEffectCondition], accessible via 
-## [method AttributeEffectSpec.get_last_blocked_by]. [param blocked_by] is the owner
+## [method ActiveAttributeEffect.get_last_blocked_by]. [param blocked_by] is the owner
 ## of that condition, and could (but not always in the case of BLOCKER effects) be the same
 ## as [param blocked].
-signal spec_apply_blocked(blocked: AttributeEffectSpec, blocked_by: AttributeEffectSpec)
+signal active_apply_blocked(blocked: ActiveAttributeEffect, blocked_by: ActiveAttributeEffect)
 
 ## The ID of the attribute.
 @export var id: StringName:
@@ -127,7 +126,7 @@ signal spec_apply_blocked(blocked: AttributeEffectSpec, blocked_by: AttributeEff
 		update_configuration_warnings()
 
 ## The base value of the attribute which permanent effects will apply to.
-## [br]WARNING: Setting this directly (not including in the editor inspector) can break the 
+## [br]WARNING: Setting this directly (excluding in the editor inactivetor) can break the 
 ## current value, use [method set_base_value].
 @export var _base_value: float:
 	set(value):
@@ -139,7 +138,7 @@ signal spec_apply_blocked(blocked: AttributeEffectSpec, blocked_by: AttributeEff
 
 @export_group("Effects")
 
-## Whether or not [AttributeEffectSpec]s should be allowed. If effects are not allowed,
+## Whether or not [ActiveAttributeEffect]s should be allowed. If effects are not allowed,
 ## processing is automatically disabled.
 @export var allow_effects: bool = true:
 	set(value):
@@ -147,7 +146,7 @@ signal spec_apply_blocked(blocked: AttributeEffectSpec, blocked_by: AttributeEff
 		if !allow_effects:
 			effects_process_function = ProcessFunction.NONE
 			if !Engine.is_editor_hint():
-				remove_all_specs()
+				remove_all_actives()
 		_update_processing()
 		notify_property_list_changed()
 
@@ -184,23 +183,23 @@ signal spec_apply_blocked(blocked: AttributeEffectSpec, blocked_by: AttributeEff
 ## can be left untouched. Must NOT be null.
 @export var pause_tracker: AttributePauseTracker
 
-## The [AttributeContainer] this attribute belongs to stored as a [WeakRef] for
-## circular reference safety.
-var _container_ref: WeakRef = weakref(null)
-
-## Cluster of all added [AttributeEffectSpec]s.
-var _specs: AttributeEffectSpecArray
+## Cluster of all added [ActiveAttributeEffect]s.
+@export_storage var _actives: ActiveAttributeEffectArray
 
 ## Internally stores if 
-var _has_specs: bool = false:
+@export_storage var _has_actives: bool = false:
 	set(value):
-		var prev: bool = _has_specs
-		_has_specs = value
+		var prev: bool = _has_actives
+		_has_actives = value
 		_update_processing()
 
 ## Dictionary of in the format of [code]{[member AttributeEffect.id] : int}[/code] count of all 
-## applied [AttributeEffectSpec]s with that effect.
-var _effect_counts: Dictionary[StringName, int] = {}
+## applied [ActiveAttributeEffect]s with that effect.
+@export_storage var _effect_counts: Dictionary[StringName, int] = {}
+
+## The [AttributeContainer] this attribute belongs to stored as a [WeakRef] for
+## circular reference safety.
+var _container_ref: WeakRef = weakref(null)
 
 ## The internal current value.
 ## [br]WARNING: Do not set this directly, it is automatically calculated.
@@ -216,12 +215,10 @@ var _current_value: float:
 ## attempt any unsafe changes that would break the logic & predictability of effects.
 #var _locked: bool = false
 
-# For use in [method __process] ONLY. At the end of __process these are removed from _specs
-var _pending_remove_from_specs: Array[AttributeEffectSpec] = []
-# For use in [method __process] ONLY. At the end of __process these are added to _specs
-var _pending_add_to_specs: Array[AttributeEffectSpec] = []
-
-var _history: AttributeHistory
+# For use in [method __process] ONLY. At the end of __process these are removed from _actives
+var _pending_remove_from_actives: Array[ActiveAttributeEffect] = []
+# For use in [method __process] ONLY. At the end of __process these are added to _actives
+var _pending_add_to_actives: Array[ActiveAttributeEffect] = []
 
 var _in_process: bool = false
 
@@ -238,14 +235,14 @@ func _ready() -> void:
 	if Engine.is_editor_hint():
 		return
 	
-	_specs = AttributeEffectSpecArray.new(same_priority_sorting_method)
+	_actives = ActiveAttributeEffectArray.new(same_priority_sorting_method)
 	_current_value = _validate_current_value(_base_value)
 	
-	# Find & set history
-	for child: Node in get_children():
-		if child is AttributeHistory:
-			_history = child
-			break
+	## Find & set history
+	#for child: Node in get_children():
+		#if child is AttributeHistory:
+			#_history = child
+			#break
 	
 	# Pause Tracker
 	pause_tracker.time_unit = INTERNAL_TIME_UNIT
@@ -269,12 +266,12 @@ func _exit_tree() -> void:
 func _on_unpaused(time_paused: float) -> void:
 	var paused_at: int = int(_get_ticks() - time_paused)
 	var unpaused_at: int = _get_ticks()
-	for spec: AttributeEffectSpec in _specs.iterate():
+	for active: ActiveAttributeEffect in _actives.iterate():
 		# If added during the pause, set process time to unpause time
-		if spec._tick_added_on >= paused_at:
-			spec._tick_last_processed = unpaused_at
+		if active._tick_added_on >= paused_at:
+			active._tick_last_processed = unpaused_at
 		else: # If added before pause, add time puased to process time
-			spec._tick_last_processed += time_paused
+			active._tick_last_processed += time_paused
 
 
 func _process(delta: float) -> void:
@@ -285,17 +282,17 @@ func _physics_process(delta: float) -> void:
 	__process()
 
 
-# The heart & soul of Attribute, responsible for processing & applying [AttriubteEffectSpec]s.
+# The heart & soul of Attribute, responsible for processing & applying [AttriubteEffectactive]s.
 # Should NEVER be overridden
 func __process() -> void:
 	assert(!_in_process, "__process called recursively or manually")
 	_in_process = true
-	# Iterate all specs
-	for spec: AttributeEffectSpec in _specs.iterate():
-		assert(spec != null, "_specs has null element")
+	# Iterate all actives
+	for active: ActiveAttributeEffect in _actives.iterate():
+		assert(active != null, "_actives has null element")
 		
 		# Skip if it was removed during _process
-		if !spec.is_added():
+		if !active.is_added():
 			continue
 		
 		# Store the current tick
@@ -303,76 +300,83 @@ func __process() -> void:
 		
 		# Get the amount of time since last process
 		var seconds_since_last_process: float = _ticks_to_seconds(
-		current_tick - spec.get_tick_last_processed())
+		current_tick - active.get_tick_last_processed())
 		
 		# Add to active duration
-		spec._active_duration += seconds_since_last_process
+		active._active_duration += seconds_since_last_process
 		
-		# Flag used to mark if the spec should be applied this frame
+		# Flag used to mark if the active should be applied this frame
 		var apply: bool = false
 		
 		# Mark as processing
-		spec._tick_last_processed = current_tick
+		active._tick_last_processed = current_tick
 		
 		# Duration Calculations
-		if spec.get_effect().has_duration():
-			spec.remaining_duration -= seconds_since_last_process
-			if spec.remaining_duration <= 0.0: # Expired
-				# Spec is expired at this point
-				spec._expired = true
+		if active.get_effect().has_duration():
+			active.remaining_duration -= seconds_since_last_process
+			if active.remaining_duration <= 0.0: # Expired
+				# active is expired at this point
+				active._expired = true
 				# Remove it from effect counts so that it doesn't appear in has_effect
-				_remove_from_effect_counts(spec)
+				_remove_from_effect_counts(active)
 				# Add it to be removed at the end of this function
-				_pending_remove_from_specs.append(spec)
+				_pending_remove_from_actives.append(active)
 				# Update current value if this expired
-				if spec.get_effect().is_temporary() && spec.get_effect().has_value:
+				if active.get_effect().is_temporary() && active.get_effect().has_value:
 					update_current_value()
 				# Set to apply if effect is apply on expire
-				elif spec.get_effect().is_apply_on_expire():
+				elif active.get_effect().is_apply_on_expire():
 					apply = true
 		
 		# Flag if period should be reset
 		var reset_period: bool = false
 		
 		# Period Calculations
-		if spec.get_effect().has_period():
-			spec.remaining_period -= seconds_since_last_process
-			if spec.remaining_period <= 0.0:
-				if !spec._expired: # Not expired, set to apply & mark period to reset
+		if active.get_effect().has_period():
+			active.remaining_period -= seconds_since_last_process
+			if active.remaining_period <= 0.0:
+				if !active._expired: # Not expired, set to apply & mark period to reset
 					apply = true
-					# Period should be reset as this spec is not expired
+					# Period should be reset as this active is not expired
 					reset_period = true
-				elif spec.get_effect().is_apply_on_expire_if_period_is_zero():
+				elif active.get_effect().is_apply_on_expire_if_period_is_zero():
 					# Set to apply since period is <=0 & it's expired
 					apply = true
 		
 		# Check if it should apply & is still added (could've been removed before)
-		if apply && spec.is_added():
+		if apply && active.is_added():
 			# Apply it
-			_apply_permanent_spec(spec, current_tick)
+			_apply_permanent_active(active, current_tick)
 			
 			# Mark it for removal if it hit apply limit
-			if spec.hit_apply_limit():
-				__process_to_remove[index] = spec
+			if active.hit_apply_limit():
+				__process_to_remove[index] = active
 				# Remove from effect counts instantly so has_effect return false
-				_remove_from_effect_counts(spec)
+				_remove_from_effect_counts(active)
 			
 			# Update current value
-			if _base_value != spec._last_attribute_value:
+			if _base_value != active._last_attribute_value:
 				update_current_value()
 		
 		# Reset the period
 		if reset_period:
-			spec.remaining_period += _get_modified_period(spec)
+			active.remaining_period += _get_modified_period(active)
 	
-	# Remove specs that have expired or reached application limit
+	# Remove actives that have expired or reached application limit
 	if !__process_to_remove.is_empty():
 		# Keep track of removed count to adjust next index
 		var removed_count: int = 0
-		for spec_index: int in __process_to_remove:
-			_remove_spec_at_index(__process_to_remove[spec_index], spec_index - removed_count, false)
+		for active_index: int in __process_to_remove:
+			_remove_active_at_index(__process_to_remove[active_index], active_index - removed_count, false)
 			removed_count += 1
 		__process_to_remove.clear()
+
+
+func _handle_pending_actives() -> void:
+	for active: ActiveAttributeEffect in _pending_remove_from_actives:
+		_actives.erase(active)
+	for active: ActiveAttributeEffect in _pending_add_to_actives:
+		_actives.add(active)
 
 
 func _validate_property(property: Dictionary) -> void:
@@ -487,26 +491,26 @@ func _notify_current_value_changed(prev_current_value: float) -> void:
 ## effect's conditions change.
 func update_current_value() -> void:
 	var new_current_value: float = _base_value
-	for spec: AttributeEffectSpec in _specs.iterate_temp():
+	for active: ActiveAttributeEffect in _actives.iterate_temp():
 		# Skip if not added, is expired, or has no value
-		if !spec.is_added() || spec.is_expired() || !spec.get_effect().has_value:
+		if !active.is_added() || active.is_expired() || !active.get_effect().has_value:
 			continue
-		spec._pending_current_attribute_value = new_current_value
-		spec._pending_effect_value = _get_modified_value(spec)
-		spec._pending_raw_attribute_value = spec.get_effect().apply_calculator(_base_value, new_current_value, spec._last_effect_value)
-		spec._pending_set_attribute_value = _validate_current_value(spec._pending_raw_attribute_value)
+		active._pending_current_attribute_value = new_current_value
+		active._pending_effect_value = _get_modified_value(active)
+		active._pending_raw_attribute_value = active.get_effect().apply_calculator(_base_value, new_current_value, active._last_effect_value)
+		active._pending_set_attribute_value = _validate_current_value(active._pending_raw_attribute_value)
 		
 		# Do not apply if it does not meet conditions
-		if !_test_apply_conditions(spec):
-			spec._clear_pending_values()
+		if !_test_apply_conditions(active):
+			active._clear_pending_values()
 			continue
 		
-		spec._last_effect_value = spec._pending_effect_value
-		spec._last_attribute_value = _current_value
-		spec._last_raw_attribute_value = spec._pending_raw_attribute_value
-		spec._last_set_attribute_value = spec._pending_set_attribute_value
-		spec._clear_pending_values()
-		new_current_value = spec._last_set_attribute_value
+		active._last_effect_value = active._pending_effect_value
+		active._last_attribute_value = _current_value
+		active._last_raw_attribute_value = active._pending_raw_attribute_value
+		active._last_set_attribute_value = active._pending_set_attribute_value
+		active._clear_pending_values()
+		new_current_value = active._last_set_attribute_value
 	
 	if _current_value != new_current_value:
 		var prev_current_value: float = _current_value
@@ -514,17 +518,17 @@ func update_current_value() -> void:
 		current_value_changed.emit(prev_current_value)
 
 
-## Returns a new [Array] (safe to mutate) of the current [AttributeEffectSpec]s.
-## The specs themselves are NOT duplicated.
-## [br]If [param ignore_expired] is true, specs that are expired OR hit their apply limit
+## Returns a new [Array] (safe to mutate) of the current [ActiveAttributeEffect]s.
+## The actives themselves are NOT duplicated.
+## [br]If [param ignore_expired] is true, actives that are expired OR hit their apply limit
 ## are ignored, otherwise they are included (not recommended for most cases).
-func get_specs(ignore_expired: bool = true) -> Array[AttributeEffectSpec]:
+func get_actives(ignore_expired: bool = true) -> Array[ActiveAttributeEffect]:
 	if ignore_expired:
-		return _specs._array.filter(
-			func (spec: AttributeEffectSpec) -> bool:
-			return !ignore_expired || (!spec.is_expired() && !spec.hit_apply_limit())
+		return _actives._array.filter(
+			func (active: ActiveAttributeEffect) -> bool:
+			return !ignore_expired || (!active.is_expired() && !active.hit_apply_limit())
 			)
-	return _specs._array.duplicate(false)
+	return _actives._array.duplicate(false)
 
 
 ## Returns a new [Array] (safe to mutate) of all current [AttributeEffect]s.
@@ -537,7 +541,7 @@ func get_effects() -> Array[AttributeEffect]:
 
 
 ## Returns a new [Dictionary] (safe to mutate) of all current [AttributeEffect]s as keys,
-## and the integer count of the amount of [AttributeEffectSpec]s of each effect as values.
+## and the integer count of the amount of [ActiveAttributeEffect]s of each effect as values.
 ## The effects themselves are NOT duplicated.
 ## [br]NOTE: If this is called mid process, expired effects & effects that have hit their
 ## apply limit are internally still present as they're removed at the end of the frame, 
@@ -546,8 +550,8 @@ func get_effects_with_counts() -> Dictionary:
 	return _effect_counts.duplicate(false)
 
 
-## Returns true if the [param effect] is present and has one or more [AttributeEffectSpec]s
-## applied to this [Attribute], false if not. Does not account for any specs that are
+## Returns true if the [param effect] is present and has one or more [ActiveAttributeEffect]s
+## applied to this [Attribute], false if not. Does not account for any actives that are
 ## expired & not yet removed (during the processing).
 ## [br]NOTE: If this is called mid process, expired effects & effects that have hit their
 ## apply limit are internally still present as they're removed at the end of the frame, 
@@ -557,7 +561,7 @@ func has_effect(effect: AttributeEffect) -> bool:
 	return _effect_counts.has(effect)
 
 
-## Returns the total amount of [AttributeEffectSpec]s whose effect is [param effect].
+## Returns the total amount of [ActiveAttributeEffect]s whose effect is [param effect].
 ## Highly efficient as it simply uses [method Dictionary.get] on an internally managed dictionary.
 ## [br]NOTE: If this is called mid process, expired effects & effects that have hit their
 ## apply limit are internally still present as they're removed at the end of the frame, 
@@ -567,200 +571,200 @@ func get_effect_count(effect: AttributeEffect) -> int:
 	return _effect_counts.get(effect, 0)
 
 
-## Returns true if [param spec] is currently applied to this [Attribute], false if not.
-func has_spec(spec: AttributeEffectSpec) -> bool:
-	assert(spec != null, "spec is null")
-	return spec.is_added() && _specs.has(spec)
+## Returns true if [param active] is currently applied to this [Attribute], false if not.
+func has_active(active: ActiveAttributeEffect) -> bool:
+	assert(active != null, "active is null")
+	return active.is_added() && _actives.has(active)
 
 
-## Searches through all active [AttributeEffectSpec]s and returns a new [Array] of all specs
-## whose [method AttributEffectSpec.get_effect] equals [param effect].
-## [br]If [param ignore_expired] is true, specs that are expired OR hit their apply limit
+## Searches through all active [ActiveAttributeEffect]s and returns a new [Array] of all actives
+## whose [method AttributEffectactive.get_effect] equals [param effect].
+## [br]If [param ignore_expired] is true, actives that are expired OR hit their apply limit
 ## are ignored, otherwise they are included (not recommended for most cases).
-func find_specs(effect: AttributeEffect, ignore_expired: bool = true) -> Array[AttributeEffectSpec]:
-	var specs: Array[AttributeEffectSpec] = []
-	for spec: AttributeEffectSpec in _specs.iterate():
-		if spec.get_effect() == effect:
-			if ignore_expired && (spec.is_expired() || spec.hit_apply_limit()):
+func find_actives(effect: AttributeEffect, ignore_expired: bool = true) -> Array[ActiveAttributeEffect]:
+	var actives: Array[ActiveAttributeEffect] = []
+	for active: ActiveAttributeEffect in _actives.iterate():
+		if active.get_effect() == effect:
+			if ignore_expired && (active.is_expired() || active.hit_apply_limit()):
 				continue
-			specs.append(spec)
+			actives.append(active)
 			continue
-	return specs
+	return actives
 
 
-## Searches through all active [AttributeEffectSpec]s and returns the first spec
-## whose [method AttributEffectSpec.get_effect] equals [param effect]. Returns null
-## if there is no spec of [param effect]. Useful when you know that the [param effect]'s
+## Searches through all active [ActiveAttributeEffect]s and returns the first active
+## whose [method AttributEffectactive.get_effect] equals [param effect]. Returns null
+## if there is no active of [param effect]. Useful when you know that the [param effect]'s
 ## stack mode is COMBINE, DENY, or DENY_ERROR as in those cases there can only 
 ## be one instance of the effect.
-## [br]If [param ignore_expired] is true, specs that are expired OR hit their apply limit
+## [br]If [param ignore_expired] is true, actives that are expired OR hit their apply limit
 ## are ignored, otherwise they are included (not recommended for most cases).
-func find_first_spec(effect: AttributeEffect, ignore_expired: bool = true) -> AttributeEffectSpec:
-	for spec: AttributeEffectSpec in _specs.iterate():
-		if spec.get_effect() == effect:
-			if ignore_expired && (spec.is_expired() || spec.hit_apply_limit()):
+func find_first_active(effect: AttributeEffect, ignore_expired: bool = true) -> ActiveAttributeEffect:
+	for active: ActiveAttributeEffect in _actives.iterate():
+		if active.get_effect() == effect:
+			if ignore_expired && (active.is_expired() || active.hit_apply_limit()):
 				continue
-			return spec
+			return active
 	return null
 
 
-## Creates an [AttributeEffectSpec] from the [param effect] via [method AttriubteEffect.to_spec]
-## and then calls [method add_specs]
+## Creates an [ActiveAttributeEffect] from the [param effect] via [method AttriubteEffect.to_active]
+## and then calls [method add_actives]
 func add_effect(effect: AttributeEffect) -> void:
 	assert(allow_effects, "allow_effects is false for %s" % self)
 	add_effects([effect], false)
 
 
-## Creates an [AttributeEffectSpec] from each of the [param effects] via 
-## [method AttriubteEffect.to_spec] and then calls [method add_specs].
-## [param sort_by_priority] determines what order the specified effects should be applied in (if
+## Creates an [ActiveAttributeEffect] from each of the [param effects] via 
+## [method AttriubteEffect.to_active] and then calls [method add_actives].
+## [param sort_by_priority] determines what order the activeified effects should be applied in (if
 ## any are to be applied instantly). If true, they are sorted by their [member AttributeEffect.priority],
-## if false they are applied in the order of the specified [param effects] array.
+## if false they are applied in the order of the activeified [param effects] array.
 func add_effects(effects: Array[AttributeEffect], sort_by_priority: bool = true) -> void:
 	assert(allow_effects, "allow_effects is false for %s" % self)
 	assert(!effects.has(null), "effects has null element")
-	var specs: Array[AttributeEffectSpec] = []
+	var actives: Array[ActiveAttributeEffect] = []
 	for effect: AttributeEffect in effects:
-		specs.append(effect.to_spec())
-	add_specs(specs, sort_by_priority)
+		actives.append(effect.to_active())
+	add_actives(actives, sort_by_priority)
 
 
-## Adds [param spec] to a new [Array], then calls [method add_specs]
-func add_spec(spec: AttributeEffectSpec) -> void:
+## Adds [param active] to a new [Array], then calls [method add_actives]
+func add_active(active: ActiveAttributeEffect) -> void:
 	assert(allow_effects, "allow_effects is false for %s" % self)
-	assert(spec != null, "spec is null")
-	add_specs([spec], false)
+	assert(active != null, "active is null")
+	add_actives([active], false)
 
 
-## Adds (& possibly applies) of each of the [param specs]. Can result in immediate
-## changes to the base value & current value, depending on the provided [param specs]. 
-## [param sort_by_priority] determines what order the specified specs should be applied in (if
+## Adds (& possibly applies) of each of the [param actives]. Can result in immediate
+## changes to the base value & current value, depending on the provided [param actives]. 
+## [param sort_by_priority] determines what order the activeified actives should be applied in (if
 ## any are to be applied instantly). If true, they are sorted by their [member AttributeEffect.priority],
-## if false they are applied in the order of the specified [param specs] array.
+## if false they are applied in the order of the activeified [param actives] array.
 ## [br][b]There are multiple considerations when calling this function:[/b]
-## [br]  - If a spec has stack_mode COMBINE, it is stacked to the existing spec of the same 
-## [AttributeEffect], and thus not added. The new stack count is the existing's + the new spec's
+## [br]  - If a active has stack_mode COMBINE, it is stacked to the existing active of the same 
+## [AttributeEffect], and thus not added. The new stack count is the existing's + the new active's
 ## stack count.
-## [br]  - If a spec is PERMANENT, it is applied when it is added unless the spec has an initial period.
+## [br]  - If a active is PERMANENT, it is applied when it is added unless the active has an initial period.
 ## [br]  - If TEMPORARY, it is not applied, however the current_value is updated instantly.
 ## [br]  - If INSTANT, it is not added, only applied.
-## [br]  - Specs are initialized unless already initialized or are stacked instead of added.
-func add_specs(specs: Array[AttributeEffectSpec], sort_by_priority: bool = true) -> void:
+## [br]  - actives are initialized unless already initialized or are stacked instead of added.
+func add_actives(actives: Array[ActiveAttributeEffect], sort_by_priority: bool = true) -> void:
 	assert(allow_effects, "allow_effects is false for %s" % self)
-	assert(!specs.has(null), "specs has null element")
+	assert(!actives.has(null), "actives has null element")
 	
 	var current_tick: int = _get_ticks()
 	
 	# Define array to use
-	var specs_to_add: Array[AttributeEffectSpec] = specs
+	var actives_to_add: Array[ActiveAttributeEffect] = actives
 	# Duplicate & sort array if sort_by_priority is true
 	if sort_by_priority:
-		specs_to_add = specs.duplicate(false)
-		specs_to_add.sort_custom(_specs._sort_new_before_other)
+		actives_to_add = actives.duplicate(false)
+		actives_to_add.sort_custom(_actives._sort_new_before_other)
 	
-	# Iterate specs to apply
-	for spec: AttributeEffectSpec in specs_to_add:
-		assert(!spec.is_added(), "spec (%s) already added" % spec)
+	# Iterate actives to apply
+	for active: ActiveAttributeEffect in actives_to_add:
+		assert(!active.is_added(), "active (%s) already added" % active)
 		
-		# Throw error if spec's effect exists & has StackMode.DENY_ERROR
-		assert(spec.get_effect().stack_mode != AttributeEffect.StackMode.DENY_ERROR or \
-		!has_effect(spec.get_effect()), 
-		"spec (%s)'s effect stack_mode == DENY_ERROR but stacking was attempted on attribute %s" \
-		% [spec, self])
+		# Throw error if active's effect exists & has StackMode.DENY_ERROR
+		assert(active.get_effect().stack_mode != AttributeEffect.StackMode.DENY_ERROR or \
+		!has_effect(active.get_effect()), 
+		"active (%s)'s effect stack_mode == DENY_ERROR but stacking was attempted on attribute %s" \
+		% [active, self])
 		
 		# Effect is instant, ignore other logic & apply it
-		if spec.get_effect().is_instant():
-			spec._last_add_result = AddEffectResult.INSTANT_CANT_ADD
-			_apply_permanent_spec(spec, current_tick)
+		if active.get_effect().is_instant():
+			active._last_add_result = AddEffectResult.INSTANT_CANT_ADD
+			_apply_permanent_active(active, current_tick)
 			continue
 		
 		# Do not stack if DENY or DENY_ERROR & effect already exists
-		if (spec.get_effect().stack_mode == AttributeEffect.StackMode.DENY or \
-		spec.get_effect().stack_mode == AttributeEffect.StackMode.DENY_ERROR) and \
-		has_effect(spec.get_effect()):
-			spec._last_add_result = AddEffectResult.STACK_DENIED
+		if (active.get_effect().stack_mode == AttributeEffect.StackMode.DENY or \
+		active.get_effect().stack_mode == AttributeEffect.StackMode.DENY_ERROR) and \
+		has_effect(active.get_effect()):
+			active._last_add_result = AddEffectResult.STACK_DENIED
 			continue
 		
 		# Check add conditions & blockers
-		if !_test_add_conditions(spec):
+		if !_test_add_conditions(active):
 			continue
 		
-		# Handle COMBINE stacking (only if a spec of the same effect already exists)
-		if spec.get_effect().stack_mode == AttributeEffect.StackMode.COMBINE \
-		and has_effect(spec.get_effect()):
-			var existing: AttributeEffectSpec = find_first_spec(spec.get_effect())
+		# Handle COMBINE stacking (only if a active of the same effect already exists)
+		if active.get_effect().stack_mode == AttributeEffect.StackMode.COMBINE \
+		and has_effect(active.get_effect()):
+			var existing: ActiveAttributeEffect = find_first_active(active.get_effect())
 			assert(existing != null, ("existing is null, but has_effect returned true " + \
-			"for spec %s") % spec)
-			spec._last_add_result = AddEffectResult.STACKED
-			_add_to_stack(spec, spec.get_stack_count())
-			# Update current value if a temporary spec is added
+			"for active %s") % active)
+			active._last_add_result = AddEffectResult.STACKED
+			_add_to_stack(active, active.get_stack_count())
+			# Update current value if a temporary active is added
 			# TODO Determine if I should apply here
-			if spec.get_effect().is_temporary() && spec.get_effect().has_value:
+			if active.get_effect().is_temporary() && active.get_effect().has_value:
 				update_current_value()
 			continue
 		
 		# Initialize if not done so
-		if !spec.is_initialized():
-			_initialize_spec(spec)
+		if !active.is_initialized():
+			_initialize_active(active)
 		
 		# Ensure duration is valid
-		assert(!spec.get_effect().has_duration() || spec.remaining_duration > 0.0,
-		"spec (%s) has a remaining_duration <= 0.0" % spec)
+		assert(!active.get_effect().has_duration() || active.remaining_duration > 0.0,
+		"active (%s) has a remaining_duration <= 0.0" % active)
 		
 		# Run pre_add callbacks
-		_run_callbacks(spec, AttributeEffectCallback._Function.PRE_ADD)
+		_run_callbacks(active, AttributeEffectCallback._Function.PRE_ADD)
 		
 		# At this point it can be added
-		spec._is_added = true
-		spec._last_add_result = AddEffectResult.ADDED
-		spec._tick_added_on = current_tick
-		spec._tick_last_processed = current_tick
+		active._is_added = true
+		active._last_add_result = AddEffectResult.ADDED
+		active._tick_added_on = current_tick
+		active._tick_last_processed = current_tick
 		
 		# Add to array
-		var index: int = _specs.add(spec)
+		var index: int = _actives.add(active)
 		
 		# Add to _effect_counts
-		var new_count: int = _effect_counts.get(spec.get_effect(), 0) + 1
-		_effect_counts[spec.get_effect().id] = new_count
+		var new_count: int = _effect_counts.get(active.get_effect(), 0) + 1
+		_effect_counts[active.get_effect().id] = new_count
 		
 		# Run callbacks & emit signal
-		_run_callbacks(spec, AttributeEffectCallback._Function.ADDED)
-		if spec.get_effect().should_emit_added_signal():
-			spec_added.emit(spec)
+		_run_callbacks(active, AttributeEffectCallback._Function.ADDED)
+		if active.get_effect().should_emit_added_signal():
+			active_added.emit(active)
 		
-		# Update current value if a temporary spec is added & has value
-		if spec.get_effect().is_temporary() && spec.get_effect().has_value:
+		# Update current value if a temporary active is added & has value
+		if active.get_effect().is_temporary() && active.get_effect().has_value:
 			update_current_value()
 			continue
 		
 		# Apply it if initial period <= 0.0
-		if spec.get_effect().has_period() && spec.remaining_period <= 0.0:
-			_apply_permanent_spec(spec, current_tick)
+		if active.get_effect().has_period() && active.remaining_period <= 0.0:
+			_apply_permanent_active(active, current_tick)
 			
 			# Remove if it hit apply limit
-			if spec.hit_apply_limit():
-				_remove_spec_at_index(spec, index, true)
+			if active.hit_apply_limit():
+				_remove_active_at_index(active, index, true)
 			else: # Update period
-				spec.remaining_period += _get_modified_period(spec)
+				active.remaining_period += _get_modified_period(active)
 			
 			# Update the current value
-			if _base_value != spec._last_prior_attribute_value:
+			if _base_value != active._last_prior_attribute_value:
 				update_current_value()
 	
 	_locked = false
 
 
-## Removes all [AttributeEffectSpec]s whose effect equals [param effect]. Returns true
-## if 1 or more specs were removed, false if none were removed.
+## Removes all [ActiveAttributeEffect]s whose effect equals [param effect]. Returns true
+## if 1 or more actives were removed, false if none were removed.
 func remove_effect(effect: AttributeEffect) -> bool:
 	assert(!_locked, "Attribute is locked, use call_deferred on this function")
 	_locked = true
 	
 	var removed: bool = false
-	for index: int in _specs.iterate_reverse():
-		var spec: AttributeEffectSpec = _specs._array[index]
-		if spec.get_effect() == effect:
-			_remove_spec_at_index(spec, index, true)
+	for index: int in _actives.iterate_reverse():
+		var active: ActiveAttributeEffect = _actives._array[index]
+		if active.get_effect() == effect:
+			_remove_active_at_index(active, index, true)
 			removed = true
 	
 	if removed && effect.is_temporary() && effect.has_value:
@@ -770,8 +774,8 @@ func remove_effect(effect: AttributeEffect) -> bool:
 	return removed
 
 
-## Removes all [AttributeEffectSpec]s whose effect is present in [param effects]. 
-## Returns true if 1 or more specs were removed, false if none were removed.
+## Removes all [ActiveAttributeEffect]s whose effect is present in [param effects]. 
+## Returns true if 1 or more actives were removed, false if none were removed.
 func remove_effects(effects: Array[AttributeEffect]) -> bool:
 	assert(!_locked, "Attribute is locked, use call_deferred on this function")
 	assert(!effects.has(null), "effects has null element")
@@ -779,12 +783,12 @@ func remove_effects(effects: Array[AttributeEffect]) -> bool:
 	
 	var removed: bool = false
 	var temporary_removed: bool = false
-	for index: int in _specs.iterate_reverse():
-		var spec: AttributeEffectSpec = _specs._array[index]
-		if effects.has(spec.get_effect()):
-			_remove_spec_at_index(spec, index, true)
+	for index: int in _actives.iterate_reverse():
+		var active: ActiveAttributeEffect = _actives._array[index]
+		if effects.has(active.get_effect()):
+			_remove_active_at_index(active, index, true)
 			removed = true
-			if spec.get_effect().is_temporary() && spec.get_effect().has_value:
+			if active.get_effect().is_temporary() && active.get_effect().has_value:
 				temporary_removed = true
 	
 	if temporary_removed:
@@ -794,36 +798,36 @@ func remove_effects(effects: Array[AttributeEffect]) -> bool:
 	return removed
 
 
-## Removes the [param spec], returning true if removed, false if not.
-func remove_spec(spec: AttributeEffectSpec) -> bool:
+## Removes the [param active], returning true if removed, false if not.
+func remove_active(active: ActiveAttributeEffect) -> bool:
 	assert(!_locked, "Attribute is locked, use call_deferred on this function")
-	if !has_spec(spec):
+	if !has_active(active):
 		return false
 	_locked = true
-	_pre_remove_spec(spec)
-	_specs.erase(spec)
-	_has_specs = !_specs.is_empty()
-	_remove_from_effect_counts(spec)
-	_post_remove_spec(spec)
-	if spec.get_effect().is_temporary() && spec.get_effect().has_value:
+	_pre_remove_active(active)
+	_actives.erase(active)
+	_has_actives = !_actives.is_empty()
+	_remove_from_effect_counts(active)
+	_post_remove_active(active)
+	if active.get_effect().is_temporary() && active.get_effect().has_value:
 		update_current_value()
 	_locked = false
 	return true
 
 
-## Removes all [param specs], returning true if 1 or more were removed, false if 
+## Removes all [param actives], returning true if 1 or more were removed, false if 
 ## none were removed.
-func remove_specs(specs: Array[AttributeEffectSpec]) -> bool:
+func remove_actives(actives: Array[ActiveAttributeEffect]) -> bool:
 	assert(!_locked, "Attribute is locked, use call_deferred on this function")
 	_locked = true
 	var removed: bool = false
 	var temporary_removed: bool = false
-	for index: int in _specs.iterate_reverse():
-		var spec: AttributeEffectSpec = _specs._array[index]
-		if specs.has(spec):
-			_remove_spec_at_index(spec, index, true)
+	for index: int in _actives.iterate_reverse():
+		var active: ActiveAttributeEffect = _actives._array[index]
+		if actives.has(active):
+			_remove_active_at_index(active, index, true)
 			removed = true
-			if spec.get_effect().is_temporary() && spec.get_effect().has_value:
+			if active.get_effect().is_temporary() && active.get_effect().has_value:
 				temporary_removed = true
 	
 	if temporary_removed:
@@ -832,253 +836,253 @@ func remove_specs(specs: Array[AttributeEffectSpec]) -> bool:
 	return removed
 
 
-## Manually removes all [AttributeEffectSpec]s, or instantly removes them if
+## Manually removes all [ActiveAttributeEffect]s, or instantly removes them if
 ## [method is_in_process_loop] returns false.
-func remove_all_specs() -> void:
+func remove_all_actives() -> void:
 	assert(!_locked, "Attribute is locked, use call_deferred on this function")
 	_locked = true
 	
-	var removed_specs: Array[AttributeEffectSpec] = _specs._array.duplicate(false)
-	for spec: AttributeEffectSpec in _specs.iterate():
-		_pre_remove_spec(spec)
-	_specs.clear()
-	_has_specs = false
+	var removed_actives: Array[ActiveAttributeEffect] = _actives._array.duplicate(false)
+	for active: ActiveAttributeEffect in _actives.iterate():
+		_pre_remove_active(active)
+	_actives.clear()
+	_has_actives = false
 	_effect_counts.clear()
 	
-	for spec: AttributeEffectSpec in removed_specs:
-		_post_remove_spec(spec)
+	for active: ActiveAttributeEffect in removed_actives:
+		_post_remove_active(active)
 	
 	_current_value = _validate_current_value(_base_value)
 	_locked = false
 
 
-func _remove_from_effect_counts(spec: AttributeEffectSpec) -> void:
-	if _effect_counts.has(spec.get_effect()):
-		var new_count: int = _effect_counts[spec.get_effect().id] - 1
+func _remove_from_effect_counts(active: ActiveAttributeEffect) -> void:
+	if _effect_counts.has(active.get_effect()):
+		var new_count: int = _effect_counts[active.get_effect().id] - 1
 		if new_count <= 0:
-			_effect_counts.erase(spec.get_effect())
+			_effect_counts.erase(active.get_effect())
 		else:
-			_effect_counts[spec.get_effect().id] = new_count
+			_effect_counts[active.get_effect().id] = new_count
 
 
-func _remove_spec_at_index(spec: AttributeEffectSpec, index: int, from_effect_counts: bool) -> void:
-	_pre_remove_spec(spec)
-	_specs.remove_at(spec, index)
-	_has_specs = !_specs.is_empty()
+func _remove_active_at_index(active: ActiveAttributeEffect, index: int, from_effect_counts: bool) -> void:
+	_pre_remove_active(active)
+	_actives.remove_at(active, index)
+	_has_actives = !_actives.is_empty()
 	if from_effect_counts:
-		_remove_from_effect_counts(spec)
-	_post_remove_spec(spec)
+		_remove_from_effect_counts(active)
+	_post_remove_active(active)
 
 
-func _pre_remove_spec(spec: AttributeEffectSpec) -> void:
-	_run_callbacks(spec, AttributeEffectCallback._Function.PRE_REMOVE)
-	spec._is_added = false
-	spec._is_applying = false
+func _pre_remove_active(active: ActiveAttributeEffect) -> void:
+	_run_callbacks(active, AttributeEffectCallback._Function.PRE_REMOVE)
+	active._is_added = false
+	active._is_applying = false
 
 
-func _post_remove_spec(spec: AttributeEffectSpec) -> void:
-	if spec.get_effect().should_emit_removed_signal():
-		spec_removed.emit(spec)
-	_run_callbacks(spec, AttributeEffectCallback._Function.REMOVED)
+func _post_remove_active(active: ActiveAttributeEffect) -> void:
+	if active.get_effect().should_emit_removed_signal():
+		active_removed.emit(active)
+	_run_callbacks(active, AttributeEffectCallback._Function.REMOVED)
 
 
-## Tests the addition of [param spec] by evaluating it's potential add [AttributeEffectCondition]s
+## Tests the addition of [param active] by evaluating it's potential add [AttributeEffectCondition]s
 ## and that of all BLOCKER type effects.
-func _test_add_conditions(spec: AttributeEffectSpec) -> bool:
-	# Check spec's own conditions
-	if spec.get_effect().has_add_conditions():
-		if !_test_conditions(spec, spec, spec.get_effect().add_conditions, spec_add_blocked):
-			spec._last_add_result = AddEffectResult.BLOCKED_BY_CONDITION
+func _test_add_conditions(active: ActiveAttributeEffect) -> bool:
+	# Check active's own conditions
+	if active.get_effect().has_add_conditions():
+		if !_test_conditions(active, active, active.get_effect().add_conditions, active_add_blocked):
+			active._last_add_result = AddEffectResult.BLOCKED_BY_CONDITION
 			return false
 	
 	# Iterate BLOCKER effects
-	if _specs.has_blockers():
-		for blocker: AttributeEffectSpec in _specs.iterate_blockers():
+	if _actives.has_blockers():
+		for blocker: ActiveAttributeEffect in _actives.iterate_blockers():
 			# Ignore expired - they arent removed until later in the frame sometimes
 			if blocker.is_expired():
 				continue
 			
-			if !_test_conditions(spec, blocker, blocker.get_effect().add_blockers, spec_add_blocked):
-				spec._last_add_result = AddEffectResult.BLOCKED_BY_BLOCKER
+			if !_test_conditions(active, blocker, blocker.get_effect().add_blockers, active_add_blocked):
+				active._last_add_result = AddEffectResult.BLOCKED_BY_BLOCKER
 				return false
 	
 	return true
 
 
-## Tests the applying of [param spec] by evaluating it's potential apply [AttributeEffectCondition]s
+## Tests the applying of [param active] by evaluating it's potential apply [AttributeEffectCondition]s
 ## and that of all BLOCKER type effects.
-func _test_apply_conditions(spec: AttributeEffectSpec) -> bool:
-	# Check spec's own conditions
-	if spec.get_effect().has_apply_conditions():
-		if !_test_conditions(spec, spec, spec.get_effect().apply_conditions, spec_apply_blocked):
-			spec._is_applying = false
+func _test_apply_conditions(active: ActiveAttributeEffect) -> bool:
+	# Check active's own conditions
+	if active.get_effect().has_apply_conditions():
+		if !_test_conditions(active, active, active.get_effect().apply_conditions, active_apply_blocked):
+			active._is_applying = false
 			return false
 	
 	# Iterate BLOCKER effects
-	if _specs.has_blockers():
-		for blocker: AttributeEffectSpec in _specs.iterate_blockers():
+	if _actives.has_blockers():
+		for blocker: ActiveAttributeEffect in _actives.iterate_blockers():
 			# Ignore expired - they arent removed until later in the frame sometimes
 			if blocker.is_expired():
 				continue
 			
-			if !_test_conditions(spec, blocker, blocker.get_effect().apply_blockers, spec_apply_blocked):
-				spec._is_applying = false
+			if !_test_conditions(active, blocker, blocker.get_effect().apply_blockers, active_apply_blocked):
+				active._is_applying = false
 				return false
-	spec._is_applying = true
+	active._is_applying = true
 	return true
 
 
-func _test_conditions(spec_to_test: AttributeEffectSpec, condition_source: AttributeEffectSpec,
+func _test_conditions(active_to_test: ActiveAttributeEffect, condition_source: ActiveAttributeEffect,
  conditions: Array[AttributeEffectCondition], _signal: Signal) -> bool:
 	for condition: AttributeEffectCondition in conditions:
-		if !condition.meets_condition(self, spec_to_test):
-			spec_to_test._last_blocked_by = condition
+		if !condition.meets_condition(self, active_to_test):
+			active_to_test._last_blocked_by = condition
 			if condition.emit_blocked_signal:
-				_signal.emit(spec_to_test, condition_source)
+				_signal.emit(active_to_test, condition_source)
 			return false
 	return true
 
 
 func _update_processing() -> void:
-	var can_process: bool = !Engine.is_editor_hint() && _has_specs && allow_effects
+	var can_process: bool = !Engine.is_editor_hint() && _has_actives && allow_effects
 	set_process(can_process && effects_process_function == ProcessFunction.PROCESS)
 	set_physics_process(can_process && effects_process_function == ProcessFunction.PHYSICS_PROCESS)
 
 
-func _get_modified_value(spec: AttributeEffectSpec) -> float:
-	var modified_value: float = spec.get_effect().value.get_modified(self, spec)
-	for modifier_spec: AttributeEffectSpec in _specs.iterate_modifiers():
-		if modifier_spec.is_expired():
+func _get_modified_value(active: ActiveAttributeEffect) -> float:
+	var modified_value: float = active.get_effect().value.get_modified(self, active)
+	for modifier_active: ActiveAttributeEffect in _actives.iterate_modifiers():
+		if modifier_active.is_expired():
 			continue
-		modified_value = modifier_spec.get_effect().value_modifiers.modify_value(modified_value, self, spec)
+		modified_value = modifier_active.get_effect().value_modifiers.modify_value(modified_value, self, active)
 	return modified_value
 
 
-func _get_modified_period(spec: AttributeEffectSpec) -> float:
-	var modified_period: float = spec.get_effect().period_in_seconds.get_modified(self, spec)
-	for modifier_spec: AttributeEffectSpec in _specs.iterate_modifiers():
-		if modifier_spec.is_expired():
+func _get_modified_period(active: ActiveAttributeEffect) -> float:
+	var modified_period: float = active.get_effect().period_in_seconds.get_modified(self, active)
+	for modifier_active: ActiveAttributeEffect in _actives.iterate_modifiers():
+		if modifier_active.is_expired():
 			continue
-		modified_period = modifier_spec.get_effect().period_modifiers.modify_period(modified_period, self, spec)
+		modified_period = modifier_active.get_effect().period_modifiers.modify_period(modified_period, self, active)
 
 	return modified_period
 
-func _get_modified_duration(spec: AttributeEffectSpec) -> float:
-	var modified_duration: float = spec.get_effect().duration_in_seconds.get_modified(self, spec)
-	for modifier_spec: AttributeEffectSpec in _specs.iterate_modifiers():
-		if modifier_spec.is_expired():
+func _get_modified_duration(active: ActiveAttributeEffect) -> float:
+	var modified_duration: float = active.get_effect().duration_in_seconds.get_modified(self, active)
+	for modifier_active: ActiveAttributeEffect in _actives.iterate_modifiers():
+		if modifier_active.is_expired():
 			continue
-		modified_duration = modifier_spec.get_effect().duration_modifiers.modify_duration(modified_duration, self, spec)
+		modified_duration = modifier_active.get_effect().duration_modifiers.modify_duration(modified_duration, self, active)
 	return modified_duration
 
 
-func _initialize_spec(spec: AttributeEffectSpec) -> void:
-	assert(!spec.is_initialized(), "spec (%s) already initialized" % spec)
-	if spec.get_effect().has_period() && spec.get_effect().initial_period:
-		spec.remaining_period = _get_modified_period(spec)
-	if spec.get_effect().has_duration():
-		spec.remaining_duration = _get_modified_duration(spec)
-	spec._initialized = true
+func _initialize_active(active: ActiveAttributeEffect) -> void:
+	assert(!active.is_initialized(), "active (%s) already initialized" % active)
+	if active.get_effect().has_period() && active.get_effect().initial_period:
+		active.remaining_period = _get_modified_period(active)
+	if active.get_effect().has_duration():
+		active.remaining_duration = _get_modified_duration(active)
+	active._initialized = true
 
 
-## Applies the [param spec]. Returns true if it should be removed (hit apply limit),
+## Applies the [param active]. Returns true if it should be removed (hit apply limit),
 ## false if not. Does not update the current value, that must be done manually after.
-func _apply_permanent_spec(spec: AttributeEffectSpec, current_tick: int) -> void:
+func _apply_permanent_active(active: ActiveAttributeEffect, current_tick: int) -> void:
 	# Set pending current value
-	spec._pending_current_attribute_value = _base_value
+	active._pending_current_attribute_value = _base_value
 	
 	# Get the modified value
-	spec._pending_effect_value = _get_modified_value(spec)
+	active._pending_effect_value = _get_modified_value(active)
 	
 	# Calculate the attribute's new value
-	spec._pending_raw_attribute_value = spec.get_effect().apply_calculator(_base_value, 
-	_current_value, spec._pending_effect_value)
+	active._pending_raw_attribute_value = active.get_effect().apply_calculator(_base_value, 
+	_current_value, active._pending_effect_value)
 	
 	# Validate the attribute's value
-	spec._pending_set_attribute_value = _validate_base_value(spec._pending_raw_attribute_value)
+	active._pending_set_attribute_value = _validate_base_value(active._pending_raw_attribute_value)
 	
 	# Check apply conditions
-	if !_test_apply_conditions(spec):
-		spec._clear_pending_values()
+	if !_test_apply_conditions(active):
+		active._clear_pending_values()
 		return
 	
 	# Set "last" values
-	spec._last_effect_value = spec._pending_effect_value
-	spec._last_prior_attribute_value = _base_value
-	spec._last_raw_attribute_value = spec._pending_raw_attribute_value
-	spec._last_set_attribute_value = spec._pending_set_attribute_value
+	active._last_effect_value = active._pending_effect_value
+	active._last_prior_attribute_value = _base_value
+	active._last_raw_attribute_value = active._pending_raw_attribute_value
+	active._last_set_attribute_value = active._pending_set_attribute_value
 	
 	# Clear pending value
-	spec._clear_pending_values()
+	active._clear_pending_values()
 	
 	# Increase apply count
-	spec._apply_count += 1
+	active._apply_count += 1
 	
 	# Set tick last applied
-	spec._tick_last_applied = current_tick
+	active._tick_last_applied = current_tick
 	
 	# Add to history
-	if has_history() && spec.get_effect().should_log_history():
-		_history._add_to_history(spec) 
+	if has_history() && active.get_effect().should_log_history():
+		_history._add_to_history(active) 
 	
 	# Apply it
-	_base_value = spec._last_set_attribute_value
-	if _base_value != spec._last_prior_attribute_value:
-		base_value_changed.emit(spec._last_prior_attribute_value, spec)
+	_base_value = active._last_set_attribute_value
+	if _base_value != active._last_prior_attribute_value:
+		base_value_changed.emit(active._last_prior_attribute_value, active)
 	
 	# Emit signals
-	_run_callbacks(spec, AttributeEffectCallback._Function.APPLIED)
-	if spec.get_effect().should_emit_applied_signal():
-		permanent_spec_applied.emit(spec)
+	_run_callbacks(active, AttributeEffectCallback._Function.APPLIED)
+	if active.get_effect().should_emit_applied_signal():
+		permanent_active_applied.emit(active)
 
 
 # Adds [param amount] to the effect stack. This effect must be stackable
 # (see [method is_stackable]) and [param amount] must be > 0.
 # [br]Automatically emits [signal effect_stack_count_changed].
-func _add_to_stack(spec: AttributeEffectSpec, amount: int = 1) -> void:
-	assert(spec.get_effect().is_stackable(), "spec (%s) not stackable" % spec)
+func _add_to_stack(active: ActiveAttributeEffect, amount: int = 1) -> void:
+	assert(active.get_effect().is_stackable(), "active (%s) not stackable" % active)
 	assert(amount > 0, "amount(%s) <= 0" % amount)
 	
-	var previous_stack_count: int = spec._stack_count
-	spec._stack_count += amount
-	_run_stack_callbacks(spec, previous_stack_count)
-	spec_stack_count_changed.emit(spec, previous_stack_count)
+	var previous_stack_count: int = active._stack_count
+	active._stack_count += amount
+	_run_stack_callbacks(active, previous_stack_count)
+	active_stack_count_changed.emit(active, previous_stack_count)
 
 
 # Removes [param amount] from the effect stack. This effect must be stackable
 # (see [method is_stackable]), [param amount] must be > 0, and 
 # [method get_stack_count] - [param amount] must be > 0.
 # [br]Automatically emits [signal effect_stack_count_changed].
-func _remove_from_stack(spec: AttributeEffectSpec, amount: int = 1) -> void:
-	assert(spec.get_effect().is_stackable(), "spec (%s) not stackable" % spec)
+func _remove_from_stack(active: ActiveAttributeEffect, amount: int = 1) -> void:
+	assert(active.get_effect().is_stackable(), "active (%s) not stackable" % active)
 	assert(amount > 0, "amount(%s) <= 0" % amount)
-	assert(spec._stack_count - amount > 0, "amount(%s) - spec._stack_count(%s) <= 0 fopr spec (%s)"\
-		% [amount, spec._stack_count, spec])
+	assert(active._stack_count - amount > 0, "amount(%s) - active._stack_count(%s) <= 0 fopr active (%s)"\
+		% [amount, active._stack_count, active])
 	
-	var previous_stack_count: int = spec._stack_count
-	spec._stack_count -= amount
-	_run_stack_callbacks(spec, previous_stack_count)
-	spec_stack_count_changed.emit(spec, previous_stack_count)
+	var previous_stack_count: int = active._stack_count
+	active._stack_count -= amount
+	_run_stack_callbacks(active, previous_stack_count)
+	active_stack_count_changed.emit(active, previous_stack_count)
 
 
 # Runs the callback [param _function] on all [AttributeEffectCallback]s who have
 # implemented that function.
-func _run_callbacks(spec: AttributeEffectSpec, _function: AttributeEffectCallback._Function) -> void:
-	if !AttributeEffectCallback._can_run(_function, spec.get_effect()):
+func _run_callbacks(active: ActiveAttributeEffect, _function: AttributeEffectCallback._Function) -> void:
+	if !AttributeEffectCallback._can_run(_function, active.get_effect()):
 		return
 	var function_name: String = AttributeEffectCallback._function_names[_function]
-	for callback: AttributeEffectCallback in spec.get_effect()._callbacks_by_function.get(_function):
-		callback.call(function_name, self, spec)
+	for callback: AttributeEffectCallback in active.get_effect()._callbacks_by_function.get(_function):
+		callback.call(function_name, self, active)
 
 
 
-func _run_stack_callbacks(spec: AttributeEffectSpec, previous_stack_count: int) -> void:
+func _run_stack_callbacks(active: ActiveAttributeEffect, previous_stack_count: int) -> void:
 	var function_name: String = AttributeEffectCallback._function_names\
 	[AttributeEffectCallback._Function.STACK_CHANGED]
 	
-	for callback: AttributeEffectCallback in spec.get_effect()._callbacks_by_function\
+	for callback: AttributeEffectCallback in active.get_effect()._callbacks_by_function\
 	.get(AttributeEffectCallback._Function.STACK_CHANGED):
-		callback.call(function_name, self, spec, previous_stack_count)
+		callback.call(function_name, self, active, previous_stack_count)
 
 
 func _to_string() -> String:

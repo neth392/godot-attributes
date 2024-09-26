@@ -1,9 +1,9 @@
-## Causes immediate changes to the remaining duration of an [AttributeEffectSpec]
+## Causes immediate changes to the remaining duration of an [ActiveAttributeEffect]
 ## when the stack value is changed.
 @tool
 class_name StackDurationCallback extends AttributeEffectCallback
 
-## Determines how [member duration_in_seconds] is modified when an [AttributeEffectSpec]
+## Determines how [member duration_in_seconds] is modified when an [ActiveAttributeEffect]
 ## is stacked. Only applicable if [member duration_type] is [enum DurationType.HAS_DURATION].
 enum Mode {
 	## Does nothing on stacking.
@@ -37,44 +37,44 @@ func _run_assertions(effect: AttributeEffect) -> void:
 	"both increase_mode & decrease_mode are IGNORE; this callback does nothing")
 
 
-func _stack_changed(attribute: Attribute, spec: AttributeEffectSpec, previous_stack_count: int) -> void:
-	if spec.get_stack_count() == previous_stack_count:
+func _stack_changed(attribute: Attribute, active: ActiveAttributeEffect, previous_stack_count: int) -> void:
+	if active.get_stack_count() == previous_stack_count:
 		return
-	var mode_to_use: Mode = decrease_mode if spec.get_stack_count() < previous_stack_count \
+	var mode_to_use: Mode = decrease_mode if active.get_stack_count() < previous_stack_count \
 	else increase_mode
 	
-	var amount: int = abs(spec.get_stack_count() - previous_stack_count)
+	var amount: int = abs(active.get_stack_count() - previous_stack_count)
 	
 	match mode_to_use:
 		Mode.IGNORE:
 			pass
 		Mode.RESET:
-			_reset(attribute, spec)
+			_reset(attribute, active)
 		Mode.ADD:
-			_add(attribute, spec, amount)
+			_add(attribute, active, amount)
 		Mode.SUBTRACT:
-			_subtract(attribute, spec, amount)
+			_subtract(attribute, active, amount)
 		_:
 			assert(false, "no calculations written for mode: %s" % mode_to_use)
 
 
-func _reset(attribute: Attribute, spec: AttributeEffectSpec) -> void:
-	var duration: float = spec._effect.get_modified_duration(attribute, spec)
-	spec._starting_duration = duration
-	spec.remaining_duration = duration
+func _reset(attribute: Attribute, active: ActiveAttributeEffect) -> void:
+	var duration: float = active._effect.get_modified_duration(attribute, active)
+	active._starting_duration = duration
+	active.remaining_duration = duration
 
 
-func _add(attribute: Attribute, spec: AttributeEffectSpec, amount: int) -> void:
-	var duplicate: AttributeEffectSpec = spec.duplicate(false)
+func _add(attribute: Attribute, active: ActiveAttributeEffect, amount: int) -> void:
+	var duplicate: ActiveAttributeEffect = active.duplicate(false)
 	## TODO figure this out, manually changing stack count doesn't work
-	var previous_stack_count: int = spec._stack_count
-	spec._stack_count = amount
-	var duration: float = amount * spec._effect.get_modified_duration(attribute, spec)
-	spec._starting_duration += duration
-	spec.remaining_duration += duration
+	var previous_stack_count: int = active._stack_count
+	active._stack_count = amount
+	var duration: float = amount * active._effect.get_modified_duration(attribute, active)
+	active._starting_duration += duration
+	active.remaining_duration += duration
 
 
-func _subtract(attribute: Attribute, spec: AttributeEffectSpec, amount: int) -> void:
-	var duration: float = amount * spec._effect.get_modified_duration(attribute, spec)
-	spec._starting_duration -= duration
-	spec.remaining_duration -= duration
+func _subtract(attribute: Attribute, active: ActiveAttributeEffect, amount: int) -> void:
+	var duration: float = amount * active._effect.get_modified_duration(attribute, active)
+	active._starting_duration -= duration
+	active.remaining_duration -= duration

@@ -19,7 +19,7 @@ enum Mode {
 @export var mode: Mode
 
 
-func _meets_condition(attribute: Attribute, spec: AttributeEffectSpec) -> bool:
+func _meets_condition(attribute: Attribute, active: ActiveAttributeEffect) -> bool:
 	assert(attribute != null, "attribute is null")
 	var container: AttributeContainer = attribute.get_container()
 	assert(container != null, "AttributeContainer is null for attribute (%s)" % attribute)

@@ -24,5 +24,5 @@ enum ValueType {
 @export var modifiers: AttributeEffectModifierArray = AttributeEffectModifierArray.new()
 
 ## Returns [member value] modified by [member modifiers].
-func get_modified(attribute: Attribute, spec: AttributeEffectSpec) -> float:
-	return modifiers.modify_value(_value, attribute, spec)
+func get_modified(attribute: Attribute, active: ActiveAttributeEffect) -> float:
+	return modifiers.modify_value(_value, attribute, active)

@@ -1,5 +1,5 @@
 ## Callbacks can be added to an [AttributeEffect] to listen & make changes to
-## an [Attribute] or [AttributeEffectSpec] when an [AttributeEffectSpec] is
+## an [Attribute] or [ActiveAttributeEffect] when an [ActiveAttributeEffect] is
 ## added, applied, and removed. For an example use case, see [AttributeEffectTaggerCallback].
 @tool
 class_name AttributeEffectCallback extends Resource
@@ -79,38 +79,38 @@ func _run_assertions(effect: AttributeEffect) -> void:
 	pass
 
 
-## Called before the [param spec] is to be added to the [param attribute].
+## Called before the [param active] is to be added to the [param attribute].
 ## [br]NOTE: Called for both PERMANENT and TEMPORARY effects.
-func _pre_add(attribute: Attribute, spec: AttributeEffectSpec) -> void:
+func _pre_add(attribute: Attribute, active: ActiveAttributeEffect) -> void:
 	pass
 
 
-## Called after the [param spec] has been added to the [param attribute].
+## Called after the [param active] has been added to the [param attribute].
 ## [br]NOTE: Called for both PERMANENT and TEMPORARY effects.
-func _added(attribute: Attribute, spec: AttributeEffectSpec) -> void:
+func _added(attribute: Attribute, active: ActiveAttributeEffect) -> void:
 	pass
 
 
-## Called after the [param spec] has been applied to the [param attribute].
+## Called after the [param active] has been applied to the [param attribute].
 ## [br]NOTE: ONLY called for PERMANENT effects.
-func _applied(attribute: Attribute, spec: AttributeEffectSpec) -> void:
+func _applied(attribute: Attribute, active: ActiveAttributeEffect) -> void:
 	pass
 
 
-## Called before the [param spec] is to be removed from the [param attribute].
+## Called before the [param active] is to be removed from the [param attribute].
 ## [br]NOTE: Called for both PERMANENT and TEMPORARY effects.
-func _pre_remove(attribute: Attribute, spec: AttributeEffectSpec) -> void:
+func _pre_remove(attribute: Attribute, active: ActiveAttributeEffect) -> void:
 	pass
 
 
-## Called after the [param spec] has been removed from the [param attribute].
+## Called after the [param active] has been removed from the [param attribute].
 ## [br]NOTE: Called for both PERMANENT and TEMPORARY effects.
-func _removed(attribute: Attribute, spec: AttributeEffectSpec) -> void:
+func _removed(attribute: Attribute, active: ActiveAttributeEffect) -> void:
 	pass
 
 
-## Called after the [param spec]'s stack count has changed. [param previous_stack_count] was
+## Called after the [param active]'s stack count has changed. [param previous_stack_count] was
 ## the previous count before the change.
 ## [br]NOTE: Called for both PERMANENT and TEMPORARY effects.
-func _stack_changed(attribute: Attribute, spec: AttributeEffectSpec, previous_stack_count: int) -> void:
+func _stack_changed(attribute: Attribute, active: ActiveAttributeEffect, previous_stack_count: int) -> void:
 	pass

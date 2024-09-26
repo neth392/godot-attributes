@@ -40,7 +40,7 @@ _value_to_use: Attribute.Value = Attribute.Value.CURRENT_VALUE) -> DerivedModifi
 var _cache: WeakRef
 
 
-func _modify(value: float, attribute: Attribute, spec: AttributeEffectSpec) -> float:
+func _modify(value: float, attribute: Attribute, active: ActiveAttributeEffect) -> float:
 	var derived_from: Attribute = get_derived_from(attribute)
 	assert(derived_from != null, "could not find attribute @ node path (%s)" % attribute_path) 
 	match value_to_use:

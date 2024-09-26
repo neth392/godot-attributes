@@ -53,13 +53,13 @@ func remove(modifier: AttributeEffectModifier, remove_all_instances: bool) -> vo
 
 
 ## Modifies the [param value] by applying the [member _modifiers] to it. [param attribute]
-## and [param spec] are the context.
-func modify_value(value: float, attribute: Attribute, spec: AttributeEffectSpec) -> float:
+## and [param active] are the context.
+func modify_value(value: float, attribute: Attribute, active: ActiveAttributeEffect) -> float:
 	var modified_value: float = value
 	for modifier: AttributeEffectModifier in _modifiers:
-		if !modifier.should_modify(attribute, spec):
+		if !modifier.should_modify(attribute, active):
 			continue
-		modified_value = modifier._modify(modified_value, attribute, spec)
+		modified_value = modifier._modify(modified_value, attribute, active)
 		if modifier.stop_processing_modifiers:
 			return modified_value
 	return modified_value

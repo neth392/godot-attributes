@@ -1,4 +1,4 @@
-## Modifies a value based on the current stack count of an [AttributeEffectSpec].
+## Modifies a value based on the current stack count of an [ActiveAttributeEffect].
 @tool
 class_name StackModifier extends AttributeEffectModifier
 
@@ -22,11 +22,11 @@ func _validate_and_warn(effect: AttributeEffect) -> bool:
 	return true
 
 
-func _modify(value: float, attribute: Attribute, spec: AttributeEffectSpec) -> float:
-	assert(spec._effect.stack_mode == AttributeEffect.StackMode.COMBINE,
-	"stack_mode != COMBINE for spec._effect: %s" % spec._effect)
+func _modify(value: float, attribute: Attribute, active: ActiveAttributeEffect) -> float:
+	assert(active._effect.stack_mode == AttributeEffect.StackMode.COMBINE,
+	"stack_mode != COMBINE for active._effect: %s" % active._effect)
 	
-	return _calculate(value, spec.get_stack_count())
+	return _calculate(value, active.get_stack_count())
 
 
 func _calculate(value: float, stack_count: int) -> float:
