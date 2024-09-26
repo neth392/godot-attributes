@@ -82,7 +82,7 @@ func deinitialize() -> void:
 		_initialized = false
 
 
-## Returns true if this active effect is currently added to an [Attribute].
+## Returns true if this active effect is currently added to an [Attribute], false if not.
 func is_added() -> bool:
 	return _is_added
 

@@ -136,6 +136,14 @@ signal active_apply_blocked(blocked: ActiveAttributeEffect, blocked_by: ActiveAt
 			_notify_base_value_changed(prev_base_value)
 		update_configuration_warnings()
 
+@export_group("Value Validators")
+
+## All [AttributeValueValidator]s to be executed on the base value.
+@export var base_value_validators: Array[AttributeValueValidator]
+
+## All [AttributeValueValidator]s to be executed on the current value.
+@export var current_value_validators: Array[AttributeValueValidator]
+
 @export_group("Effects")
 
 ## Whether or not [ActiveAttributeEffect]s should be allowed. If effects are not allowed,
@@ -454,22 +462,18 @@ func get_current_value() -> float:
 	return _current_value
 
 
-## Called by the setter of [member base_value] with [param set_base_value] (what was manually
-## set to [member base_value]). If the value fails any constraints it can be modified and
-## returned, otherwise just return [param set_base_value].[br]
-## Can also be used to emit events as this is [b]only[/b] called in the setter of 
-## [member set_base_value].
-func _validate_base_value(set_base_value: float) -> float:
-	return set_base_value
+func _validate_base_value(value: float) -> float:
+	var validated: float = value
+	for validator: AttributeValueValidator in base_value_validators:
+		validated = validator._validate(validated)
+	return value
 
 
-## Called by the setter of [member _current_value] with [param set_current_value] (what was manually
-## set to [member _current_value]). If the value fails any constraints it can be modified and
-## returned, otherwise just return [param set_current_value].[br]
-## Can also be used to emit events as this is [b]only[/b] called in the setter of 
-## [member set_current_value].
-func _validate_current_value(set_current_value: float) -> float:
-	return set_current_value
+func _validate_current_value(value: float) -> float:
+	var validated: float = value
+	for validator: AttributeValueValidator in current_value_validators:
+		validated = validator._validate(validated)
+	return value
 
 
 ## Called in the setter of [member _base_value] after the value has been changed, used
