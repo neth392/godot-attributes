@@ -370,7 +370,6 @@ func _add_callback_internal(callback: AttributeEffectCallback, add_to_list: bool
 	for _function: AttributeEffectCallback._Function in callback._functions:
 		assert(AttributeEffectCallback._can_run(_function, self), "")
 		_callbacks_by_function[_function].append(callback)
-	callback._added_to_effect(self)
 
 
 ## Removes the [param callback] from this effect. Returns true if the callback
@@ -381,7 +380,6 @@ func remove_callback(callback: AttributeEffectCallback) -> bool:
 	_callbacks.erase(callback)
 	for _function: AttributeEffectCallback._Function in callback._functions:
 		_callbacks_by_function[_function].erase(callback)
-	callback._removed_from_effect(self)
 	return true
 
 

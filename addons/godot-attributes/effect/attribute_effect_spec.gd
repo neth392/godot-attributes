@@ -51,7 +51,7 @@ var _pending_set_attribute_value: float
 
 # Last effect's modified value
 var _last_effect_value: float
-var _last_prior_attribute_value: float
+var _last_attribute_value: float
 var _last_raw_attribute_value: float
 var _last_set_attribute_value: float
 # TODO: get_last_differential() method
