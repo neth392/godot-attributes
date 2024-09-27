@@ -92,15 +92,6 @@ func _sort_new_before_other(new: ActiveAttributeEffect, other: ActiveAttributeEf
 
 func erase(active: ActiveAttributeEffect) -> void:
 	_array.erase(active)
-	_erase_from_arrays(active)
-
-
-func remove_at(active: ActiveAttributeEffect, index: int) -> void:
-	_array.remove_at(index)
-	_erase_from_arrays(active)
-
-
-func _erase_from_arrays(active: ActiveAttributeEffect) -> void:
 	if active.get_effect().is_temporary():
 		_only_temps.erase(active)
 	if active.get_effect().is_blocker():

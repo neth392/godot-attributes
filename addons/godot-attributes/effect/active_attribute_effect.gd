@@ -56,6 +56,7 @@ var _last_raw_attribute_value: float
 var _last_set_attribute_value: float
 # TODO: get_last_differential() method
 
+
 func _init(effect: AttributeEffect) -> void:
 	assert(effect != null, "effect is null")
 	_effect = effect

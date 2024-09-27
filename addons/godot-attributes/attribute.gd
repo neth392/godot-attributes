@@ -223,12 +223,11 @@ var _current_value: float:
 ## attempt any unsafe changes that would break the logic & predictability of effects.
 #var _locked: bool = false
 
+var _can_mutate_specs: bool = false
 # For use in [method __process] ONLY. At the end of __process these are removed from _actives
 var _pending_remove_from_actives: Array[ActiveAttributeEffect] = []
 # For use in [method __process] ONLY. At the end of __process these are added to _actives
 var _pending_add_to_actives: Array[ActiveAttributeEffect] = []
-
-var _in_process: bool = false
 
 func _enter_tree() -> void:
 	if Engine.is_editor_hint():
@@ -293,8 +292,8 @@ func _physics_process(delta: float) -> void:
 # The heart & soul of Attribute, responsible for processing & applying [AttriubteEffectactive]s.
 # Should NEVER be overridden
 func __process() -> void:
-	assert(!_in_process, "__process called recursively or manually")
-	_in_process = true
+	assert(_can_mutate_specs, "_can_mutate_specs is false")
+	_can_mutate_specs = false
 	# Iterate all actives
 	for active: ActiveAttributeEffect in _actives.iterate():
 		assert(active != null, "_actives has null element")
@@ -383,8 +382,10 @@ func __process() -> void:
 func _handle_pending_actives() -> void:
 	for active: ActiveAttributeEffect in _pending_remove_from_actives:
 		_actives.erase(active)
+	_pending_remove_from_actives.clear()
 	for active: ActiveAttributeEffect in _pending_add_to_actives:
 		_actives.add(active)
+	_pending_add_to_actives.clear()
 
 
 func _validate_property(property: Dictionary) -> void:
@@ -725,7 +726,7 @@ func add_actives(actives: Array[ActiveAttributeEffect], sort_by_priority: bool =
 		active._tick_last_processed = current_tick
 		
 		# Add to array
-		var index: int = _actives.add(active)
+		_actives.add(active)
 		
 		# Add to _effect_counts
 		var new_count: int = _effect_counts.get(active.get_effect(), 0) + 1
@@ -869,13 +870,13 @@ func _remove_from_effect_counts(active: ActiveAttributeEffect) -> void:
 			_effect_counts[active.get_effect().id] = new_count
 
 
-func _remove_active_at_index(active: ActiveAttributeEffect, index: int, from_effect_counts: bool) -> void:
-	_pre_remove_active(active)
-	_actives.remove_at(active, index)
-	_has_actives = !_actives.is_empty()
-	if from_effect_counts:
-		_remove_from_effect_counts(active)
-	_post_remove_active(active)
+#func _remove_active_at_index(active: ActiveAttributeEffect, index: int, from_effect_counts: bool) -> void:
+	#_pre_remove_active(active)
+	#_actives.remove_at(active, index)
+	#_has_actives = !_actives.is_empty()
+	#if from_effect_counts:
+		#_remove_from_effect_counts(active)
+	#_post_remove_active(active)
 
 
 func _pre_remove_active(active: ActiveAttributeEffect) -> void:
