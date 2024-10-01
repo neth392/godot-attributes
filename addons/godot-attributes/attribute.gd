@@ -972,6 +972,7 @@ func _get_modified_period(active: ActiveAttributeEffect) -> float:
 
 	return modified_period
 
+
 func _get_modified_duration(active: ActiveAttributeEffect) -> float:
 	var modified_duration: float = active.get_effect().duration_in_seconds.get_modified(self, active)
 	for modifier_active: ActiveAttributeEffect in _actives.iterate_modifiers():
