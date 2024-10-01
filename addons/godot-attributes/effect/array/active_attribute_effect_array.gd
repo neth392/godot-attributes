@@ -69,11 +69,9 @@ func add(active: ActiveAttributeEffect) -> void:
 			break
 		index += 1
 	
-	# Append if not added during loop
-	# Per godot docs, .resize & then setting the element is faster than append
+	# Append if index hit the array's size, meaning it was not yet added
 	if index == _array.size():
-		_array.resize(_array.size() + 1)
-		_array[_array.size() -1 ] = active
+		_array.append(active)
 	
 	_size = _array.size()
 
@@ -141,8 +139,8 @@ func _add_pending_action(action: _PendingAction, active: ActiveAttributeEffect) 
 			_pending_erase.erase(active)
 		_PendingAction.ERASE:
 			_pending_erase.append(active)
+			_pending_add.erase(active)
 			if _array.has(active):
 				_size -= 1
-			_pending_add.erase(active)
 		_PendingAction.CLEAR:
 			_size = 0
