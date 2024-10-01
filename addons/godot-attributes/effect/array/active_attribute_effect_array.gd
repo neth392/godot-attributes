@@ -18,6 +18,7 @@ var _pending_erase: Array[ActiveAttributeEffect]
 var _is_iterating: bool = false
 var _size: int = 0
 
+
 func _init(same_priority_sorting_method: Attribute.SamePrioritySortingMethod = \
 Attribute.SamePrioritySortingMethod.OLDER_FIRST) -> void:
 	_same_priority_sorting_method = same_priority_sorting_method
@@ -73,6 +74,7 @@ func add(active: ActiveAttributeEffect) -> void:
 	if index == _array.size():
 		_array.append(active)
 	
+	# Update the size
 	_size = _array.size()
 
 
@@ -84,6 +86,8 @@ func erase(active: ActiveAttributeEffect) -> void:
 		_add_pending_action(_PendingAction.ERASE, active)
 		return
 	_array.erase(active)
+	
+	# Update the size
 	_size = _array.size()
 
 

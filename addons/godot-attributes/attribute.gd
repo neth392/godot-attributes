@@ -822,21 +822,19 @@ func remove_actives(actives: Array[ActiveAttributeEffect]) -> bool:
 
 ## Manually removes all [ActiveAttributeEffect]s, or instantly removes them if
 ## [method is_in_process_loop] returns false.
-func remove_all_actives() -> void:
-	assert(!_locked, "Attribute is locked, use call_deferred on this function")
-	_locked = true
-	
-	var removed_actives: Array[ActiveAttributeEffect] = _actives._array.duplicate(false)
-	for active: ActiveAttributeEffect in _actives.iterate():
-		_pre_remove_active(active)
+func remove_all_effects() -> void:
+	var to_remove: Array[ActiveAttributeEffect] = _actives._array.duplicate(false)
+	for active: ActiveAttributeEffect in to_remove:
+		_run_callbacks(active, AttributeEffectCallback._Function.PRE_REMOVE)
+		active._is_added = false
 	_actives.clear()
-	_has_actives = false
 	_effect_counts.clear()
-	
-	for active: ActiveAttributeEffect in removed_actives:
-		_post_remove_active(active)
-	
+	_has_actives = false
 	_current_value = _validate_current_value(_base_value)
+	for active: ActiveAttributeEffect in to_remove:
+		_run_callbacks(active, AttributeEffectCallback._Function.REMOVED)
+		if active.get_effect().should_emit_removed_signal():
+			active_removed.emit(active)
 	_locked = false
 
 
@@ -855,23 +853,11 @@ func _remove_active(active: ActiveAttributeEffect) -> void:
 	_run_callbacks(active, AttributeEffectCallback._Function.PRE_REMOVE)
 	active._is_added = false
 	_actives.erase(active)
-	pass
-
-
-func _remove_active_at_index(active: ActiveAttributeEffect, index: int, from_effect_counts: bool) -> void:
-	_pre_remove_active(active)
-	_actives.remove_at(active, index)
 	_has_actives = !_actives.is_empty()
-	if from_effect_counts:
-		_remove_from_effect_counts(active)
-	_post_remove_active(active)
-
-
-
-func _post_remove_active(active: ActiveAttributeEffect) -> void:
+	_remove_from_effect_counts(active)
+	_run_callbacks(active, AttributeEffectCallback._Function.REMOVED)
 	if active.get_effect().should_emit_removed_signal():
 		active_removed.emit(active)
-	_run_callbacks(active, AttributeEffectCallback._Function.REMOVED)
 
 
 ## Tests the addition of [param active] by evaluating it's potential add [AttributeEffectCondition]s
