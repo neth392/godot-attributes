@@ -39,7 +39,7 @@ func for_each(active_consumer: Callable) -> void:
 				_array.clear()
 			_PendingAction.ADD:
 				assert(pending.size() == 2, "pending (%s) size != 2" % pending)
-				_array.append(pending[1])
+				_add_skip_check(pending[1])
 			_PendingAction.ERASE:
 				assert(pending.size() == 2, "pending (%s) size != 2" % pending)
 				_array.erase(pending[1])
