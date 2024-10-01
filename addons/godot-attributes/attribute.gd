@@ -219,15 +219,6 @@ var _current_value: float:
 			_notify_current_value_changed(prev_current_value)
 		update_configuration_warnings()
 
-## A lock mechanism to ensure code ran from signals emitted from this attribute does not
-## attempt any unsafe changes that would break the logic & predictability of effects.
-#var _locked: bool = false
-
-var _can_mutate_specs: bool = false
-# For use in [method __process] ONLY. At the end of __process these are removed from _actives
-var _pending_remove_from_actives: Array[ActiveAttributeEffect] = []
-# For use in [method __process] ONLY. At the end of __process these are added to _actives
-var _pending_add_to_actives: Array[ActiveAttributeEffect] = []
 
 func _enter_tree() -> void:
 	if Engine.is_editor_hint():
@@ -292,91 +283,79 @@ func _physics_process(delta: float) -> void:
 # The heart & soul of Attribute, responsible for processing & applying [AttriubteEffectactive]s.
 # Should NEVER be overridden
 func __process() -> void:
-	assert(_can_mutate_specs, "_can_mutate_specs is false")
-	_can_mutate_specs = false
-	# Iterate all actives
-	for active: ActiveAttributeEffect in _actives.iterate():
-		assert(active != null, "_actives has null element")
-		
-		# Skip if it was removed during _process
-		if !active.is_added():
-			continue
-		
-		# Store the current tick
-		var current_tick: int = _get_ticks()
-		
-		# Get the amount of time since last process
-		var seconds_since_last_process: float = _ticks_to_seconds(
-		current_tick - active.get_tick_last_processed())
-		
-		# Add to active duration
-		active._active_duration += seconds_since_last_process
-		
-		# Flag used to mark if the active should be applied this frame
-		var apply: bool = false
-		
-		# Mark as processing
-		active._tick_last_processed = current_tick
-		
-		# Duration Calculations
-		if active.get_effect().has_duration():
-			active.remaining_duration -= seconds_since_last_process
-			if active.remaining_duration <= 0.0: # Expired
-				# active is expired at this point
-				active._expired = true
-				# Remove it from effect counts so that it doesn't appear in has_effect
-				_remove_from_effect_counts(active)
-				# Add it to be removed at the end of this function
-				_pending_remove_from_actives.append(active)
-				# Update current value if this expired
-				if active.get_effect().is_temporary() && active.get_effect().has_value:
-					update_current_value()
-				# Set to apply if effect is apply on expire
-				elif active.get_effect().is_apply_on_expire():
-					apply = true
-		
-		# Flag if period should be reset
-		var reset_period: bool = false
-		
-		# Period Calculations
-		if active.get_effect().has_period():
-			active.remaining_period -= seconds_since_last_process
-			if active.remaining_period <= 0.0:
-				if !active._expired: # Not expired, set to apply & mark period to reset
-					apply = true
-					# Period should be reset as this active is not expired
-					reset_period = true
-				elif active.get_effect().is_apply_on_expire_if_period_is_zero():
-					# Set to apply since period is <=0 & it's expired
-					apply = true
-		
-		# Check if it should apply & is still added (could've been removed before)
-		if apply && active.is_added():
-			# Apply it
-			_apply_permanent_active(active, current_tick)
-			
-			# Mark it for removal if it hit apply limit
-			if active.hit_apply_limit():
-				__process_to_remove[index] = active
-				# Remove from effect counts instantly so has_effect return false
-				_remove_from_effect_counts(active)
-			
-			# Update current value
-			if _base_value != active._last_attribute_value:
-				update_current_value()
-		
-		# Reset the period
-		if reset_period:
-			active.remaining_period += _get_modified_period(active)
+	_actives.for_each(_process_active)
+
+
+func _process_active(active: ActiveAttributeEffect) -> void:
+	assert(active != null, "_actives has null element")
+	# Skip if not added
+	if !active.is_added():
+		return
 	
-	# Remove actives that have expired or reached application limit
-	if !__process_to_remove.is_empty():
-		# Keep track of removed count to adjust next index
-		var removed_count: int = 0
-		for active_index: int in __process_to_remove:
-			_remove_active_at_index(__process_to_remove[active_index], active_index - removed_count, false)
-			removed_count += 1
-		__process_to_remove.clear()
+	# Store the current tick
+	var current_tick: int = _get_ticks()
+	
+	# Get the amount of time since last process
+	var seconds_since_last_process: float = _ticks_to_seconds(
+	current_tick - active.get_tick_last_processed())
+	
+	# Add to active duration
+	active._active_duration += seconds_since_last_process
+	
+	# Flag used to mark if the active should be applied this frame
+	var apply: bool = false
+	# Flag to mark if it should be removed
+	var remove: bool = false
+	
+	# Set tick last processed as this tick
+	active._tick_last_processed = current_tick
+	
+	# Duration Calculations
+	if active.get_effect().has_duration():
+		active.remaining_duration -= seconds_since_last_process
+		if active.remaining_duration <= 0.0: # Expired
+			# active is expired at this point
+			active._expired = true
+			remove = true
+			if active.get_effect().is_apply_on_expire():
+				apply = true
+	
+	# Flag if period should be reset
+	var reset_period: bool = false
+	
+	# Period Calculations
+	if active.get_effect().has_period():
+		active.remaining_period -= seconds_since_last_process
+		if active.remaining_period <= 0.0:
+			if !active._expired: # Not expired, set to apply & mark period to reset
+				apply = true
+				# Period should be reset as this active is not expired
+				reset_period = true
+			elif active.get_effect().is_apply_on_expire_if_period_is_zero():
+				# Set to apply since period is <=0 & it's expired
+				apply = true
+	
+	# Check if it should apply & is still added (could've been removed before)
+	if apply:
+		# Apply it
+		_apply_permanent_active(active, current_tick)
+		
+		# Mark it for removal if it hit apply limit
+		if active.hit_apply_limit():
+			remove = true
+			# Remove from effect counts instantly so has_effect return false
+			_remove_from_effect_counts(active)
+		
+		# Update current value
+		if _base_value != active._last_attribute_value:
+			update_current_value()
+	
+	# Check if it should be removed
+	if remove:
+		pass
+	# Otherwise, reset the period if needed
+	elif reset_period:
+		active.remaining_period += _get_modified_period(active)
 
 
 func _handle_pending_actives() -> void:
@@ -870,19 +849,23 @@ func _remove_from_effect_counts(active: ActiveAttributeEffect) -> void:
 			_effect_counts[active.get_effect().id] = new_count
 
 
-#func _remove_active_at_index(active: ActiveAttributeEffect, index: int, from_effect_counts: bool) -> void:
-	#_pre_remove_active(active)
-	#_actives.remove_at(active, index)
-	#_has_actives = !_actives.is_empty()
-	#if from_effect_counts:
-		#_remove_from_effect_counts(active)
-	#_post_remove_active(active)
-
-
-func _pre_remove_active(active: ActiveAttributeEffect) -> void:
+func _remove_active(active: ActiveAttributeEffect) -> void:
+	assert(active._is_added, "(%s)._is_added is false" % active)
+	assert(_actives.has(active), "(%s) not present in _actives" % active)
 	_run_callbacks(active, AttributeEffectCallback._Function.PRE_REMOVE)
 	active._is_added = false
-	active._is_applying = false
+	_actives.erase(active)
+	pass
+
+
+func _remove_active_at_index(active: ActiveAttributeEffect, index: int, from_effect_counts: bool) -> void:
+	_pre_remove_active(active)
+	_actives.remove_at(active, index)
+	_has_actives = !_actives.is_empty()
+	if from_effect_counts:
+		_remove_from_effect_counts(active)
+	_post_remove_active(active)
+
 
 
 func _post_remove_active(active: ActiveAttributeEffect) -> void:

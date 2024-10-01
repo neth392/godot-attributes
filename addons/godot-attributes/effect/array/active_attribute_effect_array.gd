@@ -16,13 +16,15 @@ var _pending_actions: Array[Array]
 var _pending_add: Array[ActiveAttributeEffect]
 var _pending_erase: Array[ActiveAttributeEffect]
 var _is_iterating: bool = false
-
+var _size: int = 0
 
 func _init(same_priority_sorting_method: Attribute.SamePrioritySortingMethod = \
 Attribute.SamePrioritySortingMethod.OLDER_FIRST) -> void:
 	_same_priority_sorting_method = same_priority_sorting_method
 
 
+## Executes the [param active_consumer] for each element in this array. During iteration,
+## any mutations to this array are cached in a "pending" state and executed immediately after.
 func for_each(active_consumer: Callable) -> void:
 	assert(!_is_iterating, "nested iteration of this array not currently supported")
 	assert(active_consumer.is_valid(), "active_consumer (%s) is invalid" % active_consumer)
@@ -36,13 +38,13 @@ func for_each(active_consumer: Callable) -> void:
 		assert(!pending.is_empty(), "_pending_actions contains empty array")
 		match pending[0]:
 			_PendingAction.CLEAR:
-				_array.clear()
+				clear()
 			_PendingAction.ADD:
 				assert(pending.size() == 2, "pending (%s) size != 2" % pending)
-				_add_skip_check(pending[1])
+				add(pending[1])
 			_PendingAction.ERASE:
 				assert(pending.size() == 2, "pending (%s) size != 2" % pending)
-				_array.erase(pending[1])
+				erase(pending[1])
 			_:
 				assert(false, "no implementation for _PendingAction (%s)" % pending[0])
 	_pending_actions.clear()
@@ -50,6 +52,7 @@ func for_each(active_consumer: Callable) -> void:
 	_pending_erase.clear()
 
 
+## Adds [param active] to this array.
 func add(active: ActiveAttributeEffect) -> void:
 	assert(active != null, "active is null")
 	# Add to pending if iterating
@@ -57,10 +60,6 @@ func add(active: ActiveAttributeEffect) -> void:
 		_add_pending_action(_PendingAction.ADD, active)
 		return
 	
-	_add_skip_check(active)
-
-
-func _add_skip_check(active: ActiveAttributeEffect) -> void:
 	# It is quicker to insert an element at a specific position than
 	# it is to append it & resort the entire array.
 	var index: int = 0
@@ -75,8 +74,11 @@ func _add_skip_check(active: ActiveAttributeEffect) -> void:
 	if index == _array.size():
 		_array.resize(_array.size() + 1)
 		_array[_array.size() -1 ] = active
+	
+	_size = _array.size()
 
 
+## Erases [param active] from this array.
 func erase(active: ActiveAttributeEffect) -> void:
 	assert(active != null, "active is null")
 	# Add to pending if iterating
@@ -84,8 +86,11 @@ func erase(active: ActiveAttributeEffect) -> void:
 		_add_pending_action(_PendingAction.ERASE, active)
 		return
 	_array.erase(active)
+	_size = _array.size()
 
 
+## Returns true if [param active] is within this array, false if not. Accounts for pending
+## removals & additions.
 func has(active: ActiveAttributeEffect) -> bool:
 	if !_is_iterating:
 		return _array.has(active)
@@ -107,15 +112,23 @@ func _sort_new_before_other(new: ActiveAttributeEffect, other: ActiveAttributeEf
 	return new.get_effect().priority > other.get_effect().priority
 
 
+## Returns the size of this array, accounting for pending changes.
+func size() -> int:
+	return _size
+
+
+## Returns true if this array is empty, false if not. Accounts for pending changes.
 func is_empty() -> bool:
-	return _array.is_empty()
+	return _size != 0
 
 
+## Clears the array. If currently iterating, it will be cleared immediately after.
 func clear() -> void:
 	if _is_iterating:
 		_add_pending_action(_PendingAction.CLEAR, null)
 		return
 	_array.clear()
+	_size = 0
 
 
 func _add_pending_action(action: _PendingAction, active: ActiveAttributeEffect) -> void:
@@ -123,8 +136,13 @@ func _add_pending_action(action: _PendingAction, active: ActiveAttributeEffect) 
 	_pending_actions.append([action, active])
 	match action:
 		_PendingAction.ADD:
+			_size += 1
 			_pending_add.append(active)
 			_pending_erase.erase(active)
 		_PendingAction.ERASE:
-			_pending_erase.append(action)
-			_pending_add.erase(action)
+			_pending_erase.append(active)
+			if _array.has(active):
+				_size -= 1
+			_pending_add.erase(active)
+		_PendingAction.CLEAR:
+			_size = 0
