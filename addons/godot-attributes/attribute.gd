@@ -154,7 +154,7 @@ signal active_apply_blocked(blocked: ActiveAttributeEffect, blocked_by: ActiveAt
 		if !allow_effects:
 			effects_process_function = ProcessFunction.NONE
 			if !Engine.is_editor_hint():
-				remove_all_actives()
+				remove_all_effects()
 		_update_processing()
 		notify_property_list_changed()
 
@@ -192,7 +192,7 @@ signal active_apply_blocked(blocked: ActiveAttributeEffect, blocked_by: ActiveAt
 @export var pause_tracker: AttributePauseTracker
 
 ## Cluster of all added [ActiveAttributeEffect]s.
-@export_storage var _actives: ActiveAttributeEffectArray
+@export_storage var _actives: ActiveAttributeEffectCluster
 
 ## Internally stores if 
 @export_storage var _has_actives: bool = false:
@@ -336,7 +336,7 @@ func _process_active(active: ActiveAttributeEffect) -> void:
 				apply = true
 	
 	# Check if it should apply & is still added (could've been removed before)
-	if apply:
+	if apply && active._is_added:
 		# Apply it
 		_apply_permanent_active(active, current_tick)
 		
@@ -344,7 +344,7 @@ func _process_active(active: ActiveAttributeEffect) -> void:
 		if active.hit_apply_limit():
 			remove = true
 			# Remove from effect counts instantly so has_effect return false
-			_remove_from_effect_counts(active)
+			_remove_active(active)
 		
 		# Update current value
 		if _base_value != active._last_attribute_value:
@@ -356,15 +356,6 @@ func _process_active(active: ActiveAttributeEffect) -> void:
 	# Otherwise, reset the period if needed
 	elif reset_period:
 		active.remaining_period += _get_modified_period(active)
-
-
-func _handle_pending_actives() -> void:
-	for active: ActiveAttributeEffect in _pending_remove_from_actives:
-		_actives.erase(active)
-	_pending_remove_from_actives.clear()
-	for active: ActiveAttributeEffect in _pending_add_to_actives:
-		_actives.add(active)
-	_pending_add_to_actives.clear()
 
 
 func _validate_property(property: Dictionary) -> void:
@@ -408,17 +399,6 @@ func _get_configuration_warnings() -> PackedStringArray:
 ## is no container (which shouldn't happen with proper [Node] management).
 func get_container() -> AttributeContainer:
 	return _container_ref.get_ref() as AttributeContainer
-
-
-## Returns true if this attribute has an [AttributeHistory] child monitoring it,
-## or false if not.
-func has_history() -> bool:
-	return _history != null
-
-
-## Returns the [AttributeHistory] of this attribute, or null if one does not exist.
-func get_history() -> AttributeHistory:
-	return _history
 
 
 ## Returns the base value of this attribute.
@@ -515,23 +495,19 @@ func get_actives(ignore_expired: bool = true) -> Array[ActiveAttributeEffect]:
 	return _actives._array.duplicate(false)
 
 
-## Returns a new [Array] (safe to mutate) of all current [AttributeEffect]s.
-## The effects themselves are NOT duplicated.
-## [br]NOTE: If this is called mid process, expired effects & effects that have hit their
-## apply limit are internally still present as they're removed at the end of the frame, 
-## but they will not show up in any publicly facing functions including this one.
-func get_effects() -> Array[AttributeEffect]:
+## TODO
+func get_effect_ids() -> Array[StringName]:
 	return _effect_counts.keys()
 
 
-## Returns a new [Dictionary] (safe to mutate) of all current [AttributeEffect]s as keys,
-## and the integer count of the amount of [ActiveAttributeEffect]s of each effect as values.
-## The effects themselves are NOT duplicated.
-## [br]NOTE: If this is called mid process, expired effects & effects that have hit their
-## apply limit are internally still present as they're removed at the end of the frame, 
-## but they will not show up in any publicly facing functions including this one.
-func get_effects_with_counts() -> Dictionary:
-	return _effect_counts.duplicate(false)
+### Returns a new [Dictionary] (safe to mutate) of all current [AttributeEffect]s as keys,
+### and the integer count of the amount of [ActiveAttributeEffect]s of each effect as values.
+### The effects themselves are NOT duplicated.
+### [br]NOTE: If this is called mid process, expired effects & effects that have hit their
+### apply limit are internally still present as they're removed at the end of the frame, 
+### but they will not show up in any publicly facing functions including this one.
+#func get_effects_with_counts() -> Dictionary:
+	#return _effect_counts.duplicate(false)
 
 
 ## Returns true if the [param effect] is present and has one or more [ActiveAttributeEffect]s
@@ -542,7 +518,7 @@ func get_effects_with_counts() -> Dictionary:
 ## but they will not show up in any publicly facing functions including this one.
 func has_effect(effect: AttributeEffect) -> bool:
 	assert(effect != null, "effect is null")
-	return _effect_counts.has(effect)
+	return _effect_counts.has(effect.id)
 
 
 ## Returns the total amount of [ActiveAttributeEffect]s whose effect is [param effect].
@@ -552,7 +528,7 @@ func has_effect(effect: AttributeEffect) -> bool:
 ## but they will not show up in any publicly facing functions including this one.
 func get_effect_count(effect: AttributeEffect) -> int:
 	assert(effect != null, "effect is null")
-	return _effect_counts.get(effect, 0)
+	return _effect_counts.get(effect.id, 0)
 
 
 ## Returns true if [param active] is currently applied to this [Attribute], false if not.
@@ -708,7 +684,7 @@ func add_actives(actives: Array[ActiveAttributeEffect], sort_by_priority: bool =
 		_actives.add(active)
 		
 		# Add to _effect_counts
-		var new_count: int = _effect_counts.get(active.get_effect(), 0) + 1
+		var new_count: int = _effect_counts.get(active.get_effect().id, 0) + 1
 		_effect_counts[active.get_effect().id] = new_count
 		
 		# Run callbacks & emit signal
@@ -725,103 +701,81 @@ func add_actives(actives: Array[ActiveAttributeEffect], sort_by_priority: bool =
 		if active.get_effect().has_period() && active.remaining_period <= 0.0:
 			_apply_permanent_active(active, current_tick)
 			
-			# Remove if it hit apply limit
-			if active.hit_apply_limit():
-				_remove_active_at_index(active, index, true)
-			else: # Update period
-				active.remaining_period += _get_modified_period(active)
-			
-			# Update the current value
-			if _base_value != active._last_prior_attribute_value:
-				update_current_value()
-	
-	_locked = false
+			## Remove if it hit apply limit
+			#if active.hit_apply_limit():
+				#_remove_active_at_index(active, index, true)
+			#else: # Update period
+				#active.remaining_period += _get_modified_period(active)
+			#
+			## Update the current value
+			#if _base_value != active._last_prior_attribute_value:
+				#update_current_value()
 
 
-## Removes all [ActiveAttributeEffect]s whose effect equals [param effect]. Returns true
-## if 1 or more actives were removed, false if none were removed.
-func remove_effect(effect: AttributeEffect) -> bool:
-	assert(!_locked, "Attribute is locked, use call_deferred on this function")
-	_locked = true
-	
-	var removed: bool = false
-	for index: int in _actives.iterate_reverse():
-		var active: ActiveAttributeEffect = _actives._array[index]
-		if active.get_effect() == effect:
-			_remove_active_at_index(active, index, true)
-			removed = true
-	
-	if removed && effect.is_temporary() && effect.has_value:
-		update_current_value()
-	
-	_locked = false
-	return removed
+## Removes all [ActiveAttributeEffect]s whose effect equals [param effect].
+## Returns the number of [ActiveAttributeEffect]s removed.
+func remove_effect(effect: AttributeEffect) -> int:
+	var removed: AttributeUtil.Reference = AttributeUtil.Reference.new(0)
+	return _actives.for_each(
+		func(active: ActiveAttributeEffect) -> void:
+			if active.get_effect() == effect:
+				_remove_active(active)
+				removed.ref += 1
+	)
+	return removed.ref
 
 
 ## Removes all [ActiveAttributeEffect]s whose effect is present in [param effects]. 
-## Returns true if 1 or more actives were removed, false if none were removed.
-func remove_effects(effects: Array[AttributeEffect]) -> bool:
-	assert(!_locked, "Attribute is locked, use call_deferred on this function")
-	assert(!effects.has(null), "effects has null element")
-	_locked = true
-	
-	var removed: bool = false
-	var temporary_removed: bool = false
-	for index: int in _actives.iterate_reverse():
-		var active: ActiveAttributeEffect = _actives._array[index]
-		if effects.has(active.get_effect()):
-			_remove_active_at_index(active, index, true)
-			removed = true
-			if active.get_effect().is_temporary() && active.get_effect().has_value:
-				temporary_removed = true
-	
-	if temporary_removed:
-		update_current_value()
-	
-	_locked = false
+## Returns the number of [ActiveAttributeEffect]s removed.
+func remove_effects(effects: Array[AttributeEffect]) -> int:
+	var removed: AttributeUtil.Reference = AttributeUtil.Reference.new(0)
+	return _actives.for_each(
+		func(active: ActiveAttributeEffect) -> void:
+			if effects.has(active.get_effect()):
+				_remove_active(active)
+				removed.ref += 1
+	)
+	return removed.ref
+
+
+## Removes all [param actives], returning the number of [ActiveAttributeEffect] 
+## that were present & removed.
+func remove_actives(actives: Array[ActiveAttributeEffect]) -> int:
+	var removed: int = 0
+	for active: ActiveAttributeEffect in actives:
+		if remove_active(active):
+			removed += 1
 	return removed
 
 
 ## Removes the [param active], returning true if removed, false if not.
 func remove_active(active: ActiveAttributeEffect) -> bool:
-	assert(!_locked, "Attribute is locked, use call_deferred on this function")
-	if !has_active(active):
+	if active == null || !has_active(active):
 		return false
-	_locked = true
-	_pre_remove_active(active)
-	_actives.erase(active)
-	_has_actives = !_actives.is_empty()
-	_remove_from_effect_counts(active)
-	_post_remove_active(active)
-	if active.get_effect().is_temporary() && active.get_effect().has_value:
-		update_current_value()
-	_locked = false
+	_remove_active(active)
 	return true
 
 
-## Removes all [param actives], returning true if 1 or more were removed, false if 
-## none were removed.
-func remove_actives(actives: Array[ActiveAttributeEffect]) -> bool:
-	assert(!_locked, "Attribute is locked, use call_deferred on this function")
-	_locked = true
-	var removed: bool = false
-	var temporary_removed: bool = false
-	for index: int in _actives.iterate_reverse():
-		var active: ActiveAttributeEffect = _actives._array[index]
-		if actives.has(active):
-			_remove_active_at_index(active, index, true)
-			removed = true
-			if active.get_effect().is_temporary() && active.get_effect().has_value:
-				temporary_removed = true
-	
-	if temporary_removed:
-		update_current_value()
-	_locked = false
-	return removed
+func _remove_active(active: ActiveAttributeEffect) -> void:
+	assert(active != null, "active is null")
+	assert(active._is_added, "(%s)._is_added is false" % active)
+	assert(_actives.has(active), "(%s) not present in _actives" % active)
+	_run_callbacks(active, AttributeEffectCallback._Function.PRE_REMOVE)
+	active._is_added = false
+	_actives.erase(active)
+	_has_actives = !_actives.is_empty()
+	if _effect_counts.has(active.get_effect().id):
+		var new_count: int = _effect_counts[active.get_effect().id] - 1
+		if new_count <= 0:
+			_effect_counts.erase(active.get_effect().id)
+		else:
+			_effect_counts[active.get_effect().id] = new_count
+	_run_callbacks(active, AttributeEffectCallback._Function.REMOVED)
+	if active.get_effect().should_emit_removed_signal():
+		active_removed.emit(active)
 
 
-## Manually removes all [ActiveAttributeEffect]s, or instantly removes them if
-## [method is_in_process_loop] returns false.
+## Removes all [ActiveAttributeEffect]s from this attribute.
 func remove_all_effects() -> void:
 	var to_remove: Array[ActiveAttributeEffect] = _actives._array.duplicate(false)
 	for active: ActiveAttributeEffect in to_remove:
@@ -838,28 +792,6 @@ func remove_all_effects() -> void:
 	_locked = false
 
 
-func _remove_from_effect_counts(active: ActiveAttributeEffect) -> void:
-	if _effect_counts.has(active.get_effect()):
-		var new_count: int = _effect_counts[active.get_effect().id] - 1
-		if new_count <= 0:
-			_effect_counts.erase(active.get_effect())
-		else:
-			_effect_counts[active.get_effect().id] = new_count
-
-
-func _remove_active(active: ActiveAttributeEffect) -> void:
-	assert(active._is_added, "(%s)._is_added is false" % active)
-	assert(_actives.has(active), "(%s) not present in _actives" % active)
-	_run_callbacks(active, AttributeEffectCallback._Function.PRE_REMOVE)
-	active._is_added = false
-	_actives.erase(active)
-	_has_actives = !_actives.is_empty()
-	_remove_from_effect_counts(active)
-	_run_callbacks(active, AttributeEffectCallback._Function.REMOVED)
-	if active.get_effect().should_emit_removed_signal():
-		active_removed.emit(active)
-
-
 ## Tests the addition of [param active] by evaluating it's potential add [AttributeEffectCondition]s
 ## and that of all BLOCKER type effects.
 func _test_add_conditions(active: ActiveAttributeEffect) -> bool:
@@ -869,18 +801,21 @@ func _test_add_conditions(active: ActiveAttributeEffect) -> bool:
 			active._last_add_result = AddEffectResult.BLOCKED_BY_CONDITION
 			return false
 	
+	var can_add: bool = true
 	# Iterate BLOCKER effects
-	if _actives.has_blockers():
-		for blocker: ActiveAttributeEffect in _actives.iterate_blockers():
-			# Ignore expired - they arent removed until later in the frame sometimes
-			if blocker.is_expired():
-				continue
+	if !_actives.blockers.is_empty():
+		_actives.blockers.for_each(func (blocker: ActiveAttributeEffect) -> bool:
+				# Ignore expired - they arent removed until later in the frame sometimes
+				if !blocker._is_added || blocker.is_expired():
+					return true
 			
-			if !_test_conditions(active, blocker, blocker.get_effect().add_blockers, active_add_blocked):
-				active._last_add_result = AddEffectResult.BLOCKED_BY_BLOCKER
-				return false
-	
-	return true
+				if !_test_conditions(active, blocker, blocker.get_effect().add_blockers, active_add_blocked):
+					active._last_add_result = AddEffectResult.BLOCKED_BY_BLOCKER
+					can_add = false
+					return false
+		)
+	return can_add
+
 
 
 ## Tests the applying of [param active] by evaluating it's potential apply [AttributeEffectCondition]s
@@ -894,7 +829,7 @@ func _test_apply_conditions(active: ActiveAttributeEffect) -> bool:
 	
 	# Iterate BLOCKER effects
 	if _actives.has_blockers():
-		for blocker: ActiveAttributeEffect in _actives.iterate_blockers():
+		for blocker: ActiveAttributeEffect in _actives:
 			# Ignore expired - they arent removed until later in the frame sometimes
 			if blocker.is_expired():
 				continue
@@ -963,6 +898,8 @@ func _initialize_active(active: ActiveAttributeEffect) -> void:
 ## Applies the [param active]. Returns true if it should be removed (hit apply limit),
 ## false if not. Does not update the current value, that must be done manually after.
 func _apply_permanent_active(active: ActiveAttributeEffect, current_tick: int) -> void:
+	assert(active.is_added(), "%s not added" % active)
+	assert(_actives.has(active), "%s not present in _actives" % active)
 	# Set pending current value
 	active._pending_current_attribute_value = _base_value
 	

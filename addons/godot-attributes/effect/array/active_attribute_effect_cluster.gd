@@ -22,7 +22,6 @@ func add(active: ActiveAttributeEffect) -> void:
 		modifiers.add(active)
 
 
-
 func erase(active: ActiveAttributeEffect) -> void:
 	super.erase(active)
 	temporaries.erase(active)
