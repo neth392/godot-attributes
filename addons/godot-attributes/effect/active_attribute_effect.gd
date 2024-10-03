@@ -40,20 +40,23 @@ var _tick_last_applied: int = -1
 
 var _active_duration: float = 0.0
 
-# Effect's modified value
+# The total value of the effect that is pending application to an attribute
 var _pending_effect_value: float
-# Current attribute value
-var _pending_current_attribute_value: float
-# Raw UNVALIDATED attr value
+# The current value of the attribute, before the effect value is applied
+var _pending_prior_attribute_value: float
+# The raw (unvalidated) value of the attribute AFTER the effect value is to be applied.
 var _pending_raw_attribute_value: float
-# VALIDATED new attr value
-var _pending_set_attribute_value: float
+# The validated value of the attribute AFTER the effect value is to be applied.
+var _pending_final_attribute_value: float
 
-# Last effect's modified value
+# The total value this effect had when last applied to the attribute
 var _last_effect_value: float
-var _last_attribute_value: float
+# The attribute value BEFORE this effect was last applied to it.
+var _last_prior_attribute_value: float
+# The raw (unvalidated) value of the attribute after this effect was last applied to it.
 var _last_raw_attribute_value: float
-var _last_set_attribute_value: float
+# The validated value of the attribute after this effect was last applied to it.
+var _last_final_attribute_value: float
 # TODO: get_last_differential() method
 
 
@@ -200,10 +203,10 @@ func get_stack_count() -> int:
 
 
 func _clear_pending_values() -> void:
-	_pending_current_attribute_value = 0.0
+	_pending_prior_attribute_value = 0.0
 	_pending_effect_value = 0.0
 	_pending_raw_attribute_value = 0.0
-	_pending_set_attribute_value = 0.0
+	_pending_final_attribute_value = 0.0
 
 
 func _to_string() -> String:

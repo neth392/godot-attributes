@@ -197,7 +197,6 @@ signal active_apply_blocked(blocked: ActiveAttributeEffect, blocked_by: ActiveAt
 ## Internally stores if 
 @export_storage var _has_actives: bool = false:
 	set(value):
-		var prev: bool = _has_actives
 		_has_actives = value
 		_update_processing()
 
@@ -455,26 +454,28 @@ func _notify_current_value_changed(prev_current_value: float) -> void:
 ## effect's conditions change.
 func update_current_value() -> void:
 	var new_current_value: float = _base_value
-	for active: ActiveAttributeEffect in _actives.iterate_temp():
-		# Skip if not added, is expired, or has no value
-		if !active.is_added() || active.is_expired() || !active.get_effect().has_value:
-			continue
-		active._pending_current_attribute_value = new_current_value
-		active._pending_effect_value = _get_modified_value(active)
-		active._pending_raw_attribute_value = active.get_effect().apply_calculator(_base_value, new_current_value, active._last_effect_value)
-		active._pending_set_attribute_value = _validate_current_value(active._pending_raw_attribute_value)
-		
-		# Do not apply if it does not meet conditions
-		if !_test_apply_conditions(active):
+	_actives.temporaries.for_each(
+		func(active: ActiveAttributeEffect) -> void:
+			# Skip if not added, is expired, or has no value
+			if !active.is_added() || active.is_expired() || !active.get_effect().has_value:
+				return
+			active._pending_current_attribute_value = new_current_value
+			active._pending_effect_value = _get_modified_value(active)
+			active._pending_raw_attribute_value = active.get_effect().apply_calculator(_base_value, new_current_value, active._last_effect_value)
+			active._pending_set_attribute_value = _validate_current_value(active._pending_raw_attribute_value)
+			
+			# Do not apply if it does not meet conditions
+			if !_test_apply_conditions(active):
+				active._clear_pending_values()
+				return
+			
+			active._last_effect_value = active._pending_effect_value
+			active._last_attribute_value = _current_value
+			active._last_raw_attribute_value = active._pending_raw_attribute_value
+			active._last_set_attribute_value = active._pending_set_attribute_value
 			active._clear_pending_values()
-			continue
-		
-		active._last_effect_value = active._pending_effect_value
-		active._last_attribute_value = _current_value
-		active._last_raw_attribute_value = active._pending_raw_attribute_value
-		active._last_set_attribute_value = active._pending_set_attribute_value
-		active._clear_pending_values()
-		new_current_value = active._last_set_attribute_value
+			new_current_value = active._last_set_attribute_value
+	)
 	
 	if _current_value != new_current_value:
 		var prev_current_value: float = _current_value
@@ -715,7 +716,7 @@ func add_actives(actives: Array[ActiveAttributeEffect], sort_by_priority: bool =
 ## Returns the number of [ActiveAttributeEffect]s removed.
 func remove_effect(effect: AttributeEffect) -> int:
 	var removed: AttributeUtil.Reference = AttributeUtil.Reference.new(0)
-	return _actives.for_each(
+	_actives.for_each(
 		func(active: ActiveAttributeEffect) -> void:
 			if active.get_effect() == effect:
 				_remove_active(active)
@@ -728,7 +729,7 @@ func remove_effect(effect: AttributeEffect) -> int:
 ## Returns the number of [ActiveAttributeEffect]s removed.
 func remove_effects(effects: Array[AttributeEffect]) -> int:
 	var removed: AttributeUtil.Reference = AttributeUtil.Reference.new(0)
-	return _actives.for_each(
+	_actives.for_each(
 		func(active: ActiveAttributeEffect) -> void:
 			if effects.has(active.get_effect()):
 				_remove_active(active)
@@ -780,7 +781,7 @@ func remove_all_effects() -> void:
 	_actives.clear()
 	_effect_counts.clear()
 	_has_actives = false
-	_current_value = _validate_current_value(_base_value)
+	update_current_value()
 	for active: ActiveAttributeEffect in to_remove:
 		_run_callbacks(active, AttributeEffectCallback._Function.REMOVED)
 		if active.get_effect().should_emit_removed_signal():
@@ -788,63 +789,90 @@ func remove_all_effects() -> void:
 
 
 ## Tests the addition of [param active] by evaluating it's potential add [AttributeEffectCondition]s
-## and that of all BLOCKER type effects.
+## and that of all BLOCKER type effects. Returns true if all conditionss were met, false if not.
 func _test_add_conditions(active: ActiveAttributeEffect) -> bool:
 	# Check active's own conditions
 	if active.get_effect().has_add_conditions():
-		if !_test_conditions(active, active, active.get_effect().add_conditions, active_add_blocked):
+		var blocking_condition: AttributeEffectCondition = _test_conditions(active, active.get_effect().add_conditions)
+		if blocking_condition != null:
 			active._last_add_result = AddEffectResult.BLOCKED_BY_CONDITION
+			active._last_blocked_by = blocking_condition.ref
+			active_add_blocked.emit(blocking_condition, active)
 			return false
 	
-	var can_add: bool = true
 	# Iterate BLOCKER effects
 	if !_actives.blockers.is_empty():
-		_actives.blockers.for_each(func (blocker: ActiveAttributeEffect) -> bool:
+		var blocking_condition: AttributeUtil.Reference = AttributeUtil.Reference.new(null)
+		var blocking_source: AttributeUtil.Reference = AttributeUtil.Reference.new(null)
+		_actives.blockers.for_each(
+			func(blocker: ActiveAttributeEffect) -> void:
 				# Ignore expired - they arent removed until later in the frame sometimes
 				if !blocker.is_added() || blocker.is_expired():
-					return true
-			
-				if !_test_conditions(active, blocker, blocker.get_effect().add_blockers, active_add_blocked):
-					active._last_add_result = AddEffectResult.BLOCKED_BY_BLOCKER
-					can_add = false
-					return false
-		)
-	return can_add
+					return
+				
+				blocking_condition.ref = _test_conditions(active, blocker.get_effect().add_blockers)
+				
+				if blocking_condition.ref != null:
+					blocking_source.ref = blocker
+					_actives.break_for_each()
+		, false) # Unsafe iteration (array is not mutated)
+		if blocking_condition.ref != null:
+			active._last_add_result = AddEffectResult.BLOCKED_BY_CONDITION
+			active._last_blocked_by = blocking_condition.ref
+			active_add_blocked.emit(blocking_condition, blocking_source.ref)
+			return false
+	
+	return true
 
 
 
 ## Tests the applying of [param active] by evaluating it's potential apply [AttributeEffectCondition]s
-## and that of all BLOCKER type effects.
+## and that of all BLOCKER type effects. Returns true if all conditions were met, false if not.
 func _test_apply_conditions(active: ActiveAttributeEffect) -> bool:
 	# Check active's own conditions
 	if active.get_effect().has_apply_conditions():
-		if !_test_conditions(active, active, active.get_effect().apply_conditions, active_apply_blocked):
-			active._is_applying = false
+		var blocking_condition: AttributeEffectCondition = _test_conditions(active, active, 
+		active.get_effect().add_conditions, active_add_blocked)
+		if blocking_condition != null:
+			active._last_add_result = AddEffectResult.BLOCKED_BY_CONDITION
+			active._last_blocked_by = blocking_condition.ref
+			active_add_blocked.emit(blocking_condition, active)
 			return false
 	
 	# Iterate BLOCKER effects
-	if _actives.has_blockers():
-		for blocker: ActiveAttributeEffect in _actives:
-			# Ignore expired - they arent removed until later in the frame sometimes
-			if blocker.is_expired():
-				continue
-			
-			if !_test_conditions(active, blocker, blocker.get_effect().apply_blockers, active_apply_blocked):
-				active._is_applying = false
-				return false
-	active._is_applying = true
+	if !_actives.blockers.is_empty():
+		var blocking_condition: AttributeUtil.Reference = AttributeUtil.Reference.new(null)
+		var blocking_source: AttributeUtil.Reference = AttributeUtil.Reference.new(null)
+		_actives.blockers.for_each(
+			func(blocker: ActiveAttributeEffect) -> void:
+				# Ignore expired - they arent removed until later in the frame sometimes
+				if !blocker.is_added() || blocker.is_expired():
+					return
+				
+				blocking_condition.ref = _test_conditions(active, blocker, 
+				blocker.get_effect().add_blockers, active_add_blocked)
+				
+				if blocking_condition.ref != null:
+					blocking_source.ref = blocker
+					_actives.break_for_each()
+		, false) # Unsafe iteration (array is not mutated)
+		if blocking_condition.ref != null:
+			active._last_add_result = AddEffectResult.BLOCKED_BY_CONDITION
+			active._last_blocked_by = blocking_condition.ref
+			active_add_blocked.emit(blocking_condition, blocking_source.ref)
+			return false
+	
 	return true
 
 
-func _test_conditions(active_to_test: ActiveAttributeEffect, condition_source: ActiveAttributeEffect,
- conditions: Array[AttributeEffectCondition], _signal: Signal) -> bool:
+## Tests the [param conditions] on [param active_to_test]. Returns the [AttributeEffectCondition] that
+## was not met, or null if all were met. 
+func _test_conditions(active_to_test: ActiveAttributeEffect, 
+conditions: Array[AttributeEffectCondition]) -> AttributeEffectCondition:
 	for condition: AttributeEffectCondition in conditions:
 		if !condition.meets_condition(self, active_to_test):
-			active_to_test._last_blocked_by = condition
-			if condition.emit_blocked_signal:
-				_signal.emit(active_to_test, condition_source)
-			return false
-	return true
+			return condition
+	return null
 
 
 func _update_processing() -> void:
@@ -854,31 +882,42 @@ func _update_processing() -> void:
 
 
 func _get_modified_value(active: ActiveAttributeEffect) -> float:
-	var modified_value: float = active.get_effect().value.get_modified(self, active)
-	for modifier_active: ActiveAttributeEffect in _actives.iterate_modifiers():
-		if modifier_active.is_expired():
-			continue
-		modified_value = modifier_active.get_effect().value_modifiers.modify_value(modified_value, self, active)
-	return modified_value
+	var modified_value: AttributeUtil.Reference = AttributeUtil.Reference.new(\
+	active.get_effect().value.get_modified(self, active))
+	
+	_actives.modifiers.for_each(
+		func(modifier: ActiveAttributeEffect) -> void:
+			if modifier.is_added() && !modifier.is_expired():
+				modified_value.ref = modifier.get_effect().value_modifiers.modify_value(modified_value.ref, self, active)
+	, false) # Unsafe iteration as mutations won't be made during it.
+	
+	return modified_value.ref
 
 
 func _get_modified_period(active: ActiveAttributeEffect) -> float:
-	var modified_period: float = active.get_effect().period_in_seconds.get_modified(self, active)
-	for modifier_active: ActiveAttributeEffect in _actives.iterate_modifiers():
-		if modifier_active.is_expired():
-			continue
-		modified_period = modifier_active.get_effect().period_modifiers.modify_period(modified_period, self, active)
-
-	return modified_period
+	var modified_period: AttributeUtil.Reference = AttributeUtil.Reference.new(\
+	active.get_effect().period_in_seconds.get_modified(self, active))
+	
+	_actives.modifiers.for_each(
+		func(modifier: ActiveAttributeEffect) -> void:
+			if modifier.is_added() && !modifier.is_expired():
+				modified_period.ref = modifier.get_effect().period_modifiers.modify_period(modified_period.ref, self, active)
+	, false) # Unsafe iteration as mutations won't be made during it.
+	
+	return modified_period.ref
 
 
 func _get_modified_duration(active: ActiveAttributeEffect) -> float:
-	var modified_duration: float = active.get_effect().duration_in_seconds.get_modified(self, active)
-	for modifier_active: ActiveAttributeEffect in _actives.iterate_modifiers():
-		if modifier_active.is_expired():
-			continue
-		modified_duration = modifier_active.get_effect().duration_modifiers.modify_duration(modified_duration, self, active)
-	return modified_duration
+	var modified_duration: AttributeUtil.Reference = AttributeUtil.Reference.new(\
+	active.get_effect().duration_in_seconds.get_modified(self, active))
+	
+	_actives.modifiers.for_each(
+		func(modifier: ActiveAttributeEffect) -> void:
+			if modifier.is_added() && !modifier.is_expired():
+				modified_duration.ref = modifier.get_effect().duration_modifiers.modify_duration(modified_duration.ref, self, active)
+	, false) # Unsafe iteration as mutations won't be made during it.
+	
+	return modified_duration.ref
 
 
 func _initialize_active(active: ActiveAttributeEffect) -> void:
@@ -893,10 +932,9 @@ func _initialize_active(active: ActiveAttributeEffect) -> void:
 ## Applies the [param active]. Returns true if it should be removed (hit apply limit),
 ## false if not. Does not update the current value, that must be done manually after.
 func _apply_permanent_active(active: ActiveAttributeEffect, current_tick: int) -> void:
-	assert(active.is_added(), "%s not added" % active)
-	assert(_actives.has(active), "%s not present in _actives" % active)
+	assert(_actives.has(active), "%s not added" % active)
 	# Set pending current value
-	active._pending_current_attribute_value = _base_value
+	active._pending_prior_attribute_value = _base_value
 	
 	# Get the modified value
 	active._pending_effect_value = _get_modified_value(active)
@@ -906,7 +944,7 @@ func _apply_permanent_active(active: ActiveAttributeEffect, current_tick: int) -
 	_current_value, active._pending_effect_value)
 	
 	# Validate the attribute's value
-	active._pending_set_attribute_value = _validate_base_value(active._pending_raw_attribute_value)
+	active._pending_final_attribute_value = _validate_base_value(active._pending_raw_attribute_value)
 	
 	# Check apply conditions
 	if !_test_apply_conditions(active):
