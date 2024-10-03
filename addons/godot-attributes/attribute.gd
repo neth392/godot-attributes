@@ -336,7 +336,7 @@ func _process_active(active: ActiveAttributeEffect) -> void:
 				apply = true
 	
 	# Check if it should apply & is still added (could've been removed before)
-	if apply && active._is_added:
+	if apply && active.is_added():
 		# Apply it
 		_apply_permanent_active(active, current_tick)
 		
@@ -675,7 +675,6 @@ func add_actives(actives: Array[ActiveAttributeEffect], sort_by_priority: bool =
 		_run_callbacks(active, AttributeEffectCallback._Function.PRE_ADD)
 		
 		# At this point it can be added
-		active._is_added = true
 		active._last_add_result = AddEffectResult.ADDED
 		active._tick_added_on = current_tick
 		active._tick_last_processed = current_tick
@@ -758,10 +757,8 @@ func remove_active(active: ActiveAttributeEffect) -> bool:
 
 func _remove_active(active: ActiveAttributeEffect) -> void:
 	assert(active != null, "active is null")
-	assert(active._is_added, "(%s)._is_added is false" % active)
-	assert(_actives.has(active), "(%s) not present in _actives" % active)
+	assert(_actives.has(active), "(%s) not added to _actives" % active)
 	_run_callbacks(active, AttributeEffectCallback._Function.PRE_REMOVE)
-	active._is_added = false
 	_actives.erase(active)
 	_has_actives = !_actives.is_empty()
 	if _effect_counts.has(active.get_effect().id):
@@ -777,10 +774,9 @@ func _remove_active(active: ActiveAttributeEffect) -> void:
 
 ## Removes all [ActiveAttributeEffect]s from this attribute.
 func remove_all_effects() -> void:
-	var to_remove: Array[ActiveAttributeEffect] = _actives._array.duplicate(false)
+	var to_remove: Array[ActiveAttributeEffect] = _actives.duplicate_array()
 	for active: ActiveAttributeEffect in to_remove:
 		_run_callbacks(active, AttributeEffectCallback._Function.PRE_REMOVE)
-		active._is_added = false
 	_actives.clear()
 	_effect_counts.clear()
 	_has_actives = false
@@ -789,7 +785,6 @@ func remove_all_effects() -> void:
 		_run_callbacks(active, AttributeEffectCallback._Function.REMOVED)
 		if active.get_effect().should_emit_removed_signal():
 			active_removed.emit(active)
-	_locked = false
 
 
 ## Tests the addition of [param active] by evaluating it's potential add [AttributeEffectCondition]s
@@ -806,7 +801,7 @@ func _test_add_conditions(active: ActiveAttributeEffect) -> bool:
 	if !_actives.blockers.is_empty():
 		_actives.blockers.for_each(func (blocker: ActiveAttributeEffect) -> bool:
 				# Ignore expired - they arent removed until later in the frame sometimes
-				if !blocker._is_added || blocker.is_expired():
+				if !blocker.is_added() || blocker.is_expired():
 					return true
 			
 				if !_test_conditions(active, blocker, blocker.get_effect().add_blockers, active_add_blocked):

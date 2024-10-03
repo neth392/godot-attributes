@@ -239,6 +239,9 @@ enum DurationType {
 @export var metadata: Dictionary[Variant, Variant]
 
 var _callbacks_by_function: Dictionary[AttributeEffectCallback._Function, Array]
+var _block_runtime_modifications: bool = false:
+	set(value):
+		_block_runtime_modifications = true
 
 func _init(_id: StringName = "") -> void:
 	id = _id
