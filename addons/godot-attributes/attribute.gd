@@ -183,12 +183,6 @@ signal active_apply_blocked(blocked: ActiveAttributeEffect, blocked_by: ActiveAt
 		_default_effects = value
 		update_configuration_warnings()
 
-@export_group("Components")
-
-## The [PauseTracker] used by this [Attribute] to track pausing. Usually this
-## can be left untouched. Must NOT be null.
-@export var pause_tracker: AttributePauseTracker
-
 ## Cluster of all added [ActiveAttributeEffect]s.
 @export_storage var _actives: ActiveAttributeEffectCluster
 
@@ -214,6 +208,7 @@ var _current_value: float:
 		_current_value = value
 		update_configuration_warnings()
 
+var _paused_at: int
 
 func _enter_tree() -> void:
 	if Engine.is_editor_hint():
@@ -223,6 +218,11 @@ func _enter_tree() -> void:
 
 
 func _ready() -> void:
+	# TODO handle loading of attributes from saved data. currently applied effects
+	# need their tick #s adjusted.
+	if !can_process():
+		_paused_at = _get_ticks()
+	
 	_update_processing()
 	# Escape if editor
 	if Engine.is_editor_hint():
@@ -236,10 +236,6 @@ func _ready() -> void:
 		#if child is AttributeHistory:
 			#_history = child
 			#break
-	
-	# Pause Tracker
-	pause_tracker.time_unit = INTERNAL_TIME_UNIT
-	pause_tracker.unpaused.connect(_on_unpaused)
 	
 	# Handle default effects
 	if allow_effects && !_default_effects.is_empty():
@@ -255,18 +251,20 @@ func _exit_tree() -> void:
 	_container_ref = weakref(null)
 
 
-# Handle pausing
-func _on_unpaused(time_paused: float) -> void:
-	var paused_at: int = int(_get_ticks() - time_paused)
-	var unpaused_at: int = _get_ticks()
-	_actives.for_each(
-		func(active: ActiveAttributeEffect) -> void:
-			# If added during the pause, set process time to unpause time
-			if active._tick_added_on >= paused_at:
-				active._tick_last_processed = unpaused_at
-			else: # If added before pause, add time puased to process time
-				active._tick_last_processed += time_paused
-	, false)
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PAUSED:
+		_paused_at = _get_ticks()
+	if what == NOTIFICATION_UNPAUSED:
+		var unpaused_at: int = _get_ticks()
+		var ticks_paused: float = _get_ticks() - _paused_at
+		_actives.for_each(
+			func(active: ActiveAttributeEffect) -> void:
+				# If added during the pause, set process time to unpause time
+				if active._tick_added_on >= _paused_at:
+					active._tick_last_processed = unpaused_at
+				else: # If added before pause, add time puased to process time
+					active._tick_last_processed += ticks_paused
+		, false)
 
 
 func _process(delta: float) -> void:
