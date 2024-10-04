@@ -397,14 +397,14 @@ func _validate_base_value(value: float) -> float:
 	var validated: float = value
 	for validator: AttributeValueValidator in base_value_validators:
 		validated = validator._validate(validated)
-	return value
+	return validated
 
 
 func _validate_current_value(value: float) -> float:
 	var validated: float = value
 	for validator: AttributeValueValidator in current_value_validators:
 		validated = validator._validate(validated)
-	return value
+	return validated
 
 
 ## Updates the value returned by [method get_current_value] by re-applying all
@@ -583,6 +583,7 @@ func add_actives(actives: Array[ActiveAttributeEffect], sort_by_priority: bool =
 	
 	# Iterate actives to apply
 	for active: ActiveAttributeEffect in actives_to_add:
+		print("Add: ", active)
 		assert(!_actives.has(active), "%s already added to this attribute or another" % active)
 		
 		# Throw error if active's effect exists & has StackMode.DENY_ERROR
@@ -617,7 +618,7 @@ func add_actives(actives: Array[ActiveAttributeEffect], sort_by_priority: bool =
 			active._last_add_result = AddEffectResult.STACKED
 			_add_to_stack(active, active.get_stack_count())
 			# Update current value if a temporary active is added
-			# TODO Determine if I should apply here
+			# TODO Determine if I should apply here or not
 			if active.get_effect().is_temporary() && active.get_effect().has_value:
 				update_current_value()
 			continue
@@ -640,6 +641,7 @@ func add_actives(actives: Array[ActiveAttributeEffect], sort_by_priority: bool =
 		
 		# Add to array
 		_actives.add(active)
+		_has_actives = true
 		
 		# Add to _effect_counts
 		var new_count: int = _effect_counts.get(active.get_effect().id, 0) + 1
@@ -834,9 +836,9 @@ conditions: Array[AttributeEffectCondition]) -> AttributeEffectCondition:
 
 
 func _update_processing() -> void:
-	var can_process: bool = !Engine.is_editor_hint() && _has_actives && allow_effects
-	set_process(can_process && effects_process_function == ProcessFunction.PROCESS)
-	set_physics_process(can_process && effects_process_function == ProcessFunction.PHYSICS_PROCESS)
+	var _can_process: bool = !Engine.is_editor_hint() && _has_actives && allow_effects
+	set_process(_can_process && effects_process_function == ProcessFunction.PROCESS)
+	set_physics_process(_can_process && effects_process_function == ProcessFunction.PHYSICS_PROCESS)
 
 
 func _get_modified_value(active: ActiveAttributeEffect) -> float:

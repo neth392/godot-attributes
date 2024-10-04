@@ -35,7 +35,7 @@ _modifiers = Array[ExtResource("3_mvdpr")]([])
 [sub_resource type="Resource" id="Resource_xmxxa"]
 script = ExtResource("5_qr57t")
 type = 0
-_value = 1.0
+_value = 1.1
 modifiers = SubResource("Resource_6j4ou")
 
 [sub_resource type="Resource" id="Resource_bmvt3"]

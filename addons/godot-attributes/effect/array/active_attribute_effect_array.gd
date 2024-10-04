@@ -22,7 +22,7 @@ var _allow_mutations: bool = true
 func _init(same_priority_sorting_method: Attribute.SamePrioritySortingMethod = \
 Attribute.SamePrioritySortingMethod.OLDER_FIRST, modify_is_added: bool = false) -> void:
 	_same_priority_sorting_method = same_priority_sorting_method
-	_modify_is_added = _modify_is_added
+	_modify_is_added = modify_is_added
 
 
 ## Executes the [param active_consumer] for each element in this array, excluding any pending
