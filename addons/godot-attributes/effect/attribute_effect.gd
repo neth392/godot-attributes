@@ -49,10 +49,11 @@ enum DurationType {
 
 ## The priority to be used to determine the order when processing & applying [AttributeEffect]s
 ## on an [Attribute]. Greater priorities will be processed & applied first. If two effects have
-## equal priorities, the effect most recently added to the attribute is processed first. 
-## If you want a temporary effect to override a value on an attribute & not have that value 
-## modified by any other effects, then the priority should be lesser than other effects that 
-## can be applied so the override effect is applied last.
+## equal priorities, [member Attribute.same_priority_sorting_method] determines which is procssed &
+## applied first. 
+## [br]If you want a temporary effect to override a value on an attribute & not have
+## that value modified by any other effects, then the priority should be lesser than other effects 
+## so the override effect is applied last.
 ## [br]NOTE: Effects are first sorted by type [enum Type.TEMPORARY] then [enum Type.PERMANENT].
 @export var priority: int = 0
 
@@ -81,7 +82,7 @@ enum DurationType {
 
 ## The value that is applied to an [Attribute]'s value (base or current, based on
 ## [member type]).
-@export var value: ModifiableValue = ModifiableValue.new()
+@export var value: ModifiableValue
 
 ## Determines how the [member value] is applied to an [Attribute] (i.e. added, multiplied, etc).
 @export var value_calculator: AttributeEffectCalculator
@@ -113,7 +114,7 @@ enum DurationType {
 		notify_property_list_changed()
 
 ## The amount of time in seconds this [AttributeEffect] lasts.
-@export var duration_in_seconds: ModifiableValue = ModifiableValue.new()
+@export var duration_in_seconds: ModifiableValue
 
 ## If the effect should automatically be applied when it's duration expires.
 ## [br]NOTE: Only available for [enum Type.PERMANENT] effects.
@@ -146,7 +147,7 @@ enum DurationType {
 ## Amount of time, in seconds, between when this effect is applied to an [Attribute].
 ## [br]Zero or less means every frame.
 ## [br]NOTE: Only available for [enum Type.PERMANENT] effects.
-@export var period_in_seconds: ModifiableValue = ModifiableValue.new()
+@export var period_in_seconds: ModifiableValue
 
 ## If [member period_in_seconds] should apply as a "delay" between when this effect 
 ## is added to an [Attribute] and its first time applying.

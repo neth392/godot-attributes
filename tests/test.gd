@@ -18,9 +18,8 @@ func _ready():
 	health_attribute.active_add_blocked.connect(_on_active_add_blocked)
 	health_attribute.active_apply_blocked.connect(_on_active_apply_blocked)
 	
-	
-	var effect: AttributeEffect = load("res://tests/test_effect.tres") as AttributeEffect
-	health_attribute.add_active(effect.create_active_effect())
+	var drain_effect: AttributeEffect = load("res://tests/test_effect.tres") as AttributeEffect
+	health_attribute.add_active(drain_effect.create_active_effect())
 
 
 func _print(message: String) -> void:
@@ -30,6 +29,9 @@ func _print(message: String) -> void:
 func _on_current_value_changed(prev_current_value: float) -> void:
 	_print("current_value_changed: new_value=%s, prev_current_value=%s" \
 	% [health_attribute.get_current_value(), prev_current_value])
+	var boost_effect: AttributeEffect = load("res://tests/health_boost_effect.tres") as AttributeEffect
+	if !health_attribute.has_effect(boost_effect):
+		health_attribute.add_active(boost_effect.create_active_effect())
 
 func _on_base_value_changed(prev_base_value: float, active: ActiveAttributeEffect) -> void:
 	_print("base_value_changed: new_value=%s, prev_base_value=%s, active=%s" \

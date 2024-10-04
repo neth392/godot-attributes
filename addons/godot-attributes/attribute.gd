@@ -424,7 +424,7 @@ func update_current_value() -> void:
 			active._pending_prior_attribute_value = new_current_value.ref
 			active._pending_effect_value = _get_modified_value(active)
 			active._pending_raw_attribute_value = active.get_effect().apply_calculator(_base_value, 
-			new_current_value.ref, active._last_effect_value)
+			new_current_value.ref, active._pending_effect_value)
 			active._pending_final_attribute_value = _validate_current_value(active._pending_raw_attribute_value)
 			
 			# Test apply conditions & ensure still added after testing them.
@@ -437,7 +437,7 @@ func update_current_value() -> void:
 			active._last_raw_attribute_value = active._pending_raw_attribute_value
 			active._last_final_attribute_value = active._pending_final_attribute_value
 			active._clear_pending_values()
-			new_current_value.ref = active._last_set_attribute_value
+			new_current_value.ref = active._last_final_attribute_value
 	) 
 	
 	if _current_value != new_current_value.ref:
@@ -583,7 +583,6 @@ func add_actives(actives: Array[ActiveAttributeEffect], sort_by_priority: bool =
 	
 	# Iterate actives to apply
 	for active: ActiveAttributeEffect in actives_to_add:
-		print("Add: ", active)
 		assert(!_actives.has(active), "%s already added to this attribute or another" % active)
 		
 		# Throw error if active's effect exists & has StackMode.DENY_ERROR
@@ -656,9 +655,8 @@ func add_actives(actives: Array[ActiveAttributeEffect], sort_by_priority: bool =
 		if active.get_effect().is_temporary() && active.get_effect().has_value:
 			update_current_value()
 			continue
-		
 		# Apply it if initial period <= 0.0
-		if active.get_effect().has_period() && active.remaining_period <= 0.0:
+		elif active.get_effect().has_period() && active.remaining_period <= 0.0:
 			_apply_permanent_active(active, current_tick)
 			
 			# Remove if it hit apply limit

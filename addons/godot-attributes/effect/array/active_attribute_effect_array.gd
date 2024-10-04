@@ -113,7 +113,10 @@ func add(active: ActiveAttributeEffect) -> void:
 	if index == _data_array.size():
 		_data_array.append(active)
 	
-	_data_array_changed = true
+	if _iteration_count == 0:
+		_iterable_array.assign(_data_array)
+	else:
+		_data_array_changed = true
 
 
 ## Erases [param active] from this array. If [param safe] is true, an error
@@ -132,7 +135,11 @@ func erase(active: ActiveAttributeEffect, safe: bool = false) -> void:
 		active._is_added = false
 	
 	_data_array.erase(active)
-	_data_array_changed = true
+	
+	if _iteration_count == 0:
+		_iterable_array.assign(_data_array)
+	else:
+		_data_array_changed = true
 
 
 ## Clears the array. If currently iterating, [method break_for_each] is called
@@ -144,7 +151,11 @@ func clear() -> void:
 		for active: ActiveAttributeEffect in _data_array:
 			active._is_added = false
 	_data_array.clear()
-	_data_array_changed = true
+	if _iteration_count == 0:
+		break_for_each()
+		_iterable_array.clear()
+	else:
+		_data_array_changed = true
 
 
 ## Returns true if [param active]'s [member ActiveAttributeEffect._is_added] is true and
@@ -152,11 +163,6 @@ func clear() -> void:
 ## removals & additions.
 func has(active: ActiveAttributeEffect) -> bool:
 	return active._is_added && _data_array.has(active)
-
-
-### Returns the size of this array, accounting for pending changes.
-#func size() -> int:
-	#return _data_array.size()
 
 
 ## Returns true if this array is empty, false if not. Accounts for pending changes.
