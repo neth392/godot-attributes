@@ -303,59 +303,41 @@ func _process_active(active: ActiveAttributeEffect) -> void:
 	# Add to active duration
 	active._active_duration += seconds_since_last_process
 	
-	# Flag used to mark if the active should be applied this frame
-	var apply: bool = false
-	# Flag to mark if it should be removed
-	var remove: bool = false
-	
 	# Set tick last processed as this tick
 	active._tick_last_processed = current_tick
+	
+	# Update period
+	if active.get_effect().has_period():
+		active.remaining_period -= seconds_since_last_process
 	
 	# Duration Calculations
 	if active.get_effect().has_duration():
 		active.remaining_duration -= seconds_since_last_process
 		if active.remaining_duration <= 0.0: # Expired
-			# active is expired at this point
+			# Logic to determine if it should apply on expire
+			if active.get_effect().is_apply_on_expire() \
+			or (active.get_effect().is_apply_on_expire_if_period_is_zero() && active.remaining_period <= 0): 
+				# Apply it
+				_apply_permanent_active(active, current_tick)
+			
+			# Ignore apply limit here as it already expired
+			
+			# Remove it & go to next active
 			active._expired = true
-			remove = true
-			if active.get_effect().is_apply_on_expire():
-				apply = true
+			if active.is_added():
+				_remove_active(active)
+			return
 	
-	# Flag if period should be reset
-	var reset_period: bool = false
-	
-	# Period Calculations
-	if active.get_effect().has_period():
-		active.remaining_period -= seconds_since_last_process
-		if active.remaining_period <= 0.0:
-			if !active._expired: # Not expired, set to apply & mark period to reset
-				apply = true
-				# Period should be reset as this active is not expired
-				reset_period = true
-			elif active.get_effect().is_apply_on_expire_if_period_is_zero():
-				# Set to apply since period is <=0 & it's expired
-				apply = true
-	
-	# Check if it should apply & is still added (could've been removed before)
-	if apply && active.is_added():
+	# Remaining period < 0, apply it & reset period
+	if active.get_effect().has_period() && active.remaining_period <= 0:
 		# Apply it
 		_apply_permanent_active(active, current_tick)
 		
 		# Mark it for removal if it hit apply limit
 		if active.hit_apply_limit():
-			remove = true
 			# Remove from effect counts instantly so has_effect return false
 			_remove_active(active)
 		
-		# Update current value
-		if _base_value != active._last_attribute_value:
-			update_current_value()
-	
-	# Check if it should be removed
-	if remove:
-		pass
-	# Otherwise, reset the period if needed
-	elif reset_period:
 		active.remaining_period += _get_modified_period(active)
 
 
@@ -976,6 +958,10 @@ func _apply_permanent_active(active: ActiveAttributeEffect, current_tick: int) -
 	_base_value = active._last_final_attribute_value
 	if _base_value != active._last_prior_attribute_value:
 		base_value_changed.emit(active._last_prior_attribute_value, active)
+	
+	# Update current value
+	if _base_value != active._last_prior_attribute_value:
+		update_current_value()
 	
 	# Emit signals
 	_run_callbacks(active, AttributeEffectCallback._Function.APPLIED)
