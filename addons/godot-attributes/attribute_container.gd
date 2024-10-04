@@ -71,12 +71,13 @@ func get_attribute(id: StringName) -> Attribute:
 	return _attributes.get(id).get_ref()
 
 
-## Adds the [param tag], returning true if added, false if not as it already existed. # TODO return
+## Adds the [param tag], returning true if added, false if not as it already existed.
 func add_tag(tag: StringName) -> bool:
 	return add_tags([tag])
 
 
-## Adds all of the [param tags] which are not yet added. # TODO Return 
+## Adds all of the [param tags] which are not yet added, returning true if one or
+## more tags were added, false if none were added as they already existed.
 func add_tags(tags: Array[StringName]) -> bool:
 	assert(!tags.has(""), "tags has empty element")
 	var added: bool = false

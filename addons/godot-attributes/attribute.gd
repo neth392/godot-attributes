@@ -132,8 +132,6 @@ signal active_apply_blocked(blocked: ActiveAttributeEffect, blocked_by: ActiveAt
 	set(value):
 		var prev_base_value: float = _base_value
 		_base_value = value
-		if prev_base_value != _base_value:
-			_notify_base_value_changed(prev_base_value)
 		update_configuration_warnings()
 
 @export_group("Value Validators")
@@ -214,8 +212,6 @@ var _current_value: float:
 	set(value):
 		var prev_current_value: float = _current_value
 		_current_value = value
-		if _current_value != prev_current_value:
-			_notify_current_value_changed(prev_current_value)
 		update_configuration_warnings()
 
 
@@ -413,20 +409,6 @@ func _validate_current_value(value: float) -> float:
 	return value
 
 
-## Called in the setter of [member _base_value] after the value has been changed, used
-## to notify extending classes of the change.
-func _notify_base_value_changed(prev_base_value: float) -> void:
-	# TODO: Is this needed?
-	pass
-
-
-## Called in the setter of [member _current_value] after the value has been changed, used
-## to notify extending classes of the change.
-func _notify_current_value_changed(prev_current_value: float) -> void:
-	# TODO: Is this needed?
-	pass
-
-
 ## Updates the value returned by [method get_current_value] by re-applying all
 ## [AttributeEffect]s of type [enum AttributeEffect.Type.TEMPORARY]. This is called
 ## automatically whenever base_value changes, a PERMANENT effect is applied, or
@@ -479,7 +461,9 @@ func get_actives(ignore_expired: bool = true) -> Array[ActiveAttributeEffect]:
 	return _actives.duplicate_array()
 
 
-## TODO
+## Returns a new [Array] of every [member AttributeEffect.id] currently active on this
+## attribute. Does not contain duplicates, even if multiple [ActiveAttributeEffect]s of the same
+## [AttributeEffect] are added.
 func get_effect_ids() -> Array[StringName]:
 	return _effect_counts.keys()
 

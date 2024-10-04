@@ -16,9 +16,17 @@ enum ValueType {
 		match type:
 			ValueType.STATIC:
 				return _value
-		if type == ValueType.STATIC:
-			return _value
-		return 0.0 # TODO return attribute value
+			ValueType.ATTRIBUTE_BASE_VALUE:
+				# TODO implement
+				assert(false, "ValueType.ATTRIBUTE_BASE_VALUE not yet implemented")
+				return 0.0
+			ValueType.ATTRIBUTE_CURRENT_VALUE:
+				# TODO implement
+				assert(false, "ValueType.ATTRIBUTE_CURRENT_VALUE not yet implemented")
+				return 0.0
+			_:
+				assert(false, "no implementation written for type (%s)" % type)
+				return 0.0
 
 ## Any [AttributeEffectModifier]s that can apply to the value.
 @export var modifiers: AttributeEffectModifierArray = AttributeEffectModifierArray.new()

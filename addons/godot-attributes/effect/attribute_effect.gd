@@ -211,8 +211,8 @@ enum DurationType {
 
 ## If true, this effect has [member add_blockers] and/or [member apply_blockers] which
 ## are sets of [AttributeEffectCondition]s that can block other [AttributeEffect]s
-## from applying while this effect is active.
 @export var _blocker: bool = false
+## from applying while this effect is active.
 
 ## Blocks other [AttributeEffect]s from being added to an [Attribute] if they
 ## do NOT meet any of these conditions.
@@ -224,7 +224,8 @@ enum DurationType {
 
 @export_group("Modifiers")
 
-## If true, this effect has TODO which modify the properties of other [AttributeEffect]s.
+## If true, this effect can use [member value_modifiers], [member period_modifiers], and
+## [member duration_modifiers] to modify the properties of other [ActiveAttributeEffect]s.
 @export var _modifier: bool = false
 
 ## Modifies the [member value] of other [AttributeEffect]s.
@@ -447,12 +448,14 @@ func is_temporary() -> bool:
 	return type == AttributeEffect.Type.TEMPORARY
 
 
-## TODO
+## If true, this effect can use [member add_blockers] & [member apply_blockers] to
+## prevent the addition or applying of other [ActiveAttributeEffect]s.
 func is_blocker() -> bool:
 	return _blocker
 
 
-## TODO
+## If true, this effect can use [member value_modifiers], [member period_modifiers], and
+## [member duration_modifiers] to modify the properties of other [ActiveAttributeEffect]s.
 func is_modifier() -> bool:
 	return _modifier
 
