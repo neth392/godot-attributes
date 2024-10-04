@@ -274,16 +274,10 @@ func _on_unpaused(time_paused: float) -> void:
 
 
 func _process(delta: float) -> void:
-	__process()
+	_actives.for_each(_process_active)
 
 
 func _physics_process(delta: float) -> void:
-	__process()
-
-
-# The heart & soul of Attribute, responsible for processing & applying [AttriubteEffectactive]s.
-# Should NEVER be overridden
-func __process() -> void:
 	_actives.for_each(_process_active)
 
 
@@ -439,7 +433,7 @@ func _notify_current_value_changed(prev_current_value: float) -> void:
 ## a TEMPORARY effect is added/removed. Should be called manually if a TEMPORARY
 ## effect's conditions change.
 func update_current_value() -> void:
-	var new_current_value: float = _base_value
+	var new_current_value: AttributeUtil.Reference = AttributeUtil.Reference.new(_base_value)
 	_actives.temporaries.for_each(
 		func(active: ActiveAttributeEffect) -> void:
 			# Skip if not added, is expired, or has no value
@@ -447,10 +441,10 @@ func update_current_value() -> void:
 				return
 			
 			# Set pending values
-			active._pending_prior_attribute_value = new_current_value
+			active._pending_prior_attribute_value = new_current_value.ref
 			active._pending_effect_value = _get_modified_value(active)
 			active._pending_raw_attribute_value = active.get_effect().apply_calculator(_base_value, 
-			new_current_value, active._last_effect_value)
+			new_current_value.ref, active._last_effect_value)
 			active._pending_final_attribute_value = _validate_current_value(active._pending_raw_attribute_value)
 			
 			# Test apply conditions & ensure still added after testing them.
@@ -463,12 +457,12 @@ func update_current_value() -> void:
 			active._last_raw_attribute_value = active._pending_raw_attribute_value
 			active._last_final_attribute_value = active._pending_final_attribute_value
 			active._clear_pending_values()
-			new_current_value = active._last_set_attribute_value
-	)
+			new_current_value.ref = active._last_set_attribute_value
+	) 
 	
-	if _current_value != new_current_value:
+	if _current_value != new_current_value.ref:
 		var prev_current_value: float = _current_value
-		_current_value = new_current_value
+		_current_value = new_current_value.ref
 		current_value_changed.emit(prev_current_value)
 
 
@@ -598,15 +592,16 @@ func add_actives(actives: Array[ActiveAttributeEffect], sort_by_priority: bool =
 	var current_tick: int = _get_ticks()
 	
 	# Define array to use
-	var actives_to_add: Array[ActiveAttributeEffect] = actives
+	var actives_to_add: Array[ActiveAttributeEffect]
+	actives_to_add.assign(actives)
+	
 	# Duplicate & sort array if sort_by_priority is true
 	if sort_by_priority:
-		actives_to_add = actives.duplicate(false)
 		actives_to_add.sort_custom(_actives._sort_new_before_other)
 	
 	# Iterate actives to apply
 	for active: ActiveAttributeEffect in actives_to_add:
-		assert(!active.is_added(), "active (%s) already added" % active)
+		assert(!_actives.has(active), "%s already added to this attribute or another" % active)
 		
 		# Throw error if active's effect exists & has StackMode.DENY_ERROR
 		assert(active.get_effect().stack_mode != AttributeEffect.StackMode.DENY_ERROR or \
@@ -682,15 +677,12 @@ func add_actives(actives: Array[ActiveAttributeEffect], sort_by_priority: bool =
 		if active.get_effect().has_period() && active.remaining_period <= 0.0:
 			_apply_permanent_active(active, current_tick)
 			
-			## Remove if it hit apply limit
-			#if active.hit_apply_limit():
-				#_remove_active_at_index(active, index, true)
-			#else: # Update period
-				#active.remaining_period += _get_modified_period(active)
-			#
-			## Update the current value
-			#if _base_value != active._last_prior_attribute_value:
-				#update_current_value()
+			# Remove if it hit apply limit
+			if active.hit_apply_limit():
+				_remove_active(active)
+			# Update period
+			else:
+				active.remaining_period += _get_modified_period(active)
 
 
 ## Removes all [ActiveAttributeEffect]s whose effect equals [param effect].
@@ -813,6 +805,7 @@ func _test_add_conditions(active: ActiveAttributeEffect) -> bool:
 ## Tests the applying of [param active] by evaluating it's potential apply [AttributeEffectCondition]s
 ## and that of all BLOCKER type effects. Returns true if all conditions were met, false if not.
 ## Emits signals which can result in mutations, considered unsafe.
+# TODO block mutation of actives in signals emitted from this method, it is not safe.
 func _test_apply_conditions(active: ActiveAttributeEffect) -> bool:
 	# Check active's own conditions
 	if active.get_effect().has_apply_conditions():
@@ -916,7 +909,6 @@ func _initialize_active(active: ActiveAttributeEffect) -> void:
 ## false if not. Does not update the current value, that must be done manually after.
 ## Emits signals that could result in array mutations, so considered unsafe.
 func _apply_permanent_active(active: ActiveAttributeEffect, current_tick: int) -> void:
-	assert(_actives.has(active), "%s not added" % active)
 	# Set prior attribute value value
 	active._pending_prior_attribute_value = _base_value
 	
@@ -954,12 +946,12 @@ func _apply_permanent_active(active: ActiveAttributeEffect, current_tick: int) -
 	#if has_history() && active.get_effect().should_log_history():
 		#_history._add_to_history(active) 
 	
-	# Apply it
+	# Update base value
 	_base_value = active._last_final_attribute_value
 	if _base_value != active._last_prior_attribute_value:
 		base_value_changed.emit(active._last_prior_attribute_value, active)
 	
-	# Update current value
+	# Update current value if base value changed
 	if _base_value != active._last_prior_attribute_value:
 		update_current_value()
 	
