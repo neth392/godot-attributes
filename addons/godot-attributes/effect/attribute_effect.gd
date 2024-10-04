@@ -211,8 +211,11 @@ enum DurationType {
 
 ## If true, this effect has [member add_blockers] and/or [member apply_blockers] which
 ## are sets of [AttributeEffectCondition]s that can block other [AttributeEffect]s
-@export var _blocker: bool = false
 ## from applying while this effect is active.
+@export var _blocker: bool = false:
+	set(value):
+		_blocker = value
+		notify_property_list_changed()
 
 ## Blocks other [AttributeEffect]s from being added to an [Attribute] if they
 ## do NOT meet any of these conditions.
@@ -226,7 +229,10 @@ enum DurationType {
 
 ## If true, this effect can use [member value_modifiers], [member period_modifiers], and
 ## [member duration_modifiers] to modify the properties of other [ActiveAttributeEffect]s.
-@export var _modifier: bool = false
+@export var _modifier: bool = false:
+	set(value):
+		_modifier = value
+		notify_property_list_changed()
 
 ## Modifies the [member value] of other [AttributeEffect]s.
 @export var value_modifiers: AttributeEffectModifierArray

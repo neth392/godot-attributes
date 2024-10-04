@@ -228,7 +228,7 @@ func _ready() -> void:
 	if Engine.is_editor_hint():
 		return
 	
-	_actives = ActiveAttributeEffectArray.new(same_priority_sorting_method)
+	_actives = ActiveAttributeEffectCluster.new(same_priority_sorting_method)
 	_current_value = _validate_current_value(_base_value)
 	
 	## Find & set history
