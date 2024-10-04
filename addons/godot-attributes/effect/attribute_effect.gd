@@ -1,4 +1,8 @@
 ## An effect that can cause changes to an [Attribute]'s value, among many other functionalities.
+## WARNING: This resource is not meant to be modified while [ActiveAttributeEffect]s derived
+## from it are applied to an [Attribute]. It could result in unexpected behavior & break things.
+## TODO: Address the above warning by "snapshotting" the effect and setting that to the
+## [ActiveAttributeEffect] instead of this actual instance.
 @tool
 class_name AttributeEffect extends Resource
 

@@ -263,12 +263,14 @@ func _exit_tree() -> void:
 func _on_unpaused(time_paused: float) -> void:
 	var paused_at: int = int(_get_ticks() - time_paused)
 	var unpaused_at: int = _get_ticks()
-	for active: ActiveAttributeEffect in _actives.iterate():
-		# If added during the pause, set process time to unpause time
-		if active._tick_added_on >= paused_at:
-			active._tick_last_processed = unpaused_at
-		else: # If added before pause, add time puased to process time
-			active._tick_last_processed += time_paused
+	_actives.for_each(
+		func(active: ActiveAttributeEffect) -> void:
+			# If added during the pause, set process time to unpause time
+			if active._tick_added_on >= paused_at:
+				active._tick_last_processed = unpaused_at
+			else: # If added before pause, add time puased to process time
+				active._tick_last_processed += time_paused
+	, false)
 
 
 func _process(delta: float) -> void:
@@ -364,7 +366,7 @@ func _validate_property(property: Dictionary) -> void:
 		return
 	if property.name == "_default_effects":
 		if !allow_effects:
-			property.usage = PROPERTY_USAGE_STORAGE
+			property.usage = PROPERTY_USAGE_NONE
 		return
 
 
@@ -438,12 +440,14 @@ func _validate_current_value(value: float) -> float:
 ## Called in the setter of [member _base_value] after the value has been changed, used
 ## to notify extending classes of the change.
 func _notify_base_value_changed(prev_base_value: float) -> void:
+	# TODO: Is this needed?
 	pass
 
 
 ## Called in the setter of [member _current_value] after the value has been changed, used
 ## to notify extending classes of the change.
 func _notify_current_value_changed(prev_current_value: float) -> void:
+	# TODO: Is this needed?
 	pass
 
 
@@ -459,20 +463,23 @@ func update_current_value() -> void:
 			# Skip if not added, is expired, or has no value
 			if !active.is_added() || active.is_expired() || !active.get_effect().has_value:
 				return
-			active._pending_current_attribute_value = new_current_value
-			active._pending_effect_value = _get_modified_value(active)
-			active._pending_raw_attribute_value = active.get_effect().apply_calculator(_base_value, new_current_value, active._last_effect_value)
-			active._pending_set_attribute_value = _validate_current_value(active._pending_raw_attribute_value)
 			
-			# Do not apply if it does not meet conditions
-			if !_test_apply_conditions(active):
+			# Set pending values
+			active._pending_prior_attribute_value = new_current_value
+			active._pending_effect_value = _get_modified_value(active)
+			active._pending_raw_attribute_value = active.get_effect().apply_calculator(_base_value, 
+			new_current_value, active._last_effect_value)
+			active._pending_final_attribute_value = _validate_current_value(active._pending_raw_attribute_value)
+			
+			# Test apply conditions & ensure still added after testing them.
+			if !_test_apply_conditions(active) || !active.is_added():
 				active._clear_pending_values()
 				return
 			
 			active._last_effect_value = active._pending_effect_value
-			active._last_attribute_value = _current_value
+			active._last_prior_attribute_value = _current_value
 			active._last_raw_attribute_value = active._pending_raw_attribute_value
-			active._last_set_attribute_value = active._pending_set_attribute_value
+			active._last_final_attribute_value = active._pending_final_attribute_value
 			active._clear_pending_values()
 			new_current_value = active._last_set_attribute_value
 	)
@@ -489,11 +496,11 @@ func update_current_value() -> void:
 ## are ignored, otherwise they are included (not recommended for most cases).
 func get_actives(ignore_expired: bool = true) -> Array[ActiveAttributeEffect]:
 	if ignore_expired:
-		return _actives._array.filter(
+		return _actives._data_array.filter(
 			func (active: ActiveAttributeEffect) -> bool:
-			return !ignore_expired || (!active.is_expired() && !active.hit_apply_limit())
-			)
-	return _actives._array.duplicate(false)
+				return !ignore_expired || (!active.is_expired() && !active.hit_apply_limit())
+		)
+	return _actives.duplicate_array()
 
 
 ## TODO
@@ -514,9 +521,6 @@ func get_effect_ids() -> Array[StringName]:
 ## Returns true if the [param effect] is present and has one or more [ActiveAttributeEffect]s
 ## applied to this [Attribute], false if not. Does not account for any actives that are
 ## expired & not yet removed (during the processing).
-## [br]NOTE: If this is called mid process, expired effects & effects that have hit their
-## apply limit are internally still present as they're removed at the end of the frame, 
-## but they will not show up in any publicly facing functions including this one.
 func has_effect(effect: AttributeEffect) -> bool:
 	assert(effect != null, "effect is null")
 	return _effect_counts.has(effect.id)
@@ -524,9 +528,6 @@ func has_effect(effect: AttributeEffect) -> bool:
 
 ## Returns the total amount of [ActiveAttributeEffect]s whose effect is [param effect].
 ## Highly efficient as it simply uses [method Dictionary.get] on an internally managed dictionary.
-## [br]NOTE: If this is called mid process, expired effects & effects that have hit their
-## apply limit are internally still present as they're removed at the end of the frame, 
-## but they will not show up in any publicly facing functions including this one.
 func get_effect_count(effect: AttributeEffect) -> int:
 	assert(effect != null, "effect is null")
 	return _effect_counts.get(effect.id, 0)
@@ -542,15 +543,13 @@ func has_active(active: ActiveAttributeEffect) -> bool:
 ## whose [method AttributEffectactive.get_effect] equals [param effect].
 ## [br]If [param ignore_expired] is true, actives that are expired OR hit their apply limit
 ## are ignored, otherwise they are included (not recommended for most cases).
-func find_actives(effect: AttributeEffect, ignore_expired: bool = true) -> Array[ActiveAttributeEffect]:
-	var actives: Array[ActiveAttributeEffect] = []
-	for active: ActiveAttributeEffect in _actives.iterate():
-		if active.get_effect() == effect:
-			if ignore_expired && (active.is_expired() || active.hit_apply_limit()):
-				continue
-			actives.append(active)
-			continue
-	return actives
+func find_actives_by_effect(effect: AttributeEffect, ignore_expired: bool = true) -> Array[ActiveAttributeEffect]:
+	return _actives.find_all(
+		func(active: ActiveAttributeEffect) -> bool:
+			if ignore_expired && active.is_expired():
+				return false
+			return active._effect == effect
+	)
 
 
 ## Searches through all active [ActiveAttributeEffect]s and returns the first active
@@ -560,13 +559,13 @@ func find_actives(effect: AttributeEffect, ignore_expired: bool = true) -> Array
 ## be one instance of the effect.
 ## [br]If [param ignore_expired] is true, actives that are expired OR hit their apply limit
 ## are ignored, otherwise they are included (not recommended for most cases).
-func find_first_active(effect: AttributeEffect, ignore_expired: bool = true) -> ActiveAttributeEffect:
-	for active: ActiveAttributeEffect in _actives.iterate():
-		if active.get_effect() == effect:
-			if ignore_expired && (active.is_expired() || active.hit_apply_limit()):
-				continue
-			return active
-	return null
+func find_first_active_by_effect(effect: AttributeEffect, ignore_expired: bool = true) -> ActiveAttributeEffect:
+	return _actives.find_first(
+		func(active: ActiveAttributeEffect) -> bool:
+			if ignore_expired && active.is_expired():
+				return false
+			return active._effect == effect
+	)
 
 
 ## Creates an [ActiveAttributeEffect] from the [param effect] via [method AttriubteEffect.to_active]
@@ -653,7 +652,7 @@ func add_actives(actives: Array[ActiveAttributeEffect], sort_by_priority: bool =
 		# Handle COMBINE stacking (only if a active of the same effect already exists)
 		if active.get_effect().stack_mode == AttributeEffect.StackMode.COMBINE \
 		and has_effect(active.get_effect()):
-			var existing: ActiveAttributeEffect = find_first_active(active.get_effect())
+			var existing: ActiveAttributeEffect = find_first_active_by_effect(active.get_effect())
 			assert(existing != null, ("existing is null, but has_effect returned true " + \
 			"for active %s") % active)
 			active._last_add_result = AddEffectResult.STACKED
@@ -789,15 +788,17 @@ func remove_all_effects() -> void:
 
 
 ## Tests the addition of [param active] by evaluating it's potential add [AttributeEffectCondition]s
-## and that of all BLOCKER type effects. Returns true if all conditionss were met, false if not.
+## and that of all BLOCKER type effects. Returns true if all conditions were met, false if not.
+## Emits signals which can result in mutations, considered unsafe.
 func _test_add_conditions(active: ActiveAttributeEffect) -> bool:
 	# Check active's own conditions
 	if active.get_effect().has_add_conditions():
-		var blocking_condition: AttributeEffectCondition = _test_conditions(active, active.get_effect().add_conditions)
+		var blocking_condition: AttributeEffectCondition = _test_condition_array(active, active.get_effect().add_conditions)
 		if blocking_condition != null:
 			active._last_add_result = AddEffectResult.BLOCKED_BY_CONDITION
 			active._last_blocked_by = blocking_condition.ref
-			active_add_blocked.emit(blocking_condition, active)
+			if blocking_condition.emit_blocked_signal:
+				active_add_blocked.emit(blocking_condition, active)
 			return false
 	
 	# Iterate BLOCKER effects
@@ -806,11 +807,11 @@ func _test_add_conditions(active: ActiveAttributeEffect) -> bool:
 		var blocking_source: AttributeUtil.Reference = AttributeUtil.Reference.new(null)
 		_actives.blockers.for_each(
 			func(blocker: ActiveAttributeEffect) -> void:
-				# Ignore expired - they arent removed until later in the frame sometimes
+				# Ignore expired - they may still appear in the array at this point in time
 				if !blocker.is_added() || blocker.is_expired():
 					return
 				
-				blocking_condition.ref = _test_conditions(active, blocker.get_effect().add_blockers)
+				blocking_condition.ref = _test_condition_array(active, blocker.get_effect().add_blockers)
 				
 				if blocking_condition.ref != null:
 					blocking_source.ref = blocker
@@ -819,7 +820,8 @@ func _test_add_conditions(active: ActiveAttributeEffect) -> bool:
 		if blocking_condition.ref != null:
 			active._last_add_result = AddEffectResult.BLOCKED_BY_CONDITION
 			active._last_blocked_by = blocking_condition.ref
-			active_add_blocked.emit(blocking_condition, blocking_source.ref)
+			if blocking_condition.ref.emit_blocked_signal:
+				active_add_blocked.emit(blocking_condition, blocking_source.ref)
 			return false
 	
 	return true
@@ -828,15 +830,15 @@ func _test_add_conditions(active: ActiveAttributeEffect) -> bool:
 
 ## Tests the applying of [param active] by evaluating it's potential apply [AttributeEffectCondition]s
 ## and that of all BLOCKER type effects. Returns true if all conditions were met, false if not.
+## Emits signals which can result in mutations, considered unsafe.
 func _test_apply_conditions(active: ActiveAttributeEffect) -> bool:
 	# Check active's own conditions
 	if active.get_effect().has_apply_conditions():
-		var blocking_condition: AttributeEffectCondition = _test_conditions(active, active, 
-		active.get_effect().add_conditions, active_add_blocked)
+		var blocking_condition: AttributeEffectCondition = _test_condition_array(active, active.get_effect().apply_conditions)
 		if blocking_condition != null:
-			active._last_add_result = AddEffectResult.BLOCKED_BY_CONDITION
 			active._last_blocked_by = blocking_condition.ref
-			active_add_blocked.emit(blocking_condition, active)
+			if blocking_condition.emit_blocked_signal:
+				active_apply_blocked.emit(blocking_condition, active)
 			return false
 	
 	# Iterate BLOCKER effects
@@ -845,21 +847,20 @@ func _test_apply_conditions(active: ActiveAttributeEffect) -> bool:
 		var blocking_source: AttributeUtil.Reference = AttributeUtil.Reference.new(null)
 		_actives.blockers.for_each(
 			func(blocker: ActiveAttributeEffect) -> void:
-				# Ignore expired - they arent removed until later in the frame sometimes
+				# Ignore expired - they may still appear in the array at this point in time
 				if !blocker.is_added() || blocker.is_expired():
 					return
 				
-				blocking_condition.ref = _test_conditions(active, blocker, 
-				blocker.get_effect().add_blockers, active_add_blocked)
+				blocking_condition.ref = _test_condition_array(active, blocker.get_effect().apply_blockers)
 				
 				if blocking_condition.ref != null:
 					blocking_source.ref = blocker
 					_actives.break_for_each()
 		, false) # Unsafe iteration (array is not mutated)
 		if blocking_condition.ref != null:
-			active._last_add_result = AddEffectResult.BLOCKED_BY_CONDITION
 			active._last_blocked_by = blocking_condition.ref
-			active_add_blocked.emit(blocking_condition, blocking_source.ref)
+			if blocking_condition.ref.emit_blocked_signal:
+				active_apply_blocked.emit(blocking_condition, blocking_source.ref)
 			return false
 	
 	return true
@@ -867,7 +868,7 @@ func _test_apply_conditions(active: ActiveAttributeEffect) -> bool:
 
 ## Tests the [param conditions] on [param active_to_test]. Returns the [AttributeEffectCondition] that
 ## was not met, or null if all were met. 
-func _test_conditions(active_to_test: ActiveAttributeEffect, 
+func _test_condition_array(active_to_test: ActiveAttributeEffect, 
 conditions: Array[AttributeEffectCondition]) -> AttributeEffectCondition:
 	for condition: AttributeEffectCondition in conditions:
 		if !condition.meets_condition(self, active_to_test):
@@ -931,9 +932,10 @@ func _initialize_active(active: ActiveAttributeEffect) -> void:
 
 ## Applies the [param active]. Returns true if it should be removed (hit apply limit),
 ## false if not. Does not update the current value, that must be done manually after.
+## Emits signals that could result in array mutations, so considered unsafe.
 func _apply_permanent_active(active: ActiveAttributeEffect, current_tick: int) -> void:
 	assert(_actives.has(active), "%s not added" % active)
-	# Set pending current value
+	# Set prior attribute value value
 	active._pending_prior_attribute_value = _base_value
 	
 	# Get the modified value
@@ -946,8 +948,8 @@ func _apply_permanent_active(active: ActiveAttributeEffect, current_tick: int) -
 	# Validate the attribute's value
 	active._pending_final_attribute_value = _validate_base_value(active._pending_raw_attribute_value)
 	
-	# Check apply conditions
-	if !_test_apply_conditions(active):
+	# Check apply conditions & ensure still added after testing them
+	if !_test_apply_conditions(active) || !active.is_added():
 		active._clear_pending_values()
 		return
 	
@@ -955,7 +957,7 @@ func _apply_permanent_active(active: ActiveAttributeEffect, current_tick: int) -
 	active._last_effect_value = active._pending_effect_value
 	active._last_prior_attribute_value = _base_value
 	active._last_raw_attribute_value = active._pending_raw_attribute_value
-	active._last_set_attribute_value = active._pending_set_attribute_value
+	active._last_final_attribute_value = active._pending_final_attribute_value
 	
 	# Clear pending value
 	active._clear_pending_values()
@@ -966,19 +968,19 @@ func _apply_permanent_active(active: ActiveAttributeEffect, current_tick: int) -
 	# Set tick last applied
 	active._tick_last_applied = current_tick
 	
-	# Add to history
-	if has_history() && active.get_effect().should_log_history():
-		_history._add_to_history(active) 
+	## Add to history - TODO reimplement
+	#if has_history() && active.get_effect().should_log_history():
+		#_history._add_to_history(active) 
 	
 	# Apply it
-	_base_value = active._last_set_attribute_value
+	_base_value = active._last_final_attribute_value
 	if _base_value != active._last_prior_attribute_value:
 		base_value_changed.emit(active._last_prior_attribute_value, active)
 	
 	# Emit signals
 	_run_callbacks(active, AttributeEffectCallback._Function.APPLIED)
 	if active.get_effect().should_emit_applied_signal():
-		permanent_active_applied.emit(active)
+		active_applied.emit(active)
 
 
 # Adds [param amount] to the effect stack. This effect must be stackable
@@ -1020,7 +1022,6 @@ func _run_callbacks(active: ActiveAttributeEffect, _function: AttributeEffectCal
 		callback.call(function_name, self, active)
 
 
-
 func _run_stack_callbacks(active: ActiveAttributeEffect, previous_stack_count: int) -> void:
 	var function_name: String = AttributeEffectCallback._function_names\
 	[AttributeEffectCallback._Function.STACK_CHANGED]
@@ -1031,4 +1032,4 @@ func _run_stack_callbacks(active: ActiveAttributeEffect, previous_stack_count: i
 
 
 func _to_string() -> String:
-	return "Attribute(id:%s)" % id
+	return "Attribute(id=%s)" % id

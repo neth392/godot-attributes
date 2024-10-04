@@ -42,22 +42,29 @@ var _active_duration: float = 0.0
 
 # The total value of the effect that is pending application to an attribute
 var _pending_effect_value: float
-# The current value of the attribute, before the effect value is applied
+# The current value of the attribute, before the effect value is applied. Base value
+# for PERMANENT actives, current value for TEMPORARY.
 var _pending_prior_attribute_value: float
-# The raw (unvalidated) value of the attribute AFTER the effect value is to be applied.
+# The raw (unvalidated) value of the attribute AFTER the effect value is to be applied. Base value
+# for PERMANENT actives, current value for TEMPORARY.
 var _pending_raw_attribute_value: float
-# The validated value of the attribute AFTER the effect value is to be applied.
+# The validated value of the attribute AFTER the effect value is to be applied. Base value
+# for PERMANENT actives, current value for TEMPORARY.
 var _pending_final_attribute_value: float
+# TODO: get_pending_differential() method - difference between final & prior
 
 # The total value this effect had when last applied to the attribute
 var _last_effect_value: float
-# The attribute value BEFORE this effect was last applied to it.
+# The attribute value BEFORE this effect was last applied to it. Base value
+# for PERMANENT actives, current value for TEMPORARY.
 var _last_prior_attribute_value: float
-# The raw (unvalidated) value of the attribute after this effect was last applied to it.
+# The raw (unvalidated) value of the attribute after this effect was last applied to it. Base value
+# for PERMANENT actives, current value for TEMPORARY.
 var _last_raw_attribute_value: float
-# The validated value of the attribute after this effect was last applied to it.
+# The validated value of the attribute after this effect was last applied to it. Base value
+# for PERMANENT actives, current value for TEMPORARY.
 var _last_final_attribute_value: float
-# TODO: get_last_differential() method
+# TODO: get_last_differential() method - difference between final & prior
 
 
 func _init(effect: AttributeEffect) -> void:
