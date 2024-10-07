@@ -75,6 +75,19 @@ enum SamePrioritySortingMethod {
 	NEWER_FIRST,
 }
 
+##################
+## Attribute Event
+##################
+
+## Emitted when any change to this [Attribute] is made, such as the base and/or current value
+## changing, or an [ActiveAttributeEffect] was added, applied, and/or removed. The
+## [param attribute_event] contains all of the information related to the event. Connections
+## to this signal can safely invoke their own changes on this [Attribute] without breaking
+## the internal logic & event ordering as all of the changes that occurred are bundled into
+## this one signal. This is emitted directly AFTER signals prefixed with [code]monitor_[/code],
+## which are meant to only monitor changes to this [Attribute] and not make any changes themselves.
+signal event_occurred(attribute_event: AttributeEvent)
+
 ###################
 ## Value Signals ##
 ###################
@@ -412,7 +425,7 @@ func _validate_current_value(value: float) -> float:
 ## automatically whenever base_value changes, a PERMANENT effect is applied, or
 ## a TEMPORARY effect is added/removed. Should be called manually if a TEMPORARY
 ## effect's conditions change.
-func update_current_value() -> void:
+func _update_current_value() -> void:
 	var new_current_value: AttributeUtil.Reference = AttributeUtil.Reference.new(_base_value)
 	_actives.temporaries.for_each(
 		func(active: ActiveAttributeEffect) -> void:
@@ -438,13 +451,12 @@ func update_current_value() -> void:
 			active._last_final_attribute_value = active._pending_final_attribute_value
 			active._clear_pending_values()
 			new_current_value.ref = active._last_final_attribute_value
-	) 
-	
-	if _current_value != new_current_value.ref:
-		var prev_current_value: float = _current_value
-		_current_value = new_current_value.ref
-		current_value_changed.emit(prev_current_value)
-
+	)
+	# TODO move to another function
+	#if _current_value != new_current_value.ref:
+		#var prev_current_value: float = _current_value
+		#_current_value = new_current_value.ref
+		#current_value_changed.emit(prev_current_value)
 
 ## Returns a new [Array] (safe to mutate) of the current [ActiveAttributeEffect]s.
 ## The actives themselves are NOT duplicated.
@@ -726,6 +738,9 @@ func _remove_active(active: ActiveAttributeEffect) -> void:
 	_run_callbacks(active, AttributeEffectCallback._Function.REMOVED)
 	if active.get_effect().should_emit_removed_signal():
 		active_removed.emit(active)
+	# Update current value if 
+	if active.get_effect().is_temporary() && active.get_effect().has_value:
+		update_current_value()
 
 
 ## Removes all [ActiveAttributeEffect]s from this attribute.

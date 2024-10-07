@@ -32,6 +32,7 @@ func _on_current_value_changed(prev_current_value: float) -> void:
 	var boost_effect: AttributeEffect = load("res://tests/health_boost_effect.tres") as AttributeEffect
 	if !health_attribute.has_effect(boost_effect):
 		health_attribute.add_active(boost_effect.create_active_effect())
+		health_attribute.remove_effect(boost_effect)
 
 func _on_base_value_changed(prev_base_value: float, active: ActiveAttributeEffect) -> void:
 	_print("base_value_changed: new_value=%s, prev_base_value=%s, active=%s" \
