@@ -28,12 +28,12 @@ func add(active: ActiveAttributeEffect) -> void:
 		modifiers.add(active)
 
 
+
 func erase(active: ActiveAttributeEffect, safe: bool = false) -> void:
 	super.erase(active, false)
 	temporaries.erase(active, true)
 	blockers.erase(active, true)
 	modifiers.erase(active, true)
-
 
 func clear() -> void:
 	super.clear()

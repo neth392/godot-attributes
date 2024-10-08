@@ -10,6 +10,7 @@
 ## super._exit_tree()
 ## [/codeblock]
 @tool
+@icon("../assets/attribute_icon.svg")
 class_name Attribute extends Node
 
 ## Internal time unit used to appropriately set it to the [PauseTracker].
@@ -95,8 +96,8 @@ signal event_occurred(attribute_event: AttributeEvent)
 
 ## Emitted when the value returned by [method get_current_value] changes.[br]
 ## WARNING: Any changes made to this [Attribute] when handling this signal will
-## result in an error thrown. If you wish to modify the [Attribute] during this signal,
-## use [signal event_occurred] instead & check [method AttributeEvent.current_value_changed].
+## result in an error thrown unless call_deferred is used. If you wish to modify 
+## the [Attribute] while handling this, use [signal event_occurred].
 signal monitor_current_value_changed(prev_current_value: float)
 
 ## Emitted when [member _base_value] changes. [param active] is what caused the
@@ -343,19 +344,20 @@ func _process_active(active: ActiveAttributeEffect) -> void:
 	var duration_expired: bool = false
 	if active.get_effect().has_duration():
 		active.remaining_duration -= seconds_since_last_process
-		duration_expired = active.remaining_duration <= 0.0
+		period_expired = active.remaining_duration <= 0.0
 	
 	# Do not continue processing if period & duration have not expired
-	if !period_expired && !duration_expired:
+	# Using this to avoid constructing a new AttributeEvent unless it will be used
+	if !duration_expired && !period_expired:
 		return
 	
-	# At this point an event of sorts will be thrown.
+	# At this point an event will be thrown as the period and/or duration has expired
 	var event: AttributeEvent = AttributeEvent.new(self)
 	event._active_effect = active
 	
 	# Handle duration expiring
 	if duration_expired:
-		# Logic to determine if it should apply on expire
+		# Apply it if apply on expire, or apply if apply on expire if period is zero
 		if active.get_effect().is_apply_on_expire() \
 		or (period_expired && active.get_effect().is_apply_on_expire_if_period_is_zero()): 
 			# Apply it
@@ -364,22 +366,25 @@ func _process_active(active: ActiveAttributeEffect) -> void:
 		# Remove it
 		active._expired = true
 		if active.is_added():
-			_remove_active(active)
+			_remove_active(active, event)
 		
-		# Go to next active
-		return
-	
-	# Handle period expiring
-	if period_expired:
+	# Handle period expiring if duration didn't expire
+	elif period_expired:
 		# Apply it
-		_apply_permanent_active(active, current_tick)
+		_apply_permanent_active(active, current_tick, event)
 		
 		# Mark it for removal if it hit apply limit
 		if active.hit_apply_limit():
 			# Remove from effect counts instantly so has_effect return false
-			_remove_active(active)
-		
-		active.remaining_period += _get_modified_period(active)
+			_remove_active(active, event)
+			
+		# Otherwise reset the period
+		else:
+			# Update period
+			active.remaining_period += _get_modified_period(active)
+	# This should never trigger, but just to be sure assert such
+	else:
+		assert(false, "duration_expired or period_expired are both false somehow")
 
 
 func _validate_property(property: Dictionary) -> void:
@@ -430,14 +435,38 @@ func get_base_value() -> float:
 	return _base_value
 
 
-## Manually sets the base value, also updating the current value.
-func set_base_value(new_base_value: float) -> void:
+## Manually sets the base value to [param new_base_value]. The new value is first
+## validated by all of the [member base_value_validators]. If the resulting value
+## is different than the current base value, the base value is updated along with
+## the current value, and true is returned. If the new value is the same as the current
+## value, nothing occurs and false is returned.
+func set_base_value(new_base_value: float) -> bool:
+	assert(!_in_monitor_signal_or_callback, "TODO set this message")
+	# Validate the new base value
 	var validated_new_base_value: float = _validate_base_value(new_base_value)
-	if _base_value != validated_new_base_value:
-		var prev_base_value: float = _base_value
-		_base_value = validated_new_base_value
-		base_value_changed.emit(prev_base_value, null)
-		update_current_value()
+	
+	# Check if it differs, if not return false
+	if _base_value == validated_new_base_value:
+		return false
+	
+	# Create new event
+	var event: AttributeEvent = AttributeEvent.new(self)
+	
+	# Set new base value
+	_base_value = validated_new_base_value
+	event._new_base_value = _base_value
+	
+	# Emit monitor signal
+	_in_monitor_signal_or_callback = true
+	monitor_base_value_changed.emit(event._old_base_value, null)
+	_in_monitor_signal_or_callback = false
+	
+	# Update the current value
+	_update_current_value(event)
+	
+	# Emit event
+	event_occurred.emit(event)
+	return true
 
 
 ## Returns the current value, which is the [member base_value] affected by
@@ -459,12 +488,18 @@ func _validate_current_value(value: float) -> float:
 		validated = validator._validate(validated)
 	return validated
 
-
 ## Updates the value returned by [method get_current_value] by re-applying all
 ## [AttributeEffect]s of type [enum AttributeEffect.Type.TEMPORARY]. This is called
 ## automatically whenever base_value changes, a PERMANENT effect is applied, or
 ## a TEMPORARY effect is added/removed. Should be called manually if a TEMPORARY
 ## effect's conditions change.
+#func update_current_value() -> void:
+	#
+	#var event: AttributeEvent = AttributeEvent.new(self)
+	#event._new_base_value = _base_value # Base value won't change here
+	#_update_current_value(event)
+	## TODO emit event & finish function
+
 func _update_current_value(event: AttributeEvent) -> void:
 	var new_current_value: AttributeUtil.Reference = AttributeUtil.Reference.new(_base_value)
 	_actives.temporaries.for_each(
@@ -480,8 +515,13 @@ func _update_current_value(event: AttributeEvent) -> void:
 			new_current_value.ref, active._pending_effect_value)
 			active._pending_final_attribute_value = _validate_current_value(active._pending_raw_attribute_value)
 			
+			# TODO FIGURE OUT HOW TO HANDLE THESE DAMNED BLOCK CONDITIONS
+			# THEY WORK FINE WITH MONITORING BUT NOT WITH AttributeEvent AS
+			# THAT OBJECT IS ONLY MEANT FOR 1 ATTRIBUTE EFFECT. DO I NEED THEM?
+			# PROBABLY. FUCK
+			 
 			# Test apply conditions & ensure still added after testing them.
-			if !_test_apply_conditions(active) || !active.is_added():
+			if !active.is_added() || !_test_apply_conditions(active):
 				active._clear_pending_values()
 				return
 			
@@ -502,14 +542,7 @@ func _update_current_value(event: AttributeEvent) -> void:
 
 ## Returns a new [Array] (safe to mutate) of the current [ActiveAttributeEffect]s.
 ## The actives themselves are NOT duplicated.
-## [br]If [param ignore_expired] is true, actives that are expired OR hit their apply limit
-## are ignored, otherwise they are included (not recommended for most cases).
-func get_actives(ignore_expired: bool = true) -> Array[ActiveAttributeEffect]:
-	if ignore_expired:
-		return _actives._data_array.filter(
-			func (active: ActiveAttributeEffect) -> bool:
-				return !ignore_expired || (!active.is_expired() && !active.hit_apply_limit())
-		)
+func get_actives() -> Array[ActiveAttributeEffect]:
 	return _actives.duplicate_array()
 
 
@@ -553,13 +586,9 @@ func has_active(active: ActiveAttributeEffect) -> bool:
 
 ## Searches through all active [ActiveAttributeEffect]s and returns a new [Array] of all actives
 ## whose [method AttributEffectactive.get_effect] equals [param effect].
-## [br]If [param ignore_expired] is true, actives that are expired OR hit their apply limit
-## are ignored, otherwise they are included (not recommended for most cases).
-func find_actives_by_effect(effect: AttributeEffect, ignore_expired: bool = true) -> Array[ActiveAttributeEffect]:
+func find_actives_by_effect(effect: AttributeEffect) -> Array[ActiveAttributeEffect]:
 	return _actives.find_all(
 		func(active: ActiveAttributeEffect) -> bool:
-			if ignore_expired && active.is_expired():
-				return false
 			return active._effect == effect
 	)
 
@@ -569,13 +598,9 @@ func find_actives_by_effect(effect: AttributeEffect, ignore_expired: bool = true
 ## if there is no active of [param effect]. Useful when you know that the [param effect]'s
 ## stack mode is COMBINE, DENY, or DENY_ERROR as in those cases there can only 
 ## be one instance of the effect.
-## [br]If [param ignore_expired] is true, actives that are expired OR hit their apply limit
-## are ignored, otherwise they are included (not recommended for most cases).
-func find_first_active_by_effect(effect: AttributeEffect, ignore_expired: bool = true) -> ActiveAttributeEffect:
+func find_first_active_by_effect(effect: AttributeEffect) -> ActiveAttributeEffect:
 	return _actives.find_first(
 		func(active: ActiveAttributeEffect) -> bool:
-			if ignore_expired && active.is_expired():
-				return false
 			return active._effect == effect
 	)
 
@@ -584,7 +609,7 @@ func find_first_active_by_effect(effect: AttributeEffect, ignore_expired: bool =
 ## and then calls [method add_actives]
 func add_effect(effect: AttributeEffect) -> void:
 	assert(allow_effects, "allow_effects is false for %s" % self)
-	add_effects([effect], false)
+	add_active(effect.create_active_effect())
 
 
 ## Creates an [ActiveAttributeEffect] from each of the [param effects] via 
@@ -597,35 +622,14 @@ func add_effects(effects: Array[AttributeEffect], sort_by_priority: bool = true)
 	assert(!effects.has(null), "effects has null element")
 	var actives: Array[ActiveAttributeEffect] = []
 	for effect: AttributeEffect in effects:
-		actives.append(effect.to_active())
-	add_actives(actives, sort_by_priority)
+		add_active(effect.create_active_effect())
 
 
-## Adds [param active] to a new [Array], then calls [method add_actives]
-func add_active(active: ActiveAttributeEffect) -> void:
-	assert(allow_effects, "allow_effects is false for %s" % self)
-	assert(active != null, "active is null")
-	add_actives([active], false)
-
-
-## Adds (& possibly applies) of each of the [param actives]. Can result in immediate
-## changes to the base value & current value, depending on the provided [param actives]. 
-## [param sort_by_priority] determines what order the activeified actives should be applied in (if
-## any are to be applied instantly). If true, they are sorted by their [member AttributeEffect.priority],
-## if false they are applied in the order of the activeified [param actives] array.
-## [br][b]There are multiple considerations when calling this function:[/b]
-## [br]  - If a active has stack_mode COMBINE, it is stacked to the existing active of the same 
-## [AttributeEffect], and thus not added. The new stack count is the existing's + the new active's
-## stack count.
-## [br]  - If a active is PERMANENT, it is applied when it is added unless the active has an initial period.
-## [br]  - If TEMPORARY, it is not applied, however the current_value is updated instantly.
-## [br]  - If INSTANT, it is not added, only applied.
-## [br]  - actives are initialized unless already initialized or are stacked instead of added.
+## TODO Fix docs
 func add_actives(actives: Array[ActiveAttributeEffect], sort_by_priority: bool = true) -> void:
+	assert(!_in_monitor_signal_or_callback, "TODO write this message")
 	assert(allow_effects, "allow_effects is false for %s" % self)
 	assert(!actives.has(null), "actives has null element")
-	
-	var current_tick: int = _get_ticks()
 	
 	# Define array to use
 	var actives_to_add: Array[ActiveAttributeEffect]
@@ -637,88 +641,104 @@ func add_actives(actives: Array[ActiveAttributeEffect], sort_by_priority: bool =
 	
 	# Iterate actives to apply
 	for active: ActiveAttributeEffect in actives_to_add:
-		assert(!_actives.has(active), "%s already added to this attribute or another" % active)
-		
-		# Throw error if active's effect exists & has StackMode.DENY_ERROR
-		assert(active.get_effect().stack_mode != AttributeEffect.StackMode.DENY_ERROR or \
-		!has_effect(active.get_effect()), 
-		"active (%s)'s effect stack_mode == DENY_ERROR but stacking was attempted on attribute %s" \
-		% [active, self])
-		
-		# Effect is instant, ignore other logic & apply it
-		if active.get_effect().is_instant():
-			active._last_add_result = AddEffectResult.INSTANT_CANT_ADD
-			_apply_permanent_active(active, current_tick)
-			continue
-		
-		# Do not stack if DENY or DENY_ERROR & effect already exists
-		if (active.get_effect().stack_mode == AttributeEffect.StackMode.DENY or \
-		active.get_effect().stack_mode == AttributeEffect.StackMode.DENY_ERROR) and \
-		has_effect(active.get_effect()):
-			active._last_add_result = AddEffectResult.STACK_DENIED
-			continue
-		
-		# Check add conditions & blockers
-		if !_test_add_conditions(active):
-			continue
-		
-		# Handle COMBINE stacking (only if a active of the same effect already exists)
-		if active.get_effect().stack_mode == AttributeEffect.StackMode.COMBINE \
-		and has_effect(active.get_effect()):
-			var existing: ActiveAttributeEffect = find_first_active_by_effect(active.get_effect())
-			assert(existing != null, ("existing is null, but has_effect returned true " + \
-			"for active %s") % active)
-			active._last_add_result = AddEffectResult.STACKED
-			_add_to_stack(active, active.get_stack_count())
-			# Update current value if a temporary active is added
-			# TODO Determine if I should apply here or not
-			if active.get_effect().is_temporary() && active.get_effect().has_value:
-				update_current_value()
-			continue
-		
-		# Initialize if not done so
-		if !active.is_initialized():
-			_initialize_active(active)
-		
-		# Ensure duration is valid
-		assert(!active.get_effect().has_duration() || active.remaining_duration > 0.0,
-		"active (%s) has a remaining_duration <= 0.0" % active)
-		
-		# Run pre_add callbacks
-		_run_callbacks(active, AttributeEffectCallback._Function.PRE_ADD)
-		
-		# At this point it can be added
-		active._last_add_result = AddEffectResult.ADDED
-		active._tick_added_on = current_tick
-		active._tick_last_processed = current_tick
-		
-		# Add to array
-		_actives.add(active)
-		_has_actives = true
-		
-		# Add to _effect_counts
-		var new_count: int = _effect_counts.get(active.get_effect().id, 0) + 1
-		_effect_counts[active.get_effect().id] = new_count
-		
-		# Run callbacks & emit signal
-		_run_callbacks(active, AttributeEffectCallback._Function.ADDED)
-		if active.get_effect().should_emit_added_signal():
-			active_added.emit(active)
-		
-		# Update current value if a temporary active is added & has value
+		add_active(active)
+
+
+## TODO fix docs
+func add_active(active: ActiveAttributeEffect) -> void:
+	assert(allow_effects, "allow_effects is false for %s" % self)
+	assert(active != null, "active is null")
+	assert(!_actives.has(active), "%s already added to this attribute or another" % active)
+	
+	# Throw error if active's effect exists & has StackMode.DENY_ERROR
+	assert(active.get_effect().stack_mode != AttributeEffect.StackMode.DENY_ERROR or \
+	!has_effect(active.get_effect()), 
+	"active (%s)'s effect stack_mode == DENY_ERROR but stacking was attempted on attribute %s" \
+	% [active, self])
+	
+	var current_tick: int = _get_ticks()
+	var event: AttributeEvent = AttributeEvent.new(self, active)
+	
+	# Effect is instant, ignore other logic & apply it
+	if active.get_effect().is_instant():
+		active._last_add_result = AddEffectResult.INSTANT_CANT_ADD
+		_apply_permanent_active(active, current_tick, event)
+		event_occurred.emit(event)
+		return
+	
+	# At this point it will be added (isn't instant)
+	event._add_event = true
+	
+	# Do not stack if DENY or DENY_ERROR & effect already exists
+	if (active.get_effect().stack_mode == AttributeEffect.StackMode.DENY or \
+	active.get_effect().stack_mode == AttributeEffect.StackMode.DENY_ERROR) and \
+	has_effect(active.get_effect()):
+		active._last_add_result = AddEffectResult.STACK_DENIED
+		event_occurred.emit(event)
+		return
+	
+	# Check add conditions & blockers
+	if !_test_add_conditions(active):
+		return
+	
+	# Handle COMBINE stacking (only if a active of the same effect already exists)
+	if active.get_effect().stack_mode == AttributeEffect.StackMode.COMBINE \
+	and has_effect(active.get_effect()):
+		var existing: ActiveAttributeEffect = find_first_active_by_effect(active.get_effect())
+		assert(existing != null, ("existing is null, but has_effect returned true " + \
+		"for active %s") % active)
+		active._last_add_result = AddEffectResult.STACKED
+		_add_to_stack(active, active.get_stack_count())
+		# Update current value if a temporary active is added
+		# TODO Determine if I should apply here or not
 		if active.get_effect().is_temporary() && active.get_effect().has_value:
 			update_current_value()
-			continue
-		# Apply it if initial period <= 0.0
-		elif active.get_effect().has_period() && active.remaining_period <= 0.0:
-			_apply_permanent_active(active, current_tick)
-			
-			# Remove if it hit apply limit
-			if active.hit_apply_limit():
-				_remove_active(active)
-			# Update period
-			else:
-				active.remaining_period += _get_modified_period(active)
+		return
+	
+	# Initialize if not done so
+	if !active.is_initialized():
+		_initialize_active(active)
+	
+	# Ensure duration is valid
+	assert(!active.get_effect().has_duration() || active.remaining_duration > 0.0,
+	"active (%s) has a remaining_duration <= 0.0" % active)
+	
+	# Run pre_add callbacks
+	_run_callbacks(active, AttributeEffectCallback._Function.PRE_ADD)
+	
+	# At this point it can be added
+	active._last_add_result = AddEffectResult.ADDED
+	active._tick_added_on = current_tick
+	active._tick_last_processed = current_tick
+	
+	# Add to array
+	_actives.add(active)
+	_has_actives = true
+	
+	# Add to _effect_counts
+	var new_count: int = _effect_counts.get(active.get_effect().id, 0) + 1
+	_effect_counts[active.get_effect().id] = new_count
+	
+	# Run callbacks & emit signal
+	_run_callbacks(active, AttributeEffectCallback._Function.ADDED)
+	if active.get_effect().should_emit_added_signal():
+		active_added.emit(active)
+	
+	# Update current value if a temporary active is added & has value
+	if active.get_effect().is_temporary() && active.get_effect().has_value:
+		update_current_value()
+		return
+	# Apply it if initial period <= 0.0
+	elif active.get_effect().has_period() && active.remaining_period <= 0.0:
+		_apply_permanent_active(active, current_tick)
+		
+		# Remove if it hit apply limit
+		if active.hit_apply_limit():
+			_remove_active(active)
+		# Update period
+		else:
+			active.remaining_period += _get_modified_period(active)
+
 
 
 ## Removes all [ActiveAttributeEffect]s whose effect equals [param effect].
@@ -780,22 +800,39 @@ func remove_active(active: ActiveAttributeEffect) -> bool:
 func _remove_active(active: ActiveAttributeEffect, event: AttributeEvent) -> void:
 	assert(active != null, "active is null")
 	assert(_actives.has(active), "(%s) not added to _actives" % active)
+	
+	# Run PRE_REMOVE callbacks
+	_in_monitor_signal_or_callback = true
 	_run_callbacks(active, AttributeEffectCallback._Function.PRE_REMOVE)
+	_in_monitor_signal_or_callback = false
+	
+	# Erase from array
 	_actives.erase(active)
+	
+	# Set _has_actives (updates the processing accordingly)
 	_has_actives = !_actives.is_empty()
+	
+	# Remove it from _effect_counts
 	if _effect_counts.has(active.get_effect().id):
 		var new_count: int = _effect_counts[active.get_effect().id] - 1
 		if new_count <= 0:
 			_effect_counts.erase(active.get_effect().id)
 		else:
 			_effect_counts[active.get_effect().id] = new_count
+	
+	# Run REMOVED callbacks
 	_in_monitor_signal_or_callback = true
 	_run_callbacks(active, AttributeEffectCallback._Function.REMOVED)
+	
+	# Emit monitor signal
 	if active.get_effect().should_emit_removed_signal():
 		monitor_active_removed.emit(active)
 	_in_monitor_signal_or_callback = false
+	
+	# Set removed in evenmt
 	event._active_removed = true
-	# Update current value if 
+	
+	# Update current value if is TEMPORARY w/ value
 	if active.get_effect().is_temporary() && active.get_effect().has_value:
 		_update_current_value(event)
 
@@ -826,7 +863,7 @@ func _test_add_conditions(active: ActiveAttributeEffect, event: AttributeEvent) 
 			active._last_add_result = AddEffectResult.BLOCKED_BY_CONDITION
 			active._last_blocked_by = blocking_condition.ref
 			if blocking_condition.emit_blocked_signal:
-				active_add_blocked.emit(blocking_condition, active)
+				monitor_active_add_blocked.emit(blocking_condition, active)
 			event._active_add_blocked_by_source = active
 			event._active_add_blocked = true
 			return false
@@ -1006,7 +1043,8 @@ func _apply_permanent_active(active: ActiveAttributeEffect, current_tick: int, e
 		#_history._add_to_history(active) 
 	
 	# Apply to base value
-	event._active_applied = true
+	# TODO copy logic from set_base_value or rewrite that function into 2 seperate ones
+	event._is_apply_event = true
 	_base_value = active._last_final_attribute_value
 	if _base_value != active._last_prior_attribute_value:
 		base_value_changed.emit(active._last_prior_attribute_value, active)
