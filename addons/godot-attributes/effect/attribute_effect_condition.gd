@@ -6,21 +6,20 @@
 @tool
 class_name AttributeEffectCondition extends Resource
 
-## A message explaining why this condition has blocked an [AttributeEffect]
-## from being applied.
-@export_multiline var message: String
-
-## If true, emits the corresponding signal in [Attribute] when this
-## condition is not met on an [ActiveAttributeEffect]. NOTE: For performance
-## reasons, there is no signal for processing being blocked.
+## If true, emits a signal from an [Attribute] when this condition fails to be met
+## when used as an add or block condition on an [AttributeEffect].
 @export var emit_blocked_signal: bool = false
+
 
 ## If true, the condition result is negated.
 @export var negate: bool = false
 
+## An optional message explaining why this condition has blocked an [AttributeEffect]
+## from being applied.
+@export_multiline var message: String
 
 ## Tests that the [param attribute] & [param active] meets this condition.
-## [br]WARNING: Do NOT override this.
+## [br]WARNING: Do NOT override this or [member negate] will not apply.
 func meets_condition(attribute: Attribute, active: ActiveAttributeEffect) -> bool:
 	var meets: bool = _meets_condition(attribute, active)
 	if negate:

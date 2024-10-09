@@ -29,9 +29,11 @@ var _expired: bool = false
 var _is_added: bool = false
 var _stack_count: int = 1
 var _apply_count: int = 0
-var _is_applying: bool = false
+var _is_applying: bool = false # TODO re-implement/verify in Attribute
 
 var _last_blocked_by: AttributeEffectCondition
+var _last_blocked_by_source: WeakRef = weakref(null)
+
 var _last_add_result: Attribute.AddEffectResult = Attribute.AddEffectResult.NEVER_ADDED
 
 var _tick_added_on: int = -1
@@ -171,6 +173,16 @@ func get_active_expected_duration() -> float:
 ## when being added to an effect or in applying. Returns null if not currently blocked.
 func get_last_blocked_by() -> AttributeEffectCondition:
 	return _last_blocked_by
+
+
+## If currently blocked, returns the [ActiveAttributeEffect] which owns the
+## [method get_last_blocked_by] condition. May be this instance, or may be another
+## [ActiveAttributeEffect] which is a "blocker".[br]
+## NOTE: This could also return null even if [member _last_blocked_by] is not null 
+## as internally it uses a weakref to prevent circular dependencies causing memory
+## leaks (if 2 effects block each other).
+func get_last_blocked_by_source() -> ActiveAttributeEffect:
+	return _last_blocked_by_source.get_ref()
 
 
 ## Returns the [enum Attribute.AddEffectResult] from the last attempt to add this

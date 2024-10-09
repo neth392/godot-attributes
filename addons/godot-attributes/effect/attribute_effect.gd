@@ -107,6 +107,8 @@ enum DurationType {
 ## How long the effect lasts.
 @export var duration_type: DurationType:
 	set(_value):
+		assert(_value != DurationType.INSTANT || can_be_instant(), "duration_type can not" + \
+		"be INSTANT when type != PERMANENT")
 		if type == Type.TEMPORARY && _value == DurationType.INSTANT:
 			duration_type = DurationType.INFINITE
 			return
@@ -120,6 +122,8 @@ enum DurationType {
 ## [br]NOTE: Only available for [enum Type.PERMANENT] effects.
 @export var _apply_on_expire: bool = false:
 	set(_value):
+		assert(!_value || can_apply_on_expire(), "_apply_on_expire can not be true when " +\
+		"duration_type != HAS_DURATION or when type != PERKMANENT")
 		_apply_on_expire = _value
 		notify_property_list_changed()
 
@@ -130,6 +134,8 @@ enum DurationType {
 ## [br]NOTE: Only available for [enum Type.PERMANENT] effects.
 @export var _apply_limit: bool = false:
 	set(_value):
+		assert(!_apply_limit || can_have_apply_limit(), "_apply_limit can not be true when " +\
+		"duration_type == INSTANT or when type != PERMANENT")
 		_apply_limit = _value
 		notify_property_list_changed()
 
@@ -551,25 +557,9 @@ func has_duration() -> bool:
 	return duration_type == DurationType.HAS_DURATION
 
 
-## Asserts [method has_duration] returns true.
-func assert_has_duration() -> void:
-	assert(has_duration(), "effect does not have a duration_in_seconds")
-
-
 ## Returns true if this effect has a [member period_in_seconds].
 func has_period() -> bool:
 	return type == Type.PERMANENT && !is_instant()
-
-
-## Asserts [method has_period] returns true.
-func assert_has_period() -> void:
-	assert(has_period(), "effect does not have a period_in_seconds")
-
-
-## [method assert]s that [member ActiveAttributeEffect._effect] for [param active]
-## is equal to this instance.
-func assert_active_is_self(active: ActiveAttributeEffect) -> void:
-	assert(active._effect == self, "self != active effect._effect (%s)" % active._effect)
 
 
 ## Returns true if this effect supports [member _log_history].

@@ -1,18 +1,28 @@
-## Contains the data relating to any event that occurred within an [Attribute].
-## TODO better explained docs.
+## Emitted by [signal Attribute.event_occurred], contains the data relating to any event
+## that occurred within an [Attribute].
 class_name AttributeEvent extends Object
 
 var _active_effect: ActiveAttributeEffect
+
+# Types of events
 var _apply_event: bool = false
 var _add_event: bool = false
 var _remove_event: bool = false
-var _active_add_blocked_by_source: ActiveAttributeEffect
-var _old_active_stack_count: int = 0
+
+# Stack count
+var _prev_active_stack_count: int = 0
 var _new_active_stack_count: int = 0
+
+# Base values
 var _old_base_value: float
 var _new_base_value: float
+
+# Current value
 var _old_current_value: float
 var _new_current_value: float
+
+# Use a Dictionary here for more efficient lookups
+var _blocked_temporary_actives: Dictionary[ActiveAttributeEffect, Variant]
 
 func _init(attribute: Attribute, active: ActiveAttributeEffect = null) -> void:
 	assert(attribute != null, "attribute is null")
@@ -42,21 +52,17 @@ func is_remove_event() -> bool:
 	return _remove_event
 
 
-func get_active_add_blocked_by_source() -> ActiveAttributeEffect:
-	return _active_add_blocked_by_source
-
-
 func get_new_active_stack_count() -> int:
 	return _new_active_stack_count
 
 
-func get_old_active_stack_count() -> int:
-	return _old_active_stack_count
+func get_prev_active_stack_count() -> int:
+	return _prev_active_stack_count
 
 
 func active_stack_count_changed() -> bool:
 	assert(_active_effect != null, "_active_effect is null for this event")
-	return _old_active_stack_count != _new_active_stack_count
+	return _new_active_stack_count != _prev_active_stack_count
 
 
 func base_value_changed() -> bool:
@@ -81,3 +87,11 @@ func get_old_current_value() -> float:
 
 func get_new_current_value() -> float:
 	return _new_current_value
+
+
+func is_temporary_blocked(temporary_active: ActiveAttributeEffect) -> bool:
+	return _blocked_temporary_actives.has(temporary_active)
+
+
+func get_blocked_temporaries() -> Array[ActiveAttributeEffect]:
+	return _blocked_temporary_actives.keys()
