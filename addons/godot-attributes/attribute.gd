@@ -402,6 +402,7 @@ func _process_active(active: ActiveAttributeEffect) -> void:
 		
 		# Mark it for removal if it hit apply limit
 		if active.hit_apply_limit():
+			active._is_applying = false
 			# Remove from effect counts instantly so has_effect return false
 			_remove_active(active, event)
 			
@@ -558,8 +559,10 @@ func _update_current_value(event: AttributeEvent) -> void:
 			_current_value_validators)
 			
 			if !AttributeConditionTester.for_temporary_apply().test(self, active, event):
+				active._is_applying = false
 				return
 			
+			active._is_applying = true
 			active._last_effect_value = active._pending_effect_value
 			active._last_prior_attribute_value = _current_value
 			active._last_raw_attribute_value = active._pending_raw_attribute_value

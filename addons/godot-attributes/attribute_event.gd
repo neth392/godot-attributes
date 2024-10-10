@@ -2,6 +2,7 @@
 ## that occurred within an [Attribute].
 class_name AttributeEvent extends Object
 
+var _attribute: Attribute
 var _active_effect: ActiveAttributeEffect
 
 # Types of events
@@ -26,6 +27,7 @@ var _blocked_temporary_actives: Dictionary[ActiveAttributeEffect, Variant]
 
 func _init(attribute: Attribute, active: ActiveAttributeEffect = null) -> void:
 	assert(attribute != null, "attribute is null")
+	_attribute = attribute
 	_old_base_value = attribute._base_value
 	_new_base_value = attribute._base_value
 	_old_current_value = attribute._current_value
@@ -34,6 +36,10 @@ func _init(attribute: Attribute, active: ActiveAttributeEffect = null) -> void:
 	if _active_effect != null:
 		_prev_active_stack_count = _active_effect.get_stack_count()
 		_new_active_stack_count = _active_effect.get_stack_count()
+
+
+func get_attribute() -> Attribute:
+	return _attribute
 
 
 func get_active_effect() -> ActiveAttributeEffect:

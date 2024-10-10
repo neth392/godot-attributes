@@ -27,9 +27,15 @@ func _ready():
 func _print(message: String) -> void:
 	print((Time.get_ticks_usec() - tick_started) / 1_000_000.0, "s: ", message)
 
-
+var counter: int = 0
 func _event(attribute_event: AttributeEvent) -> void:
-	print("ATTRIBUTE EVENT: ", inst_to_dict(attribute_event))
+	if attribute_event.is_apply_event():
+		counter += 1
+		if counter % 2 == 0:
+			var eff: AttributeEffect = load("res://tests/health_boost_effect.tres") as AttributeEffect
+			attribute_event.get_attribute().add_active(eff.create_active_effect())
+			print("ADD IT")
+	print("\nATTRIBUTE EVENT: ", inst_to_dict(attribute_event),"\n")
 
 
 func _on_current_value_changed(prev_current_value: float) -> void:
