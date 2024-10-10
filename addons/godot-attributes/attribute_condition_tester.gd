@@ -30,7 +30,6 @@ static func for_add() -> AttributeConditionTester:
 	# Check active's own conditions
 func test(attribute: Attribute, active: ActiveAttributeEffect, event: AttributeEvent) -> bool:
 	if _has_own_conditions(active.get_effect()):
-		
 		# Find blocking condition, if any
 		var blocking_condition: AttributeEffectCondition = _test_condition_array(attribute, active, 
 		_get_own_conditions(active.get_effect()))

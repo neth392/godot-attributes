@@ -32,7 +32,7 @@ func _init(attribute: Attribute, active: ActiveAttributeEffect = null) -> void:
 	_new_current_value = attribute._current_value
 	_active_effect = active
 	if _active_effect != null:
-		_old_active_stack_count = _active_effect.get_stack_count()
+		_prev_active_stack_count = _active_effect.get_stack_count()
 		_new_active_stack_count = _active_effect.get_stack_count()
 
 

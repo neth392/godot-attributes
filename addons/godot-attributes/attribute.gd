@@ -165,7 +165,7 @@ signal monitor_active_apply_blocked(blocked: ActiveAttributeEffect)
 @export var _base_value: float:
 	set(value):
 		if Engine.is_editor_hint():
-			var validated: float = _validate_value(_base_value, _base_value_validators)
+			var validated: float = _validate_value(value, _base_value_validators)
 			if value != validated:
 				push_warning("Inputted _base_value was validated by _base_value_validators")
 			_base_value = validated
@@ -174,7 +174,7 @@ signal monitor_active_apply_blocked(blocked: ActiveAttributeEffect)
 		update_configuration_warnings()
 		notify_property_list_changed()
 
-## Displays [member _current_value] in the Editor Inspector. No functionality.
+## Displays [method get_current_value] in the Editor Inspector. No functionality.
 @export var _current_value_display: float:
 	set(value):
 		assert(false, "this is a display only property for the Edity Inspector")
@@ -348,7 +348,6 @@ func _process_active(active: ActiveAttributeEffect) -> void:
 	# Skip if not added
 	if !active.is_added():
 		return
-	
 	# Store the current tick
 	var current_tick: int = _get_ticks()
 	
@@ -369,10 +368,10 @@ func _process_active(active: ActiveAttributeEffect) -> void:
 		period_expired = active.remaining_period <= 0.0
 	
 	# Update duration
-	var duration_expired: bool = false
+	var duration_expired: bool = true
 	if active.get_effect().has_duration():
 		active.remaining_duration -= seconds_since_last_process
-		period_expired = active.remaining_duration <= 0.0
+		duration_expired = active.remaining_duration <= 0.0
 	
 	# Do not continue processing if period & duration have not expired
 	# Using this to avoid constructing a new AttributeEvent unless it will be used
@@ -380,7 +379,7 @@ func _process_active(active: ActiveAttributeEffect) -> void:
 		return
 	
 	# At this point an event will be thrown as the period and/or duration has expired
-	var event: AttributeEvent = AttributeEvent.new(self)
+	var event: AttributeEvent = AttributeEvent.new(self, active)
 	event._active_effect = active
 	
 	# Handle duration expiring
@@ -523,6 +522,7 @@ func _validate_value(value: float, validators: Array[AttributeValueValidator]) -
 	var validated: float = value
 	for validator: AttributeValueValidator in validators:
 		if validator != null:
+			print("validate!")
 			validated = validator._validate(validated)
 	return validated
 
@@ -571,9 +571,12 @@ func _update_current_value(event: AttributeEvent) -> void:
 	if _current_value != new_current_value.ref:
 		var prev_current_value: float = _current_value
 		_current_value = new_current_value.ref
+		
+		_in_monitor_signal_or_callback = true
+		monitor_current_value_changed.emit(prev_current_value)
+		_in_monitor_signal_or_callback = false
+	
 	event._new_current_value = _current_value
-	# TODO fix?
-	#current_value_changed.emit(prev_current_value)
 
 ## Returns a new [Array] (safe to mutate) of the current [ActiveAttributeEffect]s.
 ## The actives themselves are NOT duplicated.
@@ -754,7 +757,9 @@ func add_active(active: ActiveAttributeEffect) -> void:
 	"active (%s) has a remaining_duration <= 0.0" % active)
 	
 	# Run pre_add callbacks
+	_in_monitor_signal_or_callback = true
 	_run_callbacks(active, AttributeEffectCallback._Function.PRE_ADD)
+	_in_monitor_signal_or_callback = false
 	
 	# At this point it can be added
 	active._last_add_result = AddEffectResult.ADDED
@@ -771,7 +776,10 @@ func add_active(active: ActiveAttributeEffect) -> void:
 	_effect_counts[active.get_effect().id] = new_count
 	
 	# Run callbacks & emit signal
+	_in_monitor_signal_or_callback = true
 	_run_callbacks(active, AttributeEffectCallback._Function.ADDED)
+	_in_monitor_signal_or_callback = false
+	
 	if active.get_effect().should_emit_added_signal():
 		_in_monitor_signal_or_callback = true
 		monitor_active_added.emit(active)
@@ -883,7 +891,6 @@ func _remove_active(active: ActiveAttributeEffect, event: AttributeEvent) -> voi
 	# Run REMOVED callbacks
 	_in_monitor_signal_or_callback = true
 	_run_callbacks(active, AttributeEffectCallback._Function.REMOVED)
-	
 	# Emit monitor signal
 	if active.get_effect().should_emit_removed_signal():
 		monitor_active_removed.emit(active)
@@ -967,6 +974,8 @@ func _initialize_active(active: ActiveAttributeEffect) -> void:
 ## false if not. Does not update the current value, that must be done manually after.
 ## Emits signals that could result in array mutations, so considered unsafe.
 func _apply_permanent_active(active: ActiveAttributeEffect, current_tick: int, event: AttributeEvent) -> void:
+	event._apply_event = true
+	
 	# Set prior attribute value value
 	active._pending_prior_attribute_value = _base_value
 	
@@ -983,8 +992,12 @@ func _apply_permanent_active(active: ActiveAttributeEffect, current_tick: int, e
 	
 	# Check apply conditions
 	if !AttributeConditionTester.for_permanent_apply().test(self, active, event):
+		print("BLOCKED!")
 		active._clear_pending_values()
+		active._is_applying = false
 		return
+	
+	active._is_applying = true
 	
 	# Set "last" values
 	active._last_effect_value = active._pending_effect_value
@@ -1005,13 +1018,15 @@ func _apply_permanent_active(active: ActiveAttributeEffect, current_tick: int, e
 	#if has_history() && active.get_effect().should_log_history():
 		#_history._add_to_history(active) 
 	
-	event._is_apply_event = true
 	_set_base_value_pre_validated(active._last_final_attribute_value, event)
 	
-	# Emit signals
+	_in_monitor_signal_or_callback = true
+	# Run callbacks
 	_run_callbacks(active, AttributeEffectCallback._Function.APPLIED)
+	# Emit signal
 	if active.get_effect().should_emit_applied_signal():
 		monitor_active_applied.emit(active)
+	_in_monitor_signal_or_callback = false
 
 
 # Adds [param amount] to the effect stack. This effect must be stackable
@@ -1025,7 +1040,9 @@ func _set_stack_count(active: ActiveAttributeEffect, stack_count: int, event: At
 	active._stack_count = stack_count
 	event._new_active_stack_count = active._stack_count
 	_run_stack_callbacks(active, previous_stack_count)
+	_in_monitor_signal_or_callback = true
 	monitor_active_stack_count_changed.emit(active, previous_stack_count)
+	_in_monitor_signal_or_callback = false
 
 
 # Runs the callback [param _function] on all [AttributeEffectCallback]s who have
