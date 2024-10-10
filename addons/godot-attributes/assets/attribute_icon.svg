@@ -2,8 +2,8 @@
   <rect x="0" y="0" width="16" height="16" fill="none"/>
 
   <!-- Outer Circle -->
-  <circle cx="8" cy="8" r="6.4" stroke="#FFD700" stroke-width="0.48" fill="none"/>
+  <circle cx="8" cy="8" r="6.4" stroke="#FFD700" stroke-width="1.0"  fill="none"/>
 
   <!-- Inner Dynamic Line -->
-  <path d="M 3.2 8 Q 6.4 3.2, 9.6 8 T 12.8 8" stroke="#FFEC8B" stroke-width="0.64" fill="none"/>
+  <path d="M 3.2 8 Q 6.4 3.2, 9.6 8 T 12.8 8" stroke="#FFD700" stroke-width="1.0"  fill="none"/>
 </svg>

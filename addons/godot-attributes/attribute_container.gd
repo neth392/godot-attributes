@@ -1,6 +1,7 @@
 ## Container node for [Attribute]s allowing siblings to communicate with each other
 ## by searching this container for [member Attribute.id].
 @tool
+@icon("res://addons/godot-attributes/assets/attribute_container_icon.svg")
 class_name AttributeContainer extends Node
 
 ## Emitted when the [param attribute] is added to this container.
