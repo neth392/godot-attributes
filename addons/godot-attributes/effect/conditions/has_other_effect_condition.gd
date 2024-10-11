@@ -1,5 +1,6 @@
 ## Condition that checks if other [AttributeEffect]s are present or not on an
 ## [Attribute].
+@tool
 class_name HasOtherEffectCondition extends AttributeEffectCondition
 
 ## How this condition is determined.

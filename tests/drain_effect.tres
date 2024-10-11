@@ -1,42 +1,37 @@
-[gd_resource type="Resource" script_class="AttributeEffect" load_steps=15 format=3 uid="uid://cimvqfqcsbjf5"]
+[gd_resource type="Resource" script_class="AttributeEffect" load_steps=13 format=3 uid="uid://cimvqfqcsbjf5"]
 
 [ext_resource type="Script" path="res://addons/godot-attributes/effect/attribute_effect_callback.gd" id="1_0dcue"]
 [ext_resource type="Script" path="res://addons/godot-attributes/effect/attribute_effect_condition.gd" id="2_yreqe"]
 [ext_resource type="Script" path="res://addons/godot-attributes/effect/attribute_effect_modifier.gd" id="3_ak05a"]
-[ext_resource type="Script" path="res://addons/godot-attributes/effect/attribute_effect_modifier_array.gd" id="4_hgrsm"]
+[ext_resource type="Script" path="res://addons/godot-attributes/effect/conditions/static_condition.gd" id="3_fuh6j"]
 [ext_resource type="Script" path="res://addons/godot-attributes/effect/modifiable_value.gd" id="5_qmwkg"]
 [ext_resource type="Script" path="res://addons/godot-attributes/effect/attribute_effect.gd" id="6_ytxh1"]
 [ext_resource type="Script" path="res://addons/godot-attributes/effect/calculators/subtract_calculator.gd" id="7_yhgdu"]
 
-[sub_resource type="Resource" id="Resource_3eobn"]
-script = ExtResource("4_hgrsm")
-_modifiers = Array[ExtResource("3_ak05a")]([])
+[sub_resource type="Resource" id="Resource_5ftx8"]
+script = ExtResource("3_fuh6j")
+static_value = false
+emit_blocked_signal = true
+negate = false
+message = ""
 
 [sub_resource type="Resource" id="Resource_owen8"]
 script = ExtResource("5_qmwkg")
 type = 0
 _value = 30.0
-modifiers = SubResource("Resource_3eobn")
-
-[sub_resource type="Resource" id="Resource_otn8r"]
-script = ExtResource("4_hgrsm")
 _modifiers = Array[ExtResource("3_ak05a")]([])
 
 [sub_resource type="Resource" id="Resource_5ggf0"]
 script = ExtResource("5_qmwkg")
 type = 0
 _value = 1.0
-modifiers = SubResource("Resource_otn8r")
-
-[sub_resource type="Resource" id="Resource_6j4ou"]
-script = ExtResource("4_hgrsm")
 _modifiers = Array[ExtResource("3_ak05a")]([])
 
 [sub_resource type="Resource" id="Resource_xmxxa"]
 script = ExtResource("5_qmwkg")
 type = 0
 _value = 1.1
-modifiers = SubResource("Resource_6j4ou")
+_modifiers = Array[ExtResource("3_ak05a")]([])
 
 [sub_resource type="Resource" id="Resource_bmvt3"]
 script = ExtResource("7_yhgdu")
@@ -65,7 +60,7 @@ _apply_on_expire_if_period_is_zero = false
 stack_mode = 0
 _log_history = false
 add_conditions = Array[ExtResource("2_yreqe")]([])
-apply_conditions = Array[ExtResource("2_yreqe")]([])
+apply_conditions = Array[ExtResource("2_yreqe")]([SubResource("Resource_5ftx8")])
 _callbacks = Array[ExtResource("1_0dcue")]([])
 _blocker = false
 add_blockers = Array[ExtResource("2_yreqe")]([])

@@ -1,5 +1,6 @@
 ## Validates either the base and/or current value of an [Attribute], conducting
 ## operations such as clamping or rounding.
+@tool
 class_name AttributeValueValidator extends Resource
 
 

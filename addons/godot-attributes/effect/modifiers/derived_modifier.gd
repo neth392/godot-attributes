@@ -1,6 +1,7 @@
 ## Overrides an [AttributeEffect]'s value with the value of an [Attribute]. Internally,
 ## it uses a [NodePath] to locate the [Attribute]. So ensure your [NodePath]s remain constant
 ## across saving & loading.
+@tool
 class_name DerivedModifier extends AttributeEffectModifier
 
 

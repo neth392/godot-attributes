@@ -1,5 +1,6 @@
 ## Callback that adds tags to an [Attribute]'s [AttributeContainer] when it is added,
 ## and if configured (and the effect is not instant) removes the tags afterwards.
+@tool
 class_name TagApplierCallback extends AttributeEffectCallback
 
 const META_TAG: StringName = &"TagApplierCallback.tags"

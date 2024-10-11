@@ -1,4 +1,5 @@
 ## Calculator that adds the effect's value to the attribute's value.
+@tool
 class_name AddCalculator extends AbstractSimpleCalculator
 
 func _simple_calculate(attribute_value: float, effect_value: float) -> float:

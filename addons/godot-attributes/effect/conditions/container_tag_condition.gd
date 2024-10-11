@@ -1,5 +1,6 @@
 ## Condition that is met if an [Attribute]'s [AttributeContainer] has
 ## all (or none) of the [member tags].
+@tool
 class_name ContainerTagCondition extends AttributeEffectCondition
 
 ## How this condition is determined.

@@ -1,5 +1,6 @@
 ## Condition that checks if an [Attribute], its owner, or its parent 
 ## is in or not in a specific set of groups.
+@tool
 class_name NodeGroupCondition extends AttributeEffectCondition
 
 ## Which node relative to the provided [Attribute] should be checked for the

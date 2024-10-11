@@ -1,4 +1,5 @@
 ## Modifier that rounds the [AttributeEffect]'s value to the nearest int.
+@tool
 class_name IntRounderModifier extends AttributeEffectModifier
 
 ## Defines how to round the float to an integer.

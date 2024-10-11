@@ -1,4 +1,5 @@
 ## Abstract class for simple built-in implementations of [method AttributeEffectCalculator].
+@tool
 class_name AbstractSimpleCalculator extends AttributeEffectCalculator
 
 ## Determines which value of an [Attribute] should be used in the calculation. 

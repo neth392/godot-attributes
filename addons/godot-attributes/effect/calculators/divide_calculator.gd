@@ -1,4 +1,5 @@
 ## Calculator that divides the attribute's value by the effect's value
+@tool
 class_name DivideCalculator extends AbstractSimpleCalculator
 
 func _simple_calculate(attribute_value: float, effect_value: float) -> float:

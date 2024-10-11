@@ -4,6 +4,7 @@
 ## base value for a TEMPORARY effect. In that case, the effect value could be .10 (10%), then
 ## [member multiply_effect_value_by] set to [enum Attribute.Value.BASE_VALUE],
 ## and [member add_to] set to [enum Attribute.Value.CURRENT_VALUE].
+@tool
 class_name MultiplyThenAddCalculator  extends AttributeEffectCalculator
 
 ## Takes the percentage of this value to be added to [member add_to].

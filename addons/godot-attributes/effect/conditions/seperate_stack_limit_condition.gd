@@ -1,6 +1,7 @@
 ## Condition that when used as an "add" condition, will block the stacking of active
 ## effects beyond a configured limit. For effects where [member AttributeEffect.stack_mode]
 ## is [enum AttributeEffect.StackMode.SEPERATE].
+@tool
 class_name SeperateStackLimitCondition extends AttributeEffectCondition
 
 ## The maximum stack count, inclusive.

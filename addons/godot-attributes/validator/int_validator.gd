@@ -1,5 +1,6 @@
 ## Validator that ensures an [Attribute]'s base and/or current value is always
 ## an integer.
+@tool
 class_name IntValidator extends AttributeValueValidator
 
 ## Defines how to round the float to an integer.

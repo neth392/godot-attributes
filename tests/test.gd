@@ -43,7 +43,7 @@ func _event_current_value_changed(event: AttributeEvent) -> void:
 	if !event.current_value_changed():
 		return
 	_print("EVENT: current_value_changed: new_value=%s, prev_current_value=%s" \
-	% [event.get_new_current_value(), event.get_old_current_value()])
+	% [event.get_new_current_value(), event.get_prev_current_value()])
 
 
 func _monitor_base_value_changed(prev_base_value: float, active: ActiveAttributeEffect) -> void:
@@ -100,8 +100,9 @@ func _event_active_stack_count_changed(event: AttributeEvent) -> void:
 	% [event.get_active_effect(), event.get_prev_active_stack_count()])
 
 
-func _monitor_active_add_blocked(blocked: ActiveAttributeEffect, blocked_by: ActiveAttributeEffect) -> void:
-	_print("MONITOR: active_add_blocked: blocked=%s, blocked_by=%s" % [blocked, blocked_by])
+func _monitor_active_add_blocked(blocked: ActiveAttributeEffect) -> void:
+	_print("MONITOR: active_add_blocked: blocked=%s, blocked_by=%s, blocked_by_source=%s" \
+	% [blocked, blocked.get_last_blocked_by().message, blocked.get_last_blocked_by_source().get_effect().id])
 
 
 func _event_active_add_blocked(event: AttributeEvent) -> void:
@@ -109,11 +110,12 @@ func _event_active_add_blocked(event: AttributeEvent) -> void:
 		return
 	var effect: ActiveAttributeEffect = event.get_active_effect()
 	_print("EVENT: active_add_blocked: blocked=%s, blocked_by=%s, blocked_by_source=%s" \
-	% [effect, effect.get_last_blocked_by().message, effect.get_last_blocked_by_source().id])
+	% [effect, effect.get_last_blocked_by().message, effect.get_last_blocked_by_source().get_effect().id])
 
 
-func _monitor_active_apply_blocked(blocked: ActiveAttributeEffect, blocked_by: ActiveAttributeEffect) -> void:
-	_print("MONITOR: active_apply_blocked: blocked=%s, blocked_by=%s" % [blocked, blocked_by])
+func _monitor_active_apply_blocked(blocked: ActiveAttributeEffect) -> void:
+	_print("MONITOR: active_apply_blocked: blocked=%s, blocked_by=%s, blocked_by_source=%s" \
+	% [blocked, blocked.get_last_blocked_by().message, blocked.get_last_blocked_by_source().get_effect().id])
 
 
 func _event_active_apply_blocked(event: AttributeEvent) -> void:
@@ -121,5 +123,5 @@ func _event_active_apply_blocked(event: AttributeEvent) -> void:
 		return
 	var effect: ActiveAttributeEffect = event.get_active_effect()
 	_print("EVENT: active_apply_blocked: blocked=%s, blocked_by=%s, blocked_by_source=%s" \
-	% [effect, effect.get_last_blocked_by().message, effect.get_last_blocked_by_source().id])
+	% [effect, effect.get_last_blocked_by().message, effect.get_last_blocked_by_source().get_effect().id])
 	

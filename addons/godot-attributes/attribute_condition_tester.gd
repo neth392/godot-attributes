@@ -46,7 +46,7 @@ func test(attribute: Attribute, active: ActiveAttributeEffect, event: AttributeE
 			# Emit monitor signal 
 			if blocking_condition.emit_blocked_signal:
 				attribute._in_monitor_signal_or_callback = true
-				_get_blocked_signal(attribute).emit(blocking_condition)
+				_emit_blocked_signal(attribute, active)
 				attribute._in_monitor_signal_or_callback = false
 			return false
 	
@@ -77,7 +77,7 @@ func test(attribute: Attribute, active: ActiveAttributeEffect, event: AttributeE
 					# Emit monitor signal
 					if blocking_condition.emit_blocked_signal:
 						attribute._in_monitor_signal_or_callback = true
-						_get_blocked_signal(attribute).emit(blocking_condition)
+						_emit_blocked_signal(attribute, active)
 						attribute._in_monitor_signal_or_callback = false
 					
 					# Break this loop
@@ -97,7 +97,7 @@ conditions: Array[AttributeEffectCondition]) -> AttributeEffectCondition:
 	return null
 
 
-func _get_blocked_signal(attribute: Attribute) -> Signal:
+func _emit_blocked_signal(attribute: Attribute, active: ActiveAttributeEffect) -> void:
 	assert(false, "_get_blocked_signal not implemented")
 	return Signal()
 
@@ -125,8 +125,8 @@ func _handle_event(active: ActiveAttributeEffect, event: AttributeEvent) -> void
 ## Implementation for applying effects to an attribute
 class ApplyTester extends AttributeConditionTester:
 	
-	func _get_blocked_signal(attribute: Attribute) -> Signal:
-		return attribute.monitor_active_apply_blocked
+	func _emit_blocked_signal(attribute: Attribute, active: ActiveAttributeEffect) -> void:
+		attribute.monitor_active_apply_blocked.emit(active)
 	
 	func _has_own_conditions(effect: AttributeEffect) -> bool:
 		return effect.has_apply_conditions()
@@ -146,8 +146,8 @@ class TemporaryApplyTester extends ApplyTester:
 ## Implementation for adding effects to an attribute
 class AddTester extends AttributeConditionTester:
 	
-	func _get_blocked_signal(attribute: Attribute) -> Signal:
-		return attribute.monitor_active_add_blocked
+	func _emit_blocked_signal(attribute: Attribute, active: ActiveAttributeEffect) -> void:
+		attribute.monitor_active_add_blocked.emit(active)
 	
 	func _has_own_conditions(effect: AttributeEffect) -> bool:
 		return effect.has_add_conditions()
