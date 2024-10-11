@@ -50,7 +50,7 @@ enum AddEffectResult {
 	## No attempt to add the effect to an [Attribute] was ever made.
 	NEVER_ADDED = 0,
 	## Successfully added.
-	ADDED = 1,
+	SUCCESS = 1,
 	## Added to an existing [ActiveAttributeEffect] via stacking.
 	STACKED = 2,
 	## Blocked by an [AttributeEffectCondition], retrieve it via
@@ -506,7 +506,7 @@ func _set_base_value_pre_validated(validated_new_base_value: float, event: Attri
 	
 	# Emit monitor signal
 	_in_monitor_signal_or_callback = true
-	monitor_base_value_changed.emit(event._old_base_value, null)
+	monitor_base_value_changed.emit(event._prev_base_value, null)
 	_in_monitor_signal_or_callback = false
 	
 	# Update the current value
@@ -523,7 +523,6 @@ func _validate_value(value: float, validators: Array[AttributeValueValidator]) -
 	var validated: float = value
 	for validator: AttributeValueValidator in validators:
 		if validator != null:
-			print("validate!")
 			validated = validator._validate(validated)
 	return validated
 
@@ -559,6 +558,8 @@ func _update_current_value(event: AttributeEvent) -> void:
 			_current_value_validators)
 			
 			if !AttributeConditionTester.for_temporary_apply().test(self, active, event):
+				event._apply_blocked_event = true
+				event._blocked_temporary_actives[active] = null
 				active._is_applying = false
 				return
 			
@@ -765,7 +766,7 @@ func add_active(active: ActiveAttributeEffect) -> void:
 	_in_monitor_signal_or_callback = false
 	
 	# At this point it can be added
-	active._last_add_result = AddEffectResult.ADDED
+	active._last_add_result = AddEffectResult.SUCCESS
 	active._tick_added_on = current_tick
 	active._tick_last_processed = current_tick
 	
@@ -861,8 +862,6 @@ func remove_active(active: ActiveAttributeEffect) -> bool:
 	if active == null || !has_active(active):
 		return false
 	var event: AttributeEvent = AttributeEvent.new(self, active)
-	event._old_base_value = _base_value
-	event._old_current_value = _current_value
 	_remove_active(active, event)
 	event_occurred.emit(event)
 	return true
@@ -995,7 +994,7 @@ func _apply_permanent_active(active: ActiveAttributeEffect, current_tick: int, e
 	
 	# Check apply conditions
 	if !AttributeConditionTester.for_permanent_apply().test(self, active, event):
-		print("BLOCKED!")
+		event._apply_blocked_event = true
 		active._clear_pending_values()
 		active._is_applying = false
 		return

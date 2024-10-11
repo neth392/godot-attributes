@@ -1,6 +1,6 @@
 ## Represents a floating point value of [AttributeEffect] that can be modified by
-## [AttributeEffectModifier]s.
-class_name ModifiableValue extends Resource
+## [AttributeEffectModifier]s of the parent class [AttributeEffectModifierArray].
+class_name ModifiableValue extends AttributeEffectModifierArray
 
 enum ValueType {
 	STATIC,
@@ -28,9 +28,7 @@ enum ValueType {
 				assert(false, "no implementation written for type (%s)" % type)
 				return 0.0
 
-## Any [AttributeEffectModifier]s that can apply to the value.
-@export var modifiers: AttributeEffectModifierArray = AttributeEffectModifierArray.new()
 
 ## Returns [member value] modified by [member modifiers].
 func get_modified(attribute: Attribute, active: ActiveAttributeEffect) -> float:
-	return modifiers.modify_value(_value, attribute, active)
+	return modify_value(_value, attribute, active)

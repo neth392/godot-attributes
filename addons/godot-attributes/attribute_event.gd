@@ -7,6 +7,7 @@ var _active_effect: ActiveAttributeEffect
 
 # Types of events
 var _apply_event: bool = false
+var _apply_blocked_event: bool = false
 var _add_event: bool = false
 var _remove_event: bool = false
 
@@ -15,11 +16,11 @@ var _prev_active_stack_count: int = 0
 var _new_active_stack_count: int = 0
 
 # Base values
-var _old_base_value: float
+var _prev_base_value: float
 var _new_base_value: float
 
 # Current value
-var _old_current_value: float
+var _prev_current_value: float
 var _new_current_value: float
 
 # Use a Dictionary here for more efficient lookups
@@ -28,9 +29,9 @@ var _blocked_temporary_actives: Dictionary[ActiveAttributeEffect, Variant]
 func _init(attribute: Attribute, active: ActiveAttributeEffect = null) -> void:
 	assert(attribute != null, "attribute is null")
 	_attribute = attribute
-	_old_base_value = attribute._base_value
+	_prev_base_value = attribute._base_value
 	_new_base_value = attribute._base_value
-	_old_current_value = attribute._current_value
+	_prev_current_value = attribute._current_value
 	_new_current_value = attribute._current_value
 	_active_effect = active
 	if _active_effect != null:
@@ -42,6 +43,10 @@ func get_attribute() -> Attribute:
 	return _attribute
 
 
+func has_active_effect() -> bool:
+	return _active_effect != null
+
+
 func get_active_effect() -> ActiveAttributeEffect:
 	return _active_effect
 
@@ -50,8 +55,16 @@ func is_apply_event() -> bool:
 	return _apply_event
 
 
+func is_apply_blocked_event() -> bool:
+	return _apply_blocked_event
+
+
 func is_add_event() -> bool:
 	return _add_event
+
+
+func is_add_block_event() -> bool:
+	return _add_event && _active_effect.get_last_add_result() != Attribute.AddEffectResult.SUCCESS
 
 
 func is_remove_event() -> bool:
@@ -72,11 +85,11 @@ func active_stack_count_changed() -> bool:
 
 
 func base_value_changed() -> bool:
-	return _old_base_value != _new_base_value
+	return _prev_base_value != _new_base_value
 
 
-func get_old_base_value() -> float:
-	return _old_base_value
+func get_prev_base_value() -> float:
+	return _prev_base_value
 
 
 func get_new_base_value() -> float:
@@ -84,11 +97,11 @@ func get_new_base_value() -> float:
 
 
 func current_value_changed() -> bool:
-	return _old_current_value != _new_current_value
+	return _prev_current_value != _new_current_value
 
 
-func get_old_current_value() -> float:
-	return _old_current_value
+func get_prev_current_value() -> float:
+	return _prev_current_value
 
 
 func get_new_current_value() -> float:
