@@ -26,6 +26,7 @@ var _new_current_value: float
 # Use a Dictionary here for more efficient lookups
 var _blocked_temporary_actives: Dictionary[ActiveAttributeEffect, Variant]
 
+
 func _init(attribute: Attribute, active: ActiveAttributeEffect = null) -> void:
 	assert(attribute != null, "attribute is null")
 	_attribute = attribute

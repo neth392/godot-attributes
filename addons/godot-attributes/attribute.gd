@@ -746,7 +746,7 @@ func add_active(active: ActiveAttributeEffect) -> void:
 			if existing.get_effect().is_temporary():
 				_update_current_value(event)
 			else:
-				# TODO add option to apply permanent effects on stacking
+				# TODO add option to apply permanent effects on stacking via a callback
 				pass
 		
 		event_occurred.emit(event)

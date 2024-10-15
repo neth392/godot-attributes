@@ -1,6 +1,9 @@
-## Callbacks can be added to an [AttributeEffect] to listen & make changes to
-## an [Attribute] or [ActiveAttributeEffect] when an [ActiveAttributeEffect] is
-## added, applied, and removed. For an example use case, see [AttributeEffectTaggerCallback].
+## Callbacks provide a set of extra functionality to [AttributeEffect]s without
+## the need to write it directly in code. The functionality is somewhat limited as the
+## callback functions are called [i]instantly[/i] after that specific action has occurred
+## within the [Attribute], and not a bit later in the stack like [AttributeEvent]s. Anything
+## relating to adding/removing effects from an attribute are not supported, but 
+## TODO fix above docs on a clear mind
 @tool
 class_name AttributeEffectCallback extends Resource
 

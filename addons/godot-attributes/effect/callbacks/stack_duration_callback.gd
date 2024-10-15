@@ -67,6 +67,7 @@ func _reset(attribute: Attribute, active: ActiveAttributeEffect) -> void:
 func _add(attribute: Attribute, active: ActiveAttributeEffect, amount: int) -> void:
 	var duplicate: ActiveAttributeEffect = active.duplicate(false)
 	## TODO figure this out, manually changing stack count doesn't work
+	## No idea what the above note means, need to re-investigate
 	var previous_stack_count: int = active._stack_count
 	active._stack_count = amount
 	var duration: float = amount * active._effect.get_modified_duration(attribute, active)
