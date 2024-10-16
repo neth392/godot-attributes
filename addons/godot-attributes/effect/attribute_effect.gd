@@ -148,6 +148,10 @@ enum DurationType {
 			assert(_value > 0, "apply_limit_amount must be > 0")
 		apply_limit_amount = _value
 
+## If true, whenever this effect's apply is blocked by an [AttributeEffectCondition],
+## the internal apply count used in the apply limit system will still increment.
+@export var count_apply_if_blocked: bool = false
+
 @export_group("Period")
 
 ## Amount of time, in seconds, between when this effect is applied to an [Attribute].
@@ -348,6 +352,11 @@ func _validate_property(property: Dictionary) -> void:
 			_no_editor(property)
 		return
 	
+	if property.name == "count_apply_if_blocked":
+		if !can_have_apply_limit() || !_apply_limit:
+			_no_editor(property)
+		return
+	
 	if property.name == "period_in_seconds" || property.name == "initial_period":
 		if !has_period():
 			_no_editor(property)
@@ -538,6 +547,7 @@ func is_add_blocker() -> bool:
 ## If true, this effect can utilize [member apply_blockers] which
 ## are sets of [AttributeEffectCondition]s that can block other [AttributeEffect]s
 ## from applying to any [Attribute] this effect is currently added to.func is_apply_blocker() -> bool:
+func is_apply_blocker() -> bool:
 	return _apply_blocker
 
 

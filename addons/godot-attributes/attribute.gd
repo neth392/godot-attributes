@@ -70,9 +70,9 @@ enum SamePrioritySortingMethod {
 	NEWER_FIRST,
 }
 
-##################
-## Attribute Event
-##################
+#####################
+## Attribute Event ##
+#####################
 
 ## Emitted when any change to this [Attribute] is made, such as the base and/or current value
 ## changing, or an [ActiveAttributeEffect] was added, applied, and/or removed. The
@@ -84,9 +84,9 @@ enum SamePrioritySortingMethod {
 ## due to the preserved ordering.
 signal event_occurred(attribute_event: AttributeEvent)
 
-###################
-## Value Signals ##
-###################
+#####################
+## Monitor Signals ##
+#####################
 
 ## Emitted when the value returned by [method get_current_value] changes.[br]
 ## WARNING: Any changes made to this [Attribute] when handling this signal will
@@ -100,10 +100,6 @@ signal monitor_current_value_changed(prev_current_value: float)
 ## result in an error thrown. If you wish to modify the [Attribute] during this signal,
 ## use [signal event_occurred] instead & check [method AttributeEvent.base_value_changed].
 signal monitor_base_value_changed(prev_base_value: float, active: ActiveAttributeEffect)
-
-####################
-## Effect Signals ##
-####################
 
 ## Emitted after the [param active] was added to this [Attribute]. Not called for instant
 ## effects.[br]
@@ -284,7 +280,7 @@ func _enter_tree() -> void:
 
 func _ready() -> void:
 	# TODO handle loading of attributes from saved data. currently applied effects
-	# need their tick #s adjusted.
+	# need their tick #s adjusted. Also account for if paused at time of save.
 	if !can_process():
 		_paused_at = _get_ticks()
 	
@@ -1016,6 +1012,8 @@ func _apply_permanent_active(active: ActiveAttributeEffect, current_tick: int, e
 	
 	# Check apply conditions
 	if !AttributeConditionTester.for_permanent_apply().test(self, active, event):
+		if active.get_effect().count_apply_if_blocked:
+			active._apply_count += 1
 		event._apply_blocked_event = true
 		active._clear_pending_values()
 		active._is_applying = false

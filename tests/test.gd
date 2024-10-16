@@ -31,7 +31,7 @@ func _ready():
 
 
 func _print(message: String) -> void:
-	print((Time.get_ticks_usec() - tick_started) / 1_000_000.0, "s: ", message)
+	print("0%.4f" % ((Time.get_ticks_usec() - tick_started) / 1_000_000.0), "s: ", message)
 
 
 func _monitor_current_value_changed(prev_current_value: float) -> void:
