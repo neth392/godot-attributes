@@ -21,3 +21,4 @@ script = ExtResource("3_jgq5p")
 id = &"Health"
 _base_value = 200.0
 _current_value_validators = Array[ExtResource("4_0ok4b")]([SubResource("Resource_rdv2p")])
+default_effects = null

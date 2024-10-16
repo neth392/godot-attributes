@@ -51,9 +51,10 @@ func test(attribute: Attribute, active: ActiveAttributeEffect, event: AttributeE
 			return false
 	
 	# Iterate BLOCKER effects
-	if !attribute._actives.blockers.is_empty():
+	var blockers: ActiveAttributeEffectArray = _get_blockers(attribute._actives)
+	if !blockers.is_empty():
 		var all_conditions_pass: AttributeUtil.Reference = AttributeUtil.Reference.new(true)
-		attribute._actives.blockers.for_each(
+		blockers.for_each(
 			func(blocker: ActiveAttributeEffect) -> void:
 				if !blocker.is_added() || blocker.is_expired():
 					return
@@ -112,6 +113,11 @@ func _get_own_conditions(effect: AttributeEffect) -> Array[AttributeEffectCondit
 	return []
 
 
+func _get_blockers(cluster: ActiveAttributeEffectCluster) -> ActiveAttributeEffectArray:
+	assert(false, "_get_blockers not implemented")
+	return null
+
+
 func _get_blocker_conditions(effect: AttributeEffect) -> Array[AttributeEffectCondition]:
 	assert(false, "_get_blocker_conditions not implemented")
 	return []
@@ -134,8 +140,12 @@ class ApplyTester extends AttributeConditionTester:
 	func _get_own_conditions(effect: AttributeEffect) -> Array[AttributeEffectCondition]:
 		return effect.apply_conditions
 	
+	func _get_blockers(cluster: ActiveAttributeEffectCluster) -> ActiveAttributeEffectArray:
+		return cluster.apply_blockers
+	
 	func _get_blocker_conditions(effect: AttributeEffect) -> Array[AttributeEffectCondition]:
 		return effect.apply_blockers
+
 
 class TemporaryApplyTester extends ApplyTester:
 	
@@ -154,6 +164,9 @@ class AddTester extends AttributeConditionTester:
 	
 	func _get_own_conditions(effect: AttributeEffect) -> Array[AttributeEffectCondition]:
 		return effect.add_conditions
+	
+	func _get_blockers(cluster: ActiveAttributeEffectCluster) -> ActiveAttributeEffectArray:
+		return cluster.add_blockers
 	
 	func _get_blocker_conditions(effect: AttributeEffect) -> Array[AttributeEffectCondition]:
 		return effect.add_blockers

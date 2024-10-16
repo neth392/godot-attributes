@@ -1,14 +1,8 @@
-## Represents a floating point value that can have [AttributeEffect]s
-## applied to modify that value. Can also be extended with custom logic.
-## [br]Note: When extending, if any of the following functions are overridden they
-## MUST first call their super counterpart, unless you know what you're doing.
-## [codeblock]
-## super._enter_tree()
-## super._ready()
-## super._process(delta) # Only call when effects_process_function = PROCESS
-## super._physics_process(delta) # Only call when effects_process_function = PHYSICS_PROCESS
-## super._exit_tree()
-## [/codeblock]
+## Represents a floating point value which can be modified by [AttributeEffect]s. Also
+## acts as a controller of each applied [ActiveAttributeEffect] (the living version of an
+## [AttributeEffect]), responsible for the logic behind processing each effect.
+# NOTE: Yes this class is quite the spaghetti code mess, maybe I'll improve it one day
+# but as long as it works & is efficient I'm fine with it for now.
 @tool
 @icon("res://addons/godot-attributes/assets/attribute_icon.svg")
 class_name Attribute extends Node
@@ -82,12 +76,12 @@ enum SamePrioritySortingMethod {
 
 ## Emitted when any change to this [Attribute] is made, such as the base and/or current value
 ## changing, or an [ActiveAttributeEffect] was added, applied, and/or removed. The
-## [param attribute_event] contains all of the information related to the event. Connections
-## to this signal can safely invoke their own changes on this [Attribute] without breaking
-## the internal logic or event ordering as all of the changes that occurred in the current stack
-## are bundled into this one signal. This is emitted directly AFTER signals prefixed with 
-## [code]monitor_[/code], which are meant to only monitor changes to this [Attribute] and 
-## not make any changes themselves.
+## [param attribute_event] contains all of the information related to what changes took
+## place since the last event was emitted. Unlike signals prefixed with [i]monitor_[/i], 
+## connections to this signal can safely invoke their own changes on this [Attribute] 
+## without breaking the internal logic or event ordering as this event is always 
+## emitted when it is safe to do so. It is also more reliable than the monitor signals
+## due to the preserved ordering.
 signal event_occurred(attribute_event: AttributeEvent)
 
 ###################
@@ -241,27 +235,30 @@ signal monitor_active_apply_blocked(blocked: ActiveAttributeEffect)
 
 ## Array of all [AttributeEffect]s applied to this [Attribute] by default. When
 ## applied they are NOT sorted by priority, but instead applied in their order in
-## this array.
-@export var _default_effects: Array[AttributeEffect] = []:
+## this array. Can be set/mutated via code but must be done before this node is added 
+## to the tree.
+@export var default_effects: Array[AttributeEffect] = []:
 	set(value):
-		_default_effects = value
+		default_effects = value
 		update_configuration_warnings()
 
-## Cluster of all added [ActiveAttributeEffect]s.
+# Cluster of all added [ActiveAttributeEffect]s.
 @export_storage var _actives: ActiveAttributeEffectCluster
 
-## Internally stores if 
+# Internally stores if there are any [ActiveAttributeEffect]s currently applied.
+# When set processing is updated, disabling it when no effects are applied to
+# help performance.
 @export_storage var _has_actives: bool = false:
 	set(value):
 		_has_actives = value
 		_update_processing()
 
-## Dictionary of in the format of [code]{[member AttributeEffect.id] : int}[/code] count of all 
-## applied [ActiveAttributeEffect]s with that effect.
+# Dictionary of in the format of [code]{[member AttributeEffect.id] : int}[/code] count of all 
+# applied [ActiveAttributeEffect]s with that effect.
 @export_storage var _effect_counts: Dictionary[StringName, int] = {}
 
-## The [AttributeContainer] this attribute belongs to stored as a [WeakRef] for
-## circular reference safety.
+# The [AttributeContainer] this attribute belongs to stored as a [WeakRef] for
+# circular reference safety.
 var _container_ref: WeakRef = weakref(null)
 
 ## The internal current value.
@@ -306,11 +303,11 @@ func _ready() -> void:
 			#break
 	
 	# Handle default effects
-	if allow_effects && !_default_effects.is_empty():
+	if allow_effects && !default_effects.is_empty():
 		if defer_default_effects:
-			add_effects.call_deferred(_default_effects)
+			add_effects.call_deferred(default_effects)
 		else:
-			add_effects(_default_effects, false)
+			add_effects(default_effects, false)
 
 
 func _exit_tree() -> void:
@@ -443,7 +440,7 @@ func _get_configuration_warnings() -> PackedStringArray:
 			if child is Attribute:
 				if child != self && child.id == id:
 					warnings.append("Sibling Attribute (%s) has the same ID" % child.name)
-	if _default_effects.has(null):
+	if default_effects.has(null):
 		warnings.append("_default_effects has a null element")
 	
 	var has_history: bool = false
@@ -581,6 +578,7 @@ func _update_current_value(event: AttributeEvent) -> void:
 		_in_monitor_signal_or_callback = false
 	
 	event._new_current_value = _current_value
+
 
 ## Returns a new [Array] (safe to mutate) of the current [ActiveAttributeEffect]s.
 ## The actives themselves are NOT duplicated.
@@ -739,16 +737,8 @@ func add_active(active: ActiveAttributeEffect) -> void:
 		assert(existing != null, ("existing is null, but has_effect returned true " + \
 		"for active %s") % active)
 		active._last_add_result = AddEffectResult.STACKED
-		_set_stack_count(existing, existing.get_stack_count() + active.get_stack_count(), event)
 		
-		if existing.get_effect().has_value:
-			# Update current value if a temporary active w/ value is stacked
-			if existing.get_effect().is_temporary():
-				_update_current_value(event)
-			else:
-				# TODO add option to apply permanent effects on stacking via a callback
-				pass
-		
+		_set_active_stack_count(existing, existing._stack_count + active._stack_count, event)
 		event_occurred.emit(event)
 		return
 	
@@ -762,7 +752,7 @@ func add_active(active: ActiveAttributeEffect) -> void:
 	
 	# Run pre_add callbacks
 	_in_monitor_signal_or_callback = true
-	_run_callbacks(active, AttributeEffectCallback._Function.PRE_ADD)
+	_run_callbacks(AttributeEffectCallback._Function.PRE_ADD, active)
 	_in_monitor_signal_or_callback = false
 	
 	# At this point it can be added
@@ -781,7 +771,7 @@ func add_active(active: ActiveAttributeEffect) -> void:
 	
 	# Run callbacks & emit signal
 	_in_monitor_signal_or_callback = true
-	_run_callbacks(active, AttributeEffectCallback._Function.ADDED)
+	_run_callbacks(AttributeEffectCallback._Function.ADDED, active)
 	_in_monitor_signal_or_callback = false
 	
 	if active.get_effect().should_emit_added_signal():
@@ -806,6 +796,38 @@ func add_active(active: ActiveAttributeEffect) -> void:
 	# Emit the event
 	event_occurred.emit(event)
 
+
+## Sets the stack count of [param active] to [param new_stack_count]. The active's
+## [AttributeEffect] must have [member AttributeEffect.stack_mode] set to
+## [enum AttributeEffect.StackMode.COMBINE] or an error will be thrown (in debug mode
+## via an assertion).
+func set_active_stack_count(active: ActiveAttributeEffect, new_stack_count: int) -> void:
+	var event: AttributeEvent = AttributeEvent.new(self, active)
+	_set_active_stack_count(active, new_stack_count, event)
+	event_occurred.emit(event)
+
+
+## Sets the stack count of [param active] to [param new_stack_count]. The active's
+## [AttributeEffect] must have [member AttributeEffect.stack_mode] set to
+## [enum AttributeEffect.StackMode.COMBINE] or an error will be thrown (in debug mode
+## via an assertion).
+func _set_active_stack_count(active: ActiveAttributeEffect, new_stack_count: int, event: AttributeEvent) -> void:
+	assert(active != null, "active is null")
+	assert(active.get_effect().stack_mode == AttributeEffect.StackMode.COMBINE,
+	"%s's effect's stack_mode != StackMode.COMBINE, but is set to %s" \
+	% [active.get_effect(), active.get_effect().stack_mode])
+	
+	var previous_stack_count: int = active._stack_count
+	active._stack_count = new_stack_count
+	event._new_active_stack_count = new_stack_count
+	_run_callbacks(AttributeEffectCallback._Function.STACK_CHANGED, active, [previous_stack_count])
+	_in_monitor_signal_or_callback = true
+	monitor_active_stack_count_changed.emit(active, previous_stack_count)
+	_in_monitor_signal_or_callback = false
+	
+	# Update current value if existing is a temporary active w/ a value
+	if active.get_effect().is_temporary() && active.get_effect().has_value:
+		_update_current_value(event)
 
 
 ## Removes all [ActiveAttributeEffect]s whose effect equals [param effect].
@@ -873,7 +895,7 @@ func _remove_active(active: ActiveAttributeEffect, event: AttributeEvent) -> voi
 	
 	# Run PRE_REMOVE callbacks
 	_in_monitor_signal_or_callback = true
-	_run_callbacks(active, AttributeEffectCallback._Function.PRE_REMOVE)
+	_run_callbacks(AttributeEffectCallback._Function.PRE_REMOVE, active)
 	_in_monitor_signal_or_callback = false
 	
 	# Erase from array
@@ -892,7 +914,7 @@ func _remove_active(active: ActiveAttributeEffect, event: AttributeEvent) -> voi
 	
 	# Run REMOVED callbacks
 	_in_monitor_signal_or_callback = true
-	_run_callbacks(active, AttributeEffectCallback._Function.REMOVED)
+	_run_callbacks(AttributeEffectCallback._Function.REMOVED, active)
 	# Emit monitor signal
 	if active.get_effect().should_emit_removed_signal():
 		monitor_active_removed.emit(active)
@@ -928,7 +950,7 @@ func _get_modified_value(active: ActiveAttributeEffect) -> float:
 	var modified_value: AttributeUtil.Reference = AttributeUtil.Reference.new(\
 	active.get_effect().value.get_modified(self, active))
 	
-	_actives.modifiers.for_each(
+	_actives.value_modifiers.for_each(
 		func(modifier: ActiveAttributeEffect) -> void:
 			if modifier.is_added() && !modifier.is_expired():
 				modified_value.ref = modifier.get_effect().value_modifiers.modify_value(modified_value.ref, self, active)
@@ -941,7 +963,7 @@ func _get_modified_period(active: ActiveAttributeEffect) -> float:
 	var modified_period: AttributeUtil.Reference = AttributeUtil.Reference.new(\
 	active.get_effect().period_in_seconds.get_modified(self, active))
 	
-	_actives.modifiers.for_each(
+	_actives.period_modifiers.for_each(
 		func(modifier: ActiveAttributeEffect) -> void:
 			if modifier.is_added() && !modifier.is_expired():
 				modified_period.ref = modifier.get_effect().period_modifiers.modify_period(modified_period.ref, self, active)
@@ -954,7 +976,7 @@ func _get_modified_duration(active: ActiveAttributeEffect) -> float:
 	var modified_duration: AttributeUtil.Reference = AttributeUtil.Reference.new(\
 	active.get_effect().duration_in_seconds.get_modified(self, active))
 	
-	_actives.modifiers.for_each(
+	_actives.duration_modifiers.for_each(
 		func(modifier: ActiveAttributeEffect) -> void:
 			if modifier.is_added() && !modifier.is_expired():
 				modified_duration.ref = modifier.get_effect().duration_modifiers.modify_duration(modified_duration.ref, self, active)
@@ -1024,46 +1046,24 @@ func _apply_permanent_active(active: ActiveAttributeEffect, current_tick: int, e
 	
 	_in_monitor_signal_or_callback = true
 	# Run callbacks
-	_run_callbacks(active, AttributeEffectCallback._Function.APPLIED)
+	_run_callbacks(AttributeEffectCallback._Function.APPLIED, active)
 	# Emit signal
 	if active.get_effect().should_emit_applied_signal():
 		monitor_active_applied.emit(active)
 	_in_monitor_signal_or_callback = false
 
 
-# Adds [param amount] to the effect stack. This effect must be stackable
-# (see [method is_stackable]) and [param amount] must be > 0.
-# [br]Automatically emits [signal effect_stack_count_changed].
-func _set_stack_count(active: ActiveAttributeEffect, stack_count: int, event: AttributeEvent) -> void:
-	assert(active.get_effect().is_stackable(), "active (%s) not stackable" % active)
-	assert(stack_count > 0, "stack_count(%s) <= 0" % stack_count)
-	
-	var previous_stack_count: int = active._stack_count
-	active._stack_count = stack_count
-	event._new_active_stack_count = active._stack_count
-	_run_stack_callbacks(active, previous_stack_count)
-	_in_monitor_signal_or_callback = true
-	monitor_active_stack_count_changed.emit(active, previous_stack_count)
-	_in_monitor_signal_or_callback = false
-
-
 # Runs the callback [param _function] on all [AttributeEffectCallback]s who have
 # implemented that function.
-func _run_callbacks(active: ActiveAttributeEffect, _function: AttributeEffectCallback._Function) -> void:
+func _run_callbacks(_function: AttributeEffectCallback._Function, active: ActiveAttributeEffect, 
+additional_args: Array[Variant] = []) -> void:
 	if !AttributeEffectCallback._can_run(_function, active.get_effect()):
 		return
 	var function_name: String = AttributeEffectCallback._function_names[_function]
+	var args: Array[Variant] = [self, active]
+	args.append_array(additional_args)
 	for callback: AttributeEffectCallback in active.get_effect()._callbacks_by_function.get(_function):
-		callback.call(function_name, self, active)
-
-
-func _run_stack_callbacks(active: ActiveAttributeEffect, previous_stack_count: int) -> void:
-	var function_name: String = AttributeEffectCallback._function_names\
-	[AttributeEffectCallback._Function.STACK_CHANGED]
-	
-	for callback: AttributeEffectCallback in active.get_effect()._callbacks_by_function\
-	.get(AttributeEffectCallback._Function.STACK_CHANGED):
-		callback.call(function_name, self, active, previous_stack_count)
+		callback.callv(function_name, args)
 
 
 func _to_string() -> String:

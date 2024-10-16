@@ -216,38 +216,69 @@ enum DurationType {
 
 @export_group("Blockers")
 
-## If true, this effect has [member add_blockers] and/or [member apply_blockers] which
+## If true, this effect can utilize [member add_blockers] which
 ## are sets of [AttributeEffectCondition]s that can block other [AttributeEffect]s
-## from applying while this effect is active.
-@export var _blocker: bool = false:
+## from being added to any [Attribute] this effect is currently added to.
+## Only applicable for non-instant effects.
+@export var _add_blocker: bool = false:
 	set(value):
-		_blocker = value
+		_add_blocker = value
 		notify_property_list_changed()
 
 ## Blocks other [AttributeEffect]s from being added to an [Attribute] if they
-## do NOT meet any of these conditions.
+## do NOT meet any of these conditions. Only used if [member _add_blocker] is true.
 @export var add_blockers: Array[AttributeEffectCondition]
 
+## If true, this effect can utilize [member apply_blockers] which
+## are sets of [AttributeEffectCondition]s that can block other [AttributeEffect]s
+## from applying to any [Attribute] this effect is currently added to.
+## Only applicable for non-instant effects, and only applicable for non-instant effects.
+@export var _apply_blocker: bool = false:
+	set(value):
+		_apply_blocker = value
+		notify_property_list_changed()
+
 ## Blocks other [AttributeEffect]s from being applied to an [Attribute] if they
-## do NOT meet any of these conditions.
+## do NOT meet any of these conditions. Only used if [member _apply_blocker] is true,
+## and only applicable for non-instant effects.
 @export var apply_blockers: Array[AttributeEffectCondition]
 
 @export_group("Modifiers")
 
-## If true, this effect can use [member value_modifiers], [member period_modifiers], and
-## [member duration_modifiers] to modify the properties of other [ActiveAttributeEffect]s.
-@export var _modifier: bool = false:
+## If true, this effect has [member value_modifiers] which once applied to an [Attribute] will
+## modify the value of other [AttributeEffect]s. Only applicable for non-instant effects.
+@export var _value_modifier: bool = false:
 	set(value):
-		_modifier = value
+		_value_modifier = value
 		notify_property_list_changed()
 
 ## Modifies the [member value] of other [AttributeEffect]s.
+## Only used if [member _value_modifier] is true, and only applicable for
+## non-instant effects.
 @export var value_modifiers: AttributeEffectModifierArray
 
+## If true, this effect has [member value_modifiers] which once applied to an [Attribute] will
+## modify the period of other [AttributeEffect]s. Only applicable for non-instant effects.
+@export var _period_modifier: bool = false:
+	set(value):
+		_period_modifier = value
+		notify_property_list_changed()
+
 ## Modifies the [member period_in_seconds] of other [AttributeEffect]s.
+## Only used if [member _period_modifier] is true, and only applicable for
+## non-instant effects.
 @export var period_modifiers: AttributeEffectModifierArray
 
+## If true, this effect has [member value_modifiers] which once applied to an [Attribute] will
+## modify the duration of other [AttributeEffect]s. Only applicable for non-instant effects.
+@export var _duration_modifier: bool = false:
+	set(value):
+		_duration_modifier = value
+		notify_property_list_changed()
+
 ## Modifies the [member duration_in_seconds] of other [AttributeEffect]s.
+## Only used if [member _duration_modifier] is true, and only applicable for
+## non-instant effects.
 @export var duration_modifiers: AttributeEffectModifierArray
 
 @export_group("Metadata")
@@ -347,14 +378,40 @@ func _validate_property(property: Dictionary) -> void:
 			_no_editor(property)
 		return
 	
-	if property.name == "add_blockers" || property.name == "apply_blockers":
-		if !is_blocker():
+	if property.name == "_add_blocker" || property.name == "_apply_blocker":
+		if !can_be_blocker():
 			_no_editor(property)
 		return
 	
-	if property.name == "value_modifiers" or property.name == "period_modifiers" \
-	or property.name == "duration_modifiers":
-		if !is_modifier():
+	if property.name == "add_blockers":
+		if !can_be_blocker() ||  !is_add_blocker():
+			_no_editor(property)
+		return
+	
+	if property.name == "apply_blockers":
+		if !can_be_blocker() || !is_add_blocker():
+			_no_editor(property)
+		return
+	
+	if property.name == "_value_modifier" \
+	or property.name == "_period_modifier" \
+	or property.name == "_duration_modifier":
+		if !can_be_modifier():
+			_no_editor(property)
+		return
+	
+	if property.name == "value_modifiers":
+		if !can_be_modifier() || !is_value_modifier():
+			_no_editor(property)
+		return
+	
+	if property.name == "period_modfifiers":
+		if !can_be_modifier() || !is_period_modifier():
+			_no_editor(property)
+		return
+	
+	if property.name == "duration_modifiers":
+		if !can_be_modifier() || !is_duration_modifier():
 			_no_editor(property)
 		return
 
@@ -461,16 +518,55 @@ func is_temporary() -> bool:
 	return type == AttributeEffect.Type.TEMPORARY
 
 
-## If true, this effect can use [member add_blockers] & [member apply_blockers] to
-## prevent the addition or applying of other [ActiveAttributeEffect]s.
-func is_blocker() -> bool:
-	return _blocker
+## Returns true if this effect can be an add or apply blocker.
+func can_be_blocker() -> bool:
+	return !is_instant()
 
 
-## If true, this effect can use [member value_modifiers], [member period_modifiers], and
-## [member duration_modifiers] to modify the properties of other [ActiveAttributeEffect]s.
-func is_modifier() -> bool:
-	return _modifier
+## Returns true if this effect is an add or apply blocker.
+func is_any_blocker() -> bool:
+	return _add_blocker || _apply_blocker
+
+
+## If true, this effect can utilize [member add_blockers] which
+## are sets of [AttributeEffectCondition]s that can block other [AttributeEffect]s
+## from being added to any [Attribute] this effect is currently added to.
+func is_add_blocker() -> bool:
+	return _add_blocker
+
+
+## If true, this effect can utilize [member apply_blockers] which
+## are sets of [AttributeEffectCondition]s that can block other [AttributeEffect]s
+## from applying to any [Attribute] this effect is currently added to.func is_apply_blocker() -> bool:
+	return _apply_blocker
+
+
+## Returns true if this effect can be a modifier of value, duration, or period.
+func can_be_modifier() -> bool:
+	return !is_instant()
+
+
+## Returns true if this effect is a value, duration, or period modifier.
+func is_any_modifier() -> bool:
+	return _value_modifier || _duration_modifier || _period_modifier
+
+
+## If true, this effect has [member value_modifiers] which once applied to an [Attribute] will
+## modify the value of other [AttributeEffect]s. Only applicable for non-instant effects.
+func is_value_modifier() -> bool:
+	return _value_modifier
+
+
+## If true, this effect has [member value_modifiers] which once applied to an [Attribute] will
+## modify the duration of other [AttributeEffect]s. Only applicable for non-instant effects.
+func is_duration_modifier() -> bool:
+	return _duration_modifier
+
+
+## If true, this effect has [member value_modifiers] which once applied to an [Attribute] will
+## modify the period of other [AttributeEffect]s. Only applicable for non-instant effects.
+func is_period_modifier() -> bool:
+	return _period_modifier
 
 
 ## Whether or not this effect supports [member add_conditions]
