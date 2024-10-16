@@ -329,10 +329,12 @@ func _notification(what: int) -> void:
 
 
 func _process(delta: float) -> void:
+	print("PROCESS")
 	_actives.for_each(_process_active)
 
 
 func _physics_process(delta: float) -> void:
+	print("PHYSICS")
 	_actives.for_each(_process_active)
 
 
