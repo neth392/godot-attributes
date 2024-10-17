@@ -3,10 +3,10 @@
 class_name ActiveAttributeEffect extends Resource
 
 ## The remaining duration in seconds, can not be set to less than 0.0.
-var remaining_duration: float:
+var _remaining_duration: float:
 	set(_value):
-		var previous: float = remaining_duration
-		remaining_duration = max(0.0, _value)
+		var previous: float = _remaining_duration
+		_remaining_duration = max(0.0, _value)
 
 ## Customizable metadata for this [ActiveAttributeEffect], for use with conditions,
 ## hooks, etc. Not in use by the Attribute system itself, but used with some of
@@ -16,11 +16,7 @@ var meta: Dictionary[Variant, Variant] = {}
 ## The remaining amount of time, in seconds, until this effect is next triggered.
 ## Can be manually set before applying to an [Attribute] to create an initial
 ## delay.
-var remaining_period: float = 0.0
-
-## The pending value that will be set directly to the [Attribute] by this active effect.
-## Based on 
-var pending_attribute_value: float
+var _remaining_period: float = 0.0
 
 var _effect: AttributeEffect
 ## The [NodePath] to the source [Node] of this [AttributeEffect].
@@ -79,20 +75,21 @@ func get_effect() -> AttributeEffect:
 	return _effect
 
 
+# TODO document
+func get_remaining_period() -> float:
+	return _remaining_period
+
+
+# TODO document
+func get_remaining_duration() -> float:
+	return _remaining_duration
+
+
 ## Whether or not this instance has been initialized by an [Attribute].
 ## [br]Initialization means that the default duration & initial period have been set
 ## so this effect can be processed & applied.
 func is_initialized() -> bool:
 	return _initialized
-
-
-## De-initializes the active effect (only if already initialized), setting [member remaining_period] 
-## and [member remaining_duration] to 0.0.
-func deinitialize() -> void:
-	if is_initialized():
-		remaining_period = 0.0
-		remaining_duration = 0.0
-		_initialized = false
 
 
 ## Returns true if this active effect is currently added to an [Attribute], false if not.
@@ -148,7 +145,7 @@ func get_active_duration() -> float:
 ## Returns the sum of [member remaining_duration] and [method get_active_duration],
 ## which represents the total amount of time, in seconds, this effect is expected to live for.
 func get_active_expected_duration() -> float:
-	return remaining_duration + _active_duration
+	return _remaining_duration + _active_duration
 
 
 ### Returns the value retrieved from [member AttributeEffect.value] that is pending

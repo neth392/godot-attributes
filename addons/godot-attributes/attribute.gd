@@ -824,9 +824,9 @@ func add_active(active: ActiveAttributeEffect) -> void:
 	event_occurred.emit(event)
 
 
-##########################
-## Stack Count Changing ##
-##########################
+######################
+## Active Mutations ##
+######################
 
 
 ## Sets the stack count of [param active] to [param new_stack_count]. The active's
@@ -854,14 +854,39 @@ func _set_active_stack_count(active: ActiveAttributeEffect, new_stack_count: int
 	event._new_active_stack_count = new_stack_count
 	
 	_in_monitor_signal_or_hook = true
-	_run_hooks(AttributeEffectHook._Function.AFTER_ACTIVE_STACK_CHANGED, active, event,
-	[previous_stack_count])
 	monitor_active_stack_count_changed.emit(active, previous_stack_count)
 	_in_monitor_signal_or_hook = false
 	
 	# Update current value if existing is a temporary active w/ a value
 	if active.get_effect().is_temporary() && active.get_effect().has_value:
 		_update_current_value(event)
+	
+	_in_monitor_signal_or_hook = true
+	_run_hooks(AttributeEffectHook._Function.AFTER_ACTIVE_STACK_CHANGED, active, event,
+	[previous_stack_count])
+	_in_monitor_signal_or_hook = false
+
+
+func set_active_remaining_duration(active: ActiveAttributeEffect, new_remaining_duration: float) -> void:
+	# TODO implement
+	pass
+
+
+func _set_active_remaining_duration(active: ActiveAttributeEffect, new_remaining_duration: float,
+event: AttributeEvent) -> void:
+	# TODO implement
+	pass
+
+
+func set_active_remaining_period(active: ActiveAttributeEffect, new_remaining_period: float) -> void:
+	# TODO implement
+	pass
+
+
+func _set_active_remaining_period(active: ActiveAttributeEffect, new_remaining_period: float,
+event: AttributeEvent) -> void:
+	# TODO implement
+	pass
 
 
 #############################
