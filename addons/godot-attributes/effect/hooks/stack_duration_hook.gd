@@ -37,7 +37,8 @@ func _run_assertions(effect: AttributeEffect) -> void:
 	"both increase_mode & decrease_mode are IGNORE; this hook does nothing")
 
 
-func _stack_changed(attribute: Attribute, active: ActiveAttributeEffect, previous_stack_count: int) -> void:
+func _after_stack_changed(attribute: Attribute, active: ActiveAttributeEffect,
+event: AttributeEvent, previous_stack_count: int) -> void:
 	if active.get_stack_count() == previous_stack_count:
 		return
 	var mode_to_use: Mode = decrease_mode if active.get_stack_count() < previous_stack_count \

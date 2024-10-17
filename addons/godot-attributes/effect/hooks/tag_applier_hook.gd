@@ -33,7 +33,8 @@ func _validate_property(property: Dictionary) -> void:
 			property.usage = PROPERTY_USAGE_STORAGE
 
 
-func _pre_add(attribute: Attribute, active: ActiveAttributeEffect) -> void:
+func _before_active_added(attribute: Attribute, active: ActiveAttributeEffect,
+event: AttributeEvent) -> void:
 	var container: AttributeContainer = attribute.get_container()
 	if container != null:
 		var tags_to_apply: Array[StringName] = tags.duplicate()
@@ -49,7 +50,8 @@ func _pre_add(attribute: Attribute, active: ActiveAttributeEffect) -> void:
 		assert(false, "no container for attribute: %s" % attribute)
 
 
-func _pre_remove(attribute: Attribute, active: ActiveAttributeEffect) -> void:
+func _before_active_removed(attribute: Attribute, active: ActiveAttributeEffect, 
+event: AttributeEvent) -> void:
 	if !remove_after:
 		return
 	var container: AttributeContainer = attribute.get_container()

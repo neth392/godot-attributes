@@ -1,9 +1,11 @@
-## Hooks provide a set of extra functionality to [AttributeEffect]s without
-## the need to write it directly in code. The functionality is somewhat limited as the
-## hook functions are called [i]instantly[/i] after that specific action has occurred
-## within the [Attribute], and not a bit later in the stack like [AttributeEvent]s. Anything
-## relating to adding/removing effects from an attribute are not supported, but 
-## TODO fix above docs on a clear mind
+## Hooks allow adjusting the behavior of [AttributeEffect]s by providing a set of
+## functions that are automatically called by an [Attribute] based on the current 
+## [AttributeEvent].
+## [br]These functions are "unsafe" meaning that you can not mutate 
+## an [Attribute] by calling any of its public facing functions. However (if you know
+## what you're doing) you can write your own hooks which are able to modify the [Attribute]'s
+## internals via the "private" _functions as long as you supply the [AttributeEvent] & 
+## other necessary parameters to them.
 @tool
 class_name AttributeEffectHook extends Resource
 

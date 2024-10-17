@@ -272,6 +272,11 @@ var _paused_at: int
 # of this class.
 var _in_monitor_signal_or_hook: bool = false
 
+
+###################
+## Tree Handling ##
+###################
+
 func _enter_tree() -> void:
 	if Engine.is_editor_hint():
 		return
@@ -327,6 +332,61 @@ func _notification(what: int) -> void:
 				else: # If added before pause, add time puased to process time
 					active._tick_last_processed += ticks_paused
 		, false)
+
+
+##################
+## Editor Tools ##
+##################
+
+func _validate_property(property: Dictionary) -> void:
+	if property.name == "effects_process_function":
+		if !allow_effects:
+			property.usage = PROPERTY_USAGE_STORAGE
+		return
+	if property.name == "_default_effects":
+		if !allow_effects:
+			property.usage = PROPERTY_USAGE_NONE
+		return
+	if property.name == "_current_value_display":
+		property.usage = PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_READ_ONLY
+		return
+
+
+func _get_configuration_warnings() -> PackedStringArray:
+	var warnings: PackedStringArray = PackedStringArray()
+	if id.is_empty():
+		warnings.append("no ID set")
+	if !(get_parent() is AttributeContainer):
+		warnings.append("parent not of type AttributeContainer")
+	else:
+		for child in get_parent().get_children():
+			if child is Attribute:
+				if child != self && child.id == id:
+					warnings.append("Sibling Attribute (%s) has the same ID" % child.name)
+	if default_effects.has(null):
+		warnings.append("_default_effects has a null element")
+	
+	var has_history: bool = false
+	for child: Node in get_children():
+		if child is AttributeHistory:
+			if has_history:
+				warnings.append("Multiple AttributeHistory children detected")
+				break
+			else:
+				has_history = true
+	
+	if _base_value_validators.has(null):
+		warnings.append("_base_value_validators has a null element")
+	
+	if _current_value_validators.has(null):
+		warnings.append("_base_value_validators has a null element")
+	
+	return warnings
+
+
+##############################
+## Active Effect Processing ##
+##############################
 
 
 func _process(delta: float) -> void:
@@ -405,7 +465,7 @@ func _process_active(active: ActiveAttributeEffect) -> void:
 		# Otherwise reset the period
 		else:
 			# Update period
-			active.remaining_period += _get_modified_period(active)
+			active.remaining_period += AttributeModifiedValueGetter.period().get_modified(self, active)
 	# This should never trigger, but just to be sure assert such
 	else:
 		assert(false, "duration_expired or period_expired are both false somehow")
@@ -413,57 +473,23 @@ func _process_active(active: ActiveAttributeEffect) -> void:
 	# Emit the event
 	event_occurred.emit(event)
 
-
-func _validate_property(property: Dictionary) -> void:
-	if property.name == "effects_process_function":
-		if !allow_effects:
-			property.usage = PROPERTY_USAGE_STORAGE
-		return
-	if property.name == "_default_effects":
-		if !allow_effects:
-			property.usage = PROPERTY_USAGE_NONE
-		return
-	if property.name == "_current_value_display":
-		property.usage = PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_READ_ONLY
-		return
-
-
-func _get_configuration_warnings() -> PackedStringArray:
-	var warnings: PackedStringArray = PackedStringArray()
-	if id.is_empty():
-		warnings.append("no ID set")
-	if !(get_parent() is AttributeContainer):
-		warnings.append("parent not of type AttributeContainer")
-	else:
-		for child in get_parent().get_children():
-			if child is Attribute:
-				if child != self && child.id == id:
-					warnings.append("Sibling Attribute (%s) has the same ID" % child.name)
-	if default_effects.has(null):
-		warnings.append("_default_effects has a null element")
-	
-	var has_history: bool = false
-	for child: Node in get_children():
-		if child is AttributeHistory:
-			if has_history:
-				warnings.append("Multiple AttributeHistory children detected")
-				break
-			else:
-				has_history = true
-	
-	if _base_value_validators.has(null):
-		warnings.append("_base_value_validators has a null element")
-	
-	if _current_value_validators.has(null):
-		warnings.append("_base_value_validators has a null element")
-	
-	return warnings
-
-
 ## Returns the [AttributeContainer] this [Attribute] belongs to, null if there
 ## is no container (which shouldn't happen with proper [Node] management).
 func get_container() -> AttributeContainer:
 	return _container_ref.get_ref() as AttributeContainer
+
+
+##########################
+## Base & Current Value ##
+##########################
+
+
+func _validate_value(value: float, validators: Array[AttributeValueValidator]) -> float:
+	var validated: float = value
+	for validator: AttributeValueValidator in validators:
+		if validator != null:
+			validated = validator._validate(validated)
+	return validated
 
 
 ## Returns the base value of this attribute.
@@ -515,14 +541,6 @@ func get_current_value() -> float:
 	return _current_value
 
 
-func _validate_value(value: float, validators: Array[AttributeValueValidator]) -> float:
-	var validated: float = value
-	for validator: AttributeValueValidator in validators:
-		if validator != null:
-			validated = validator._validate(validated)
-	return validated
-
-
 ## Updates the value returned by [method get_current_value] by re-applying all
 ## [AttributeEffect]s of type [enum AttributeEffect.Type.TEMPORARY]. This is called
 ## automatically whenever base_value changes, a PERMANENT effect is applied, or
@@ -547,13 +565,13 @@ func _update_current_value(event: AttributeEvent) -> void:
 			
 			# Set pending values
 			active._pending_prior_attribute_value = new_current_value.ref
-			active._pending_effect_value = _get_modified_value(active)
+			active._pending_effect_value = AttributeModifiedValueGetter.value().get_modified(self, active)
 			active._pending_raw_attribute_value = active.get_effect().apply_calculator(_base_value, 
 			new_current_value.ref, active._pending_effect_value)
 			active._pending_final_attribute_value = _validate_value(active._pending_raw_attribute_value, 
 			_current_value_validators)
 			
-			if !AttributeConditionTester.for_temporary_apply().test(self, active, event):
+			if !AttributeConditionTester.temporary_apply().test(self, active, event):
 				event._apply_blocked_event = true
 				event._blocked_temporary_actives[active] = null
 				active._is_applying = false
@@ -577,6 +595,11 @@ func _update_current_value(event: AttributeEvent) -> void:
 		_in_monitor_signal_or_hook = false
 	
 	event._new_current_value = _current_value
+
+
+###########################
+## Active Effect Get/Has ##
+###########################
 
 
 ## Returns a new [Array] (safe to mutate) of the current [ActiveAttributeEffect]s.
@@ -644,8 +667,12 @@ func find_first_active_by_effect(effect: AttributeEffect) -> ActiveAttributeEffe
 	)
 
 
-## Creates an [ActiveAttributeEffect] from the [param effect] via [method AttriubteEffect.to_active]
-## and then calls [method add_actives]
+###########################
+## Adding Active Effects ##
+###########################
+
+
+## TODO Fix docs
 func add_effect(effect: AttributeEffect) -> void:
 	assert(!_in_monitor_signal_or_hook, "can not call mutating methods on an Attribute" + \
 	"from a hook or while handling a signal prefixed with monitor_")
@@ -653,11 +680,7 @@ func add_effect(effect: AttributeEffect) -> void:
 	add_active(effect.create_active_effect())
 
 
-## Creates an [ActiveAttributeEffect] from each of the [param effects] via 
-## [method AttriubteEffect.to_active] and then calls [method add_actives].
-## [param sort_by_priority] determines what order the activeified effects should be applied in (if
-## any are to be applied instantly). If true, they are sorted by their [member AttributeEffect.priority],
-## if false they are applied in the order of the activeified [param effects] array.
+## TODO Fix docs
 func add_effects(effects: Array[AttributeEffect], sort_by_priority: bool = true) -> void:
 	assert(!_in_monitor_signal_or_hook, "can not call mutating methods on an Attribute" + \
 	"from a hook or while handling a signal prefixed with monitor_")
@@ -724,7 +747,7 @@ func add_active(active: ActiveAttributeEffect) -> void:
 		return
 	
 	# Check add conditions & blockers
-	if !AttributeConditionTester.for_add().test(self, active, event):
+	if !AttributeConditionTester.add().test(self, active, event):
 		event_occurred.emit(event)
 		return
 	
@@ -787,10 +810,15 @@ func add_active(active: ActiveAttributeEffect) -> void:
 			_remove_active(active, event)
 		# Update period
 		else:
-			active.remaining_period += _get_modified_period(active)
+			active.remaining_period += AttributeModifiedValueGetter.period().get_modified(self, active)
 	
 	# Emit the event
 	event_occurred.emit(event)
+
+
+##########################
+## Stack Count Changing ##
+##########################
 
 
 ## Sets the stack count of [param active] to [param new_stack_count]. The active's
@@ -826,6 +854,11 @@ func _set_active_stack_count(active: ActiveAttributeEffect, new_stack_count: int
 	# Update current value if existing is a temporary active w/ a value
 	if active.get_effect().is_temporary() && active.get_effect().has_value:
 		_update_current_value(event)
+
+
+#############################
+## Removing Active Effects ##
+#############################
 
 
 ## Removes all [ActiveAttributeEffect]s whose effect equals [param effect].
@@ -944,51 +977,12 @@ func _update_processing() -> void:
 	set_physics_process(_can_process && effects_process_function == ProcessFunction.PHYSICS_PROCESS)
 
 
-func _get_modified_value(active: ActiveAttributeEffect) -> float:
-	var modified_value: AttributeUtil.Reference = AttributeUtil.Reference.new(\
-	active.get_effect().value.get_modified(self, active))
-	
-	_actives.value_modifiers.for_each(
-		func(modifier: ActiveAttributeEffect) -> void:
-			if modifier.is_added() && !modifier.is_expired():
-				modified_value.ref = modifier.get_effect().value_modifiers.modify_value(modified_value.ref, self, active)
-	, false) # Unsafe iteration as mutations won't be made during it.
-	
-	return modified_value.ref
-
-
-func _get_modified_period(active: ActiveAttributeEffect) -> float:
-	var modified_period: AttributeUtil.Reference = AttributeUtil.Reference.new(\
-	active.get_effect().period_in_seconds.get_modified(self, active))
-	
-	_actives.period_modifiers.for_each(
-		func(modifier: ActiveAttributeEffect) -> void:
-			if modifier.is_added() && !modifier.is_expired():
-				modified_period.ref = modifier.get_effect().period_modifiers.modify_period(modified_period.ref, self, active)
-	, false) # Unsafe iteration as mutations won't be made during it.
-	
-	return modified_period.ref
-
-
-func _get_modified_duration(active: ActiveAttributeEffect) -> float:
-	var modified_duration: AttributeUtil.Reference = AttributeUtil.Reference.new(\
-	active.get_effect().duration_in_seconds.get_modified(self, active))
-	
-	_actives.duration_modifiers.for_each(
-		func(modifier: ActiveAttributeEffect) -> void:
-			if modifier.is_added() && !modifier.is_expired():
-				modified_duration.ref = modifier.get_effect().duration_modifiers.modify_duration(modified_duration.ref, self, active)
-	, false) # Unsafe iteration as mutations won't be made during it.
-	
-	return modified_duration.ref
-
-
 func _initialize_active(active: ActiveAttributeEffect) -> void:
 	assert(!active.is_initialized(), "active (%s) already initialized" % active)
 	if active.get_effect().has_period() && active.get_effect().initial_period:
-		active.remaining_period = _get_modified_period(active)
+		active.remaining_period = AttributeModifiedValueGetter.period().get_modified(self, active)
 	if active.get_effect().has_duration():
-		active.remaining_duration = _get_modified_duration(active)
+		active.remaining_duration = AttributeModifiedValueGetter.duration().get_modified(self, active)
 	active._initialized = true
 
 
@@ -1002,7 +996,7 @@ func _apply_permanent_active(active: ActiveAttributeEffect, current_tick: int, e
 	active._pending_prior_attribute_value = _base_value
 	
 	# Get the modified value
-	active._pending_effect_value = _get_modified_value(active)
+	active._pending_effect_value = AttributeModifiedValueGetter.value().get_modified(self, active)
 	
 	# Calculate the attribute's new value
 	active._pending_raw_attribute_value = active.get_effect().apply_calculator(_base_value, 
@@ -1013,7 +1007,7 @@ func _apply_permanent_active(active: ActiveAttributeEffect, current_tick: int, e
 	_base_value_validators)
 	
 	# Check apply conditions
-	if !AttributeConditionTester.for_permanent_apply().test(self, active, event):
+	if !AttributeConditionTester.permanent_apply().test(self, active, event):
 		if active.get_effect().count_apply_if_blocked:
 			active._apply_count += 1
 		event._apply_blocked_event = true

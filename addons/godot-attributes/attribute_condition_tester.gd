@@ -10,18 +10,18 @@ static var _add: AttributeConditionTester = AddTester.new()
 
 
 ## Returns the implementation for applying permanent effects to an attribute.
-static func for_permanent_apply() -> AttributeConditionTester:
+static func permanent_apply() -> AttributeConditionTester:
 	return _permanent_apply
 
 
 ## Returns the implementation for applying temporary effects to an attribute.
-static func for_temporary_apply() -> AttributeConditionTester:
+static func temporary_apply() -> AttributeConditionTester:
 	return _permanent_apply
 
 
 ## Returns the implementation for adding effects to an attribute. No difference between
 ## permanent & temporary actives for this impl.
-static func for_add() -> AttributeConditionTester:
+static func add() -> AttributeConditionTester:
 	return _add
 
 
