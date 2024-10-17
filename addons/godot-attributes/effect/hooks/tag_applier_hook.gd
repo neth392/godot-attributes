@@ -1,9 +1,9 @@
-## Callback that adds tags to an [Attribute]'s [AttributeContainer] when it is added,
+## Hook that adds tags to an [Attribute]'s [AttributeContainer] when it is added,
 ## and if configured (and the effect is not instant) removes the tags afterwards.
 @tool
-class_name TagApplierCallback extends AttributeEffectCallback
+class_name TagApplierHook extends AttributeEffectHook
 
-const META_TAG: StringName = &"TagApplierCallback.tags"
+const META_TAG: StringName = &"TagApplierHook.tags"
 
 ## The tags to be added when the [AttributeEffect] is added.
 @export var tags: Array[StringName]
@@ -14,7 +14,7 @@ const META_TAG: StringName = &"TagApplierCallback.tags"
 ## Whether or not the tags should be removed afterwards.
 @export var remove_after: bool = true
 
-## If true, this callback will cache the tags applied by an [ActiveAttributeEffect]
+## If true, this hook will cache the tags applied by an [ActiveAttributeEffect]
 ## to it's [member ActiveAttributeEffect.meta] and use that list when removing tags. 
 ## Best for cases where [member tags] (or [member Attribute.tags] if 
 ## [member include_effect_tags] is true) are dynamically modified during runtime 

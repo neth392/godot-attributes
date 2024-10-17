@@ -1,7 +1,7 @@
 ## Causes immediate changes to the remaining duration of an [ActiveAttributeEffect]
 ## when the stack value is changed.
 @tool
-class_name StackDurationCallback extends AttributeEffectCallback
+class_name StackDurationHook extends AttributeEffectHook
 
 ## Determines how [member duration_in_seconds] is modified when an [ActiveAttributeEffect]
 ## is stacked. Only applicable if [member duration_type] is [enum DurationType.HAS_DURATION].
@@ -34,7 +34,7 @@ func _run_assertions(effect: AttributeEffect) -> void:
 	assert(effect.duration_type == AttributeEffect.DurationType.HAS_DURATION,
 	"duration_type != HAS_DURATION for effect: %s" % effect)
 	assert(increase_mode != Mode.IGNORE && decrease_mode != Mode.IGNORE,
-	"both increase_mode & decrease_mode are IGNORE; this callback does nothing")
+	"both increase_mode & decrease_mode are IGNORE; this hook does nothing")
 
 
 func _stack_changed(attribute: Attribute, active: ActiveAttributeEffect, previous_stack_count: int) -> void:

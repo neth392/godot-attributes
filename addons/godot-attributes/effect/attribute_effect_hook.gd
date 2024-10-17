@@ -1,11 +1,11 @@
-## Callbacks provide a set of extra functionality to [AttributeEffect]s without
+## Hooks provide a set of extra functionality to [AttributeEffect]s without
 ## the need to write it directly in code. The functionality is somewhat limited as the
-## callback functions are called [i]instantly[/i] after that specific action has occurred
+## hook functions are called [i]instantly[/i] after that specific action has occurred
 ## within the [Attribute], and not a bit later in the stack like [AttributeEvent]s. Anything
 ## relating to adding/removing effects from an attribute are not supported, but 
 ## TODO fix above docs on a clear mind
 @tool
-class_name AttributeEffectCallback extends Resource
+class_name AttributeEffectHook extends Resource
 
 enum _Function {
 	PRE_ADD = 0,
@@ -42,14 +42,14 @@ static var _function_names: Dictionary[_Function, String] = {
 	_Function.STACK_CHANGED: "_stack_changed",
 }
 
-# Used to detect what functions a callback has implemented - trickery here is that
+# Used to detect what functions a hook has implemented - trickery here is that
 # in the Array Script.get_script_method_list() returns, methods will appear more
 # than once if the current or any parent script has overridden them.
-static func _set_functions(callback: AttributeEffectCallback):
-	if callback._functions_set:
+static func _set_functions(hook: AttributeEffectHook):
+	if hook._functions_set:
 		return
-	var script: Script = callback.get_script() as Script
-	assert(script != null, "callback.get_script() doesnt return a Script type")
+	var script: Script = hook.get_script() as Script
+	assert(script != null, "hook.get_script() doesnt return a Script type")
 	var non_inherited_functions: Dictionary[_Function, bool] = {}
 	var inherited_functions: Dictionary[_Function, bool] = {}
 	
@@ -61,8 +61,8 @@ static func _set_functions(callback: AttributeEffectCallback):
 			else:
 				non_inherited_functions[_function] = true
 	
-	callback._functions_set = true
-	callback._functions.assign(inherited_functions.keys())
+	hook._functions_set = true
+	hook._functions.assign(inherited_functions.keys())
 
 
 static func _can_run(_function: _Function, effect: AttributeEffect) -> bool:
@@ -76,8 +76,8 @@ var _functions_set: bool = false
 var _functions: Array[_Function] = []
 
 
-## Editor tool function that is called when this callback is added to [param effect].
-## Write assertions here so that callbacks aren't added to effects they won't play nicely with.
+## Editor tool function that is called when this hook is added to [param effect].
+## Write assertions here so that hooks aren't added to effects they won't play nicely with.
 func _run_assertions(effect: AttributeEffect) -> void:
 	pass
 

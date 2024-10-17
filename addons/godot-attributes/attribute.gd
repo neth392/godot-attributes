@@ -750,7 +750,7 @@ func add_active(active: ActiveAttributeEffect) -> void:
 	
 	# Run pre_add callbacks
 	_in_monitor_signal_or_callback = true
-	_run_callbacks(AttributeEffectCallback._Function.PRE_ADD, active)
+	_run_callbacks(AttributeEffectHook._Function.PRE_ADD, active)
 	_in_monitor_signal_or_callback = false
 	
 	# At this point it can be added
@@ -769,7 +769,7 @@ func add_active(active: ActiveAttributeEffect) -> void:
 	
 	# Run callbacks & emit signal
 	_in_monitor_signal_or_callback = true
-	_run_callbacks(AttributeEffectCallback._Function.ADDED, active)
+	_run_callbacks(AttributeEffectHook._Function.ADDED, active)
 	_in_monitor_signal_or_callback = false
 	
 	if active.get_effect().should_emit_added_signal():
@@ -818,7 +818,7 @@ func _set_active_stack_count(active: ActiveAttributeEffect, new_stack_count: int
 	var previous_stack_count: int = active._stack_count
 	active._stack_count = new_stack_count
 	event._new_active_stack_count = new_stack_count
-	_run_callbacks(AttributeEffectCallback._Function.STACK_CHANGED, active, [previous_stack_count])
+	_run_callbacks(AttributeEffectHook._Function.STACK_CHANGED, active, [previous_stack_count])
 	_in_monitor_signal_or_callback = true
 	monitor_active_stack_count_changed.emit(active, previous_stack_count)
 	_in_monitor_signal_or_callback = false
@@ -893,7 +893,7 @@ func _remove_active(active: ActiveAttributeEffect, event: AttributeEvent) -> voi
 	
 	# Run PRE_REMOVE callbacks
 	_in_monitor_signal_or_callback = true
-	_run_callbacks(AttributeEffectCallback._Function.PRE_REMOVE, active)
+	_run_callbacks(AttributeEffectHook._Function.PRE_REMOVE, active)
 	_in_monitor_signal_or_callback = false
 	
 	# Erase from array
@@ -912,7 +912,7 @@ func _remove_active(active: ActiveAttributeEffect, event: AttributeEvent) -> voi
 	
 	# Run REMOVED callbacks
 	_in_monitor_signal_or_callback = true
-	_run_callbacks(AttributeEffectCallback._Function.REMOVED, active)
+	_run_callbacks(AttributeEffectHook._Function.REMOVED, active)
 	# Emit monitor signal
 	if active.get_effect().should_emit_removed_signal():
 		monitor_active_removed.emit(active)
@@ -1046,23 +1046,23 @@ func _apply_permanent_active(active: ActiveAttributeEffect, current_tick: int, e
 	
 	_in_monitor_signal_or_callback = true
 	# Run callbacks
-	_run_callbacks(AttributeEffectCallback._Function.APPLIED, active)
+	_run_callbacks(AttributeEffectHook._Function.APPLIED, active)
 	# Emit signal
 	if active.get_effect().should_emit_applied_signal():
 		monitor_active_applied.emit(active)
 	_in_monitor_signal_or_callback = false
 
 
-# Runs the callback [param _function] on all [AttributeEffectCallback]s who have
+# Runs the callback [param _function] on all [AttributeEffectHook]s who have
 # implemented that function.
-func _run_callbacks(_function: AttributeEffectCallback._Function, active: ActiveAttributeEffect, 
+func _run_callbacks(_function: AttributeEffectHook._Function, active: ActiveAttributeEffect, 
 additional_args: Array[Variant] = []) -> void:
-	if !AttributeEffectCallback._can_run(_function, active.get_effect()):
+	if !AttributeEffectHook._can_run(_function, active.get_effect()):
 		return
-	var function_name: String = AttributeEffectCallback._function_names[_function]
+	var function_name: String = AttributeEffectHook._function_names[_function]
 	var args: Array[Variant] = [self, active]
 	args.append_array(additional_args)
-	for callback: AttributeEffectCallback in active.get_effect()._callbacks_by_function.get(_function):
+	for callback: AttributeEffectHook in active.get_effect()._callbacks_by_function.get(_function):
 		callback.callv(function_name, args)
 
 

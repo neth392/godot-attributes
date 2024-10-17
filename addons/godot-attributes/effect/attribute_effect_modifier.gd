@@ -1,6 +1,6 @@
 ## Modifies an [AttributeEffect]'s generated value, period, or duration. Does NOT
 ## change any value on an [ActiveAttributeEffect], such as remaining_duration or remaining_period.
-## For instant changes to those values, pair a modifier with an [AttributeEffectCallback].
+## For instant changes to those values, pair a modifier with an [AttributeEffectHook].
 @tool
 class_name AttributeEffectModifier extends Resource
 

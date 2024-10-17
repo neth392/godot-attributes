@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="AttributeEffect" load_steps=13 format=3 uid="uid://cimvqfqcsbjf5"]
 
-[ext_resource type="Script" path="res://addons/godot-attributes/effect/attribute_effect_callback.gd" id="1_0dcue"]
+[ext_resource type="Script" path="res://addons/godot-attributes/effect/attribute_effect_hook.gd" id="1_0dcue"]
 [ext_resource type="Script" path="res://addons/godot-attributes/effect/attribute_effect_condition.gd" id="2_yreqe"]
 [ext_resource type="Script" path="res://addons/godot-attributes/effect/attribute_effect_modifier.gd" id="3_ak05a"]
 [ext_resource type="Script" path="res://addons/godot-attributes/effect/conditions/static_condition.gd" id="3_fuh6j"]

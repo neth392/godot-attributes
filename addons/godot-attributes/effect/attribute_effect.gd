@@ -204,18 +204,18 @@ enum DurationType {
 ## called when an effect is added/removed or a PERMANENT effect is applied.
 @export var apply_conditions: Array[AttributeEffectCondition]
 
-@export_group("Callbacks")
+@export_group("Hooks")
 
-## List of [AttributeEffectCallback]s to extend the functionality of this effect
+## List of [AttributeEffectHook]s to extend the functionality of this effect
 ## further than modifying the value of an [Attribute].
-@export var _callbacks: Array[AttributeEffectCallback]:
+@export var _callbacks: Array[AttributeEffectHook]:
 	set(_value):
 		_callbacks = _value
 		if !Engine.is_editor_hint():
-			for callback: AttributeEffectCallback in _callbacks:
+			for callback: AttributeEffectHook in _callbacks:
 				_add_callback_internal(callback, false)
 		else:
-			for callback: AttributeEffectCallback in _callbacks:
+			for callback: AttributeEffectHook in _callbacks:
 				callback._run_assertions(self)
 
 @export_group("Blockers")
@@ -291,7 +291,7 @@ enum DurationType {
 ## used in any of the Attribute system's internals.
 @export var metadata: Dictionary[Variant, Variant]
 
-var _callbacks_by_function: Dictionary[AttributeEffectCallback._Function, Array]
+var _callbacks_by_function: Dictionary[AttributeEffectHook._Function, Array]
 var _block_runtime_modifications: bool = false:
 	set(value):
 		_block_runtime_modifications = true
@@ -301,8 +301,8 @@ func _init(_id: StringName = "") -> void:
 	if Engine.is_editor_hint():
 		return
 	
-	# Callback initialization
-	for _function: int in AttributeEffectCallback._Function.values():
+	# Hook initialization
+	for _function: int in AttributeEffectHook._Function.values():
 		_callbacks_by_function[_function] = []
 
 
@@ -442,30 +442,30 @@ func _format_enum(_enum: Dictionary, exclude: Array) -> String:
 
 
 ## Adds the [param callback] from this effect. An assertion is in place to prevent
-## multiple [AttributeEffectCallback]s of the same instance being added to an effect.
-func add_callback(callback: AttributeEffectCallback) -> void:
+## multiple [AttributeEffectHook]s of the same instance being added to an effect.
+func add_callback(callback: AttributeEffectHook) -> void:
 	if Engine.is_editor_hint():
 		callback._run_assertions(self)
 	_add_callback_internal(callback, true)
 
 
-func _add_callback_internal(callback: AttributeEffectCallback, add_to_list: bool) -> void:
+func _add_callback_internal(callback: AttributeEffectHook, add_to_list: bool) -> void:
 	assert(!add_to_list || !_callbacks.has(callback), "callback (%s) already exists" % callback)
-	AttributeEffectCallback._set_functions(callback)
+	AttributeEffectHook._set_functions(callback)
 	if add_to_list:
 		_callbacks.append(callback)
-	for _function: AttributeEffectCallback._Function in callback._functions:
-		assert(AttributeEffectCallback._can_run(_function, self), "")
+	for _function: AttributeEffectHook._Function in callback._functions:
+		assert(AttributeEffectHook._can_run(_function, self), "")
 		_callbacks_by_function[_function].append(callback)
 
 
 ## Removes the [param callback] from this effect. Returns true if the callback
 ## existed & was removed, false if not.
-func remove_callback(callback: AttributeEffectCallback) -> bool:
+func remove_callback(callback: AttributeEffectHook) -> bool:
 	if !_callbacks.has(callback):
 		return false
 	_callbacks.erase(callback)
-	for _function: AttributeEffectCallback._Function in callback._functions:
+	for _function: AttributeEffectHook._Function in callback._functions:
 		_callbacks_by_function[_function].erase(callback)
 	return true
 
