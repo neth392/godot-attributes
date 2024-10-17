@@ -384,6 +384,10 @@ func _get_configuration_warnings() -> PackedStringArray:
 	return warnings
 
 
+func _to_string() -> String:
+	return "Attribute(id=%s)" % id
+
+
 ##############################
 ## Active Effect Processing ##
 ##############################
@@ -766,7 +770,11 @@ func add_active(active: ActiveAttributeEffect) -> void:
 	
 	# Initialize if not done so
 	if !active.is_initialized():
-		_initialize_active(active)
+		if active.get_effect().has_period() && active.get_effect().initial_period:
+			active.remaining_period = AttributeModifiedValueGetter.period().get_modified(self, active)
+		if active.get_effect().has_duration():
+			active.remaining_duration = AttributeModifiedValueGetter.duration().get_modified(self, active)
+		active._initialized = true
 	
 	# Ensure duration is valid
 	assert(!active.get_effect().has_duration() || active.remaining_duration > 0.0,
@@ -970,21 +978,9 @@ func remove_all_effects() -> void:
 		_remove_active(active, event)
 		event_occurred.emit(event)
 
-
-func _update_processing() -> void:
-	var _can_process: bool = !Engine.is_editor_hint() && _has_actives && allow_effects
-	set_process(_can_process && effects_process_function == ProcessFunction.PROCESS)
-	set_physics_process(_can_process && effects_process_function == ProcessFunction.PHYSICS_PROCESS)
-
-
-func _initialize_active(active: ActiveAttributeEffect) -> void:
-	assert(!active.is_initialized(), "active (%s) already initialized" % active)
-	if active.get_effect().has_period() && active.get_effect().initial_period:
-		active.remaining_period = AttributeModifiedValueGetter.period().get_modified(self, active)
-	if active.get_effect().has_duration():
-		active.remaining_duration = AttributeModifiedValueGetter.duration().get_modified(self, active)
-	active._initialized = true
-
+######################
+## Applying Actives ##
+######################
 
 ## Applies the [param active]. Returns true if it should be removed (hit apply limit),
 ## false if not. Does not update the current value, that must be done manually after.
@@ -1047,6 +1043,17 @@ func _apply_permanent_active(active: ActiveAttributeEffect, current_tick: int, e
 	_in_monitor_signal_or_hook = false
 
 
+###################
+## Miscellaneous ##
+###################
+
+
+func _update_processing() -> void:
+	var _can_process: bool = !Engine.is_editor_hint() && _has_actives && allow_effects
+	set_process(_can_process && effects_process_function == ProcessFunction.PROCESS)
+	set_physics_process(_can_process && effects_process_function == ProcessFunction.PHYSICS_PROCESS)
+
+
 # Runs the hook [param _function] on all [AttributeEffectHook]s who have
 # implemented that function.
 func _run_hooks(_function: AttributeEffectHook._Function, active: ActiveAttributeEffect, 
@@ -1058,7 +1065,3 @@ event: AttributeEvent, additional_args: Array[Variant] = []) -> void:
 	args.append_array(additional_args)
 	for hook: AttributeEffectHook in active.get_effect()._hooks_by_function.get(_function):
 		hook.callv(function_name, args)
-
-
-func _to_string() -> String:
-	return "Attribute(id=%s)" % id

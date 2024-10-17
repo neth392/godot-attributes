@@ -1,6 +1,6 @@
 ## Utility class used to get the modified value, period, and duration of
 ## an [ActiveAttriubteEffect]. The logic for all of those is the same but
-## there are many different paramters, so I've abstracted it out here to maintain
+## there are a few different paramters, so I've abstracted it out here to maintain
 ## that core logic.
 class_name AttributeModifiedValueGetter extends Object
 
