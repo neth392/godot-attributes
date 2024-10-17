@@ -45,9 +45,9 @@ func test(attribute: Attribute, active: ActiveAttributeEffect, event: AttributeE
 			
 			# Emit monitor signal 
 			if blocking_condition.emit_blocked_signal:
-				attribute._in_monitor_signal_or_callback = true
+				attribute._in_monitor_signal_or_hook = true
 				_emit_blocked_signal(attribute, active)
-				attribute._in_monitor_signal_or_callback = false
+				attribute._in_monitor_signal_or_hook = false
 			return false
 	
 	# Iterate BLOCKER effects
@@ -77,9 +77,9 @@ func test(attribute: Attribute, active: ActiveAttributeEffect, event: AttributeE
 					
 					# Emit monitor signal
 					if blocking_condition.emit_blocked_signal:
-						attribute._in_monitor_signal_or_callback = true
+						attribute._in_monitor_signal_or_hook = true
 						_emit_blocked_signal(attribute, active)
-						attribute._in_monitor_signal_or_callback = false
+						attribute._in_monitor_signal_or_hook = false
 					
 					# Break this loop
 					attribute._actives.break_for_each()

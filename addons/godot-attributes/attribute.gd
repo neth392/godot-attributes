@@ -269,7 +269,7 @@ var _paused_at: int
 
 # Internal flag to prevent mutations to this attribute while a signal prefixed with "monitor_"
 # is currently being emitted.
-var _in_monitor_signal_or_callback: bool = false
+var _in_monitor_signal_or_hook: bool = false
 
 func _enter_tree() -> void:
 	if Engine.is_editor_hint():
@@ -476,8 +476,8 @@ func get_base_value() -> float:
 ## the current value, and true is returned. If the new value is the same as the current
 ## value, nothing occurs and false is returned.
 func set_base_value(new_base_value: float) -> bool:
-	assert(!_in_monitor_signal_or_callback, "can not call mutating methods on an Attribute" + \
-	"from a callback or while handling a signal prefixed with monitor_")
+	assert(!_in_monitor_signal_or_hook, "can not call mutating methods on an Attribute" + \
+	"from a hook or while handling a signal prefixed with monitor_")
 	
 	# Validate the new base value
 	var validated_new_base_value: float = _validate_value(new_base_value, _base_value_validators)
@@ -500,9 +500,9 @@ func _set_base_value_pre_validated(validated_new_base_value: float, event: Attri
 	event._new_base_value = _base_value
 	
 	# Emit monitor signal
-	_in_monitor_signal_or_callback = true
+	_in_monitor_signal_or_hook = true
 	monitor_base_value_changed.emit(event._prev_base_value, null)
-	_in_monitor_signal_or_callback = false
+	_in_monitor_signal_or_hook = false
 	
 	# Update the current value
 	_update_current_value(event)
@@ -528,8 +528,8 @@ func _validate_value(value: float, validators: Array[AttributeValueValidator]) -
 ## a TEMPORARY effect is added/removed, but this can be called manually to update
 ## the value automatically.
 func update_current_value() -> void:
-	assert(!_in_monitor_signal_or_callback, "can not call mutating methods on an Attribute" + \
-	"from a callback or while handling a signal prefixed with monitor_")
+	assert(!_in_monitor_signal_or_hook, "can not call mutating methods on an Attribute" + \
+	"from a hook or while handling a signal prefixed with monitor_")
 	var event: AttributeEvent = AttributeEvent.new(self)
 	event._new_base_value = _base_value # Base value won't change here
 	_update_current_value(event)
@@ -571,9 +571,9 @@ func _update_current_value(event: AttributeEvent) -> void:
 		var prev_current_value: float = _current_value
 		_current_value = new_current_value.ref
 		
-		_in_monitor_signal_or_callback = true
+		_in_monitor_signal_or_hook = true
 		monitor_current_value_changed.emit(prev_current_value)
-		_in_monitor_signal_or_callback = false
+		_in_monitor_signal_or_hook = false
 	
 	event._new_current_value = _current_value
 
@@ -646,8 +646,8 @@ func find_first_active_by_effect(effect: AttributeEffect) -> ActiveAttributeEffe
 ## Creates an [ActiveAttributeEffect] from the [param effect] via [method AttriubteEffect.to_active]
 ## and then calls [method add_actives]
 func add_effect(effect: AttributeEffect) -> void:
-	assert(!_in_monitor_signal_or_callback, "can not call mutating methods on an Attribute" + \
-	"from a callback or while handling a signal prefixed with monitor_")
+	assert(!_in_monitor_signal_or_hook, "can not call mutating methods on an Attribute" + \
+	"from a hook or while handling a signal prefixed with monitor_")
 	assert(allow_effects, "allow_effects is false for %s" % self)
 	add_active(effect.create_active_effect())
 
@@ -658,8 +658,8 @@ func add_effect(effect: AttributeEffect) -> void:
 ## any are to be applied instantly). If true, they are sorted by their [member AttributeEffect.priority],
 ## if false they are applied in the order of the activeified [param effects] array.
 func add_effects(effects: Array[AttributeEffect], sort_by_priority: bool = true) -> void:
-	assert(!_in_monitor_signal_or_callback, "can not call mutating methods on an Attribute" + \
-	"from a callback or while handling a signal prefixed with monitor_")
+	assert(!_in_monitor_signal_or_hook, "can not call mutating methods on an Attribute" + \
+	"from a hook or while handling a signal prefixed with monitor_")
 	assert(allow_effects, "allow_effects is false for %s" % self)
 	assert(!effects.has(null), "effects has null element")
 	var actives: Array[ActiveAttributeEffect] = []
@@ -669,8 +669,8 @@ func add_effects(effects: Array[AttributeEffect], sort_by_priority: bool = true)
 
 ## TODO Fix docs
 func add_actives(actives: Array[ActiveAttributeEffect], sort_by_priority: bool = true) -> void:
-	assert(!_in_monitor_signal_or_callback, "can not call mutating methods on an Attribute" + \
-	"from a callback or while handling a signal prefixed with monitor_")
+	assert(!_in_monitor_signal_or_hook, "can not call mutating methods on an Attribute" + \
+	"from a hook or while handling a signal prefixed with monitor_")
 	assert(allow_effects, "allow_effects is false for %s" % self)
 	assert(!actives.has(null), "actives has null element")
 	
@@ -689,8 +689,8 @@ func add_actives(actives: Array[ActiveAttributeEffect], sort_by_priority: bool =
 
 ## TODO fix docs
 func add_active(active: ActiveAttributeEffect) -> void:
-	assert(!_in_monitor_signal_or_callback, "can not call mutating methods on an Attribute" + \
-	"from a callback or while handling a signal prefixed with monitor_")
+	assert(!_in_monitor_signal_or_hook, "can not call mutating methods on an Attribute" + \
+	"from a hook or while handling a signal prefixed with monitor_")
 	assert(allow_effects, "allow_effects is false for %s" % self)
 	assert(active != null, "active is null")
 	assert(!_actives.has(active), "%s already added to this attribute or another" % active)
@@ -748,10 +748,10 @@ func add_active(active: ActiveAttributeEffect) -> void:
 	assert(!active.get_effect().has_duration() || active.remaining_duration > 0.0,
 	"active (%s) has a remaining_duration <= 0.0" % active)
 	
-	# Run pre_add callbacks
-	_in_monitor_signal_or_callback = true
-	_run_callbacks(AttributeEffectHook._Function.PRE_ADD, active)
-	_in_monitor_signal_or_callback = false
+	# Run pre_add hooks
+	_in_monitor_signal_or_hook = true
+	_run_hooks(AttributeEffectHook._Function.PRE_ADD, active)
+	_in_monitor_signal_or_hook = false
 	
 	# At this point it can be added
 	active._last_add_result = AddEffectResult.SUCCESS
@@ -767,15 +767,15 @@ func add_active(active: ActiveAttributeEffect) -> void:
 	var new_count: int = _effect_counts.get(active.get_effect().id, 0) + 1
 	_effect_counts[active.get_effect().id] = new_count
 	
-	# Run callbacks & emit signal
-	_in_monitor_signal_or_callback = true
-	_run_callbacks(AttributeEffectHook._Function.ADDED, active)
-	_in_monitor_signal_or_callback = false
+	# Run hooks & emit signal
+	_in_monitor_signal_or_hook = true
+	_run_hooks(AttributeEffectHook._Function.ADDED, active)
+	_in_monitor_signal_or_hook = false
 	
 	if active.get_effect().should_emit_added_signal():
-		_in_monitor_signal_or_callback = true
+		_in_monitor_signal_or_hook = true
 		monitor_active_added.emit(active)
-		_in_monitor_signal_or_callback = false
+		_in_monitor_signal_or_hook = false
 	
 	# Update current value if a temporary active is added & has value
 	if active.get_effect().is_temporary() && active.get_effect().has_value:
@@ -818,10 +818,10 @@ func _set_active_stack_count(active: ActiveAttributeEffect, new_stack_count: int
 	var previous_stack_count: int = active._stack_count
 	active._stack_count = new_stack_count
 	event._new_active_stack_count = new_stack_count
-	_run_callbacks(AttributeEffectHook._Function.STACK_CHANGED, active, [previous_stack_count])
-	_in_monitor_signal_or_callback = true
+	_run_hooks(AttributeEffectHook._Function.STACK_CHANGED, active, [previous_stack_count])
+	_in_monitor_signal_or_hook = true
 	monitor_active_stack_count_changed.emit(active, previous_stack_count)
-	_in_monitor_signal_or_callback = false
+	_in_monitor_signal_or_hook = false
 	
 	# Update current value if existing is a temporary active w/ a value
 	if active.get_effect().is_temporary() && active.get_effect().has_value:
@@ -831,8 +831,8 @@ func _set_active_stack_count(active: ActiveAttributeEffect, new_stack_count: int
 ## Removes all [ActiveAttributeEffect]s whose effect equals [param effect].
 ## Returns the number of [ActiveAttributeEffect]s removed.
 func remove_effect(effect: AttributeEffect) -> int:
-	assert(!_in_monitor_signal_or_callback, "can not call mutating methods on an Attribute" + \
-	"from a callback or while handling a signal prefixed with monitor_")
+	assert(!_in_monitor_signal_or_hook, "can not call mutating methods on an Attribute" + \
+	"from a hook or while handling a signal prefixed with monitor_")
 	var removed: AttributeUtil.Reference = AttributeUtil.Reference.new(0)
 	_actives.for_each(
 		func(active: ActiveAttributeEffect) -> void:
@@ -848,8 +848,8 @@ func remove_effect(effect: AttributeEffect) -> int:
 ## Removes all [ActiveAttributeEffect]s whose effect is present in [param effects]. 
 ## Returns the number of [ActiveAttributeEffect]s removed.
 func remove_effects(effects: Array[AttributeEffect]) -> int:
-	assert(!_in_monitor_signal_or_callback, "can not call mutating methods on an Attribute" + \
-	"from a callback or while handling a signal prefixed with monitor_")
+	assert(!_in_monitor_signal_or_hook, "can not call mutating methods on an Attribute" + \
+	"from a hook or while handling a signal prefixed with monitor_")
 	var removed: AttributeUtil.Reference = AttributeUtil.Reference.new(0)
 	_actives.for_each(
 		func(active: ActiveAttributeEffect) -> void:
@@ -866,8 +866,8 @@ func remove_effects(effects: Array[AttributeEffect]) -> int:
 ## that were present & removed. An [AttributeEvent] is emitted for each removed active, via
 ## [signal event_occurred].
 func remove_actives(actives: Array[ActiveAttributeEffect]) -> int:
-	assert(!_in_monitor_signal_or_callback, "can not call mutating methods on an Attribute" + \
-	"from a callback or while handling a signal prefixed with monitor_")
+	assert(!_in_monitor_signal_or_hook, "can not call mutating methods on an Attribute" + \
+	"from a hook or while handling a signal prefixed with monitor_")
 	var removed: int = 0
 	for active: ActiveAttributeEffect in actives:
 		if remove_active(active):
@@ -877,8 +877,8 @@ func remove_actives(actives: Array[ActiveAttributeEffect]) -> int:
 
 ## Removes the [param active], returning true if removed, false if not.
 func remove_active(active: ActiveAttributeEffect) -> bool:
-	assert(!_in_monitor_signal_or_callback, "can not call mutating methods on an Attribute" + \
-	"from a callback or while handling a signal prefixed with monitor_")
+	assert(!_in_monitor_signal_or_hook, "can not call mutating methods on an Attribute" + \
+	"from a hook or while handling a signal prefixed with monitor_")
 	if active == null || !has_active(active):
 		return false
 	var event: AttributeEvent = AttributeEvent.new(self, active)
@@ -891,10 +891,10 @@ func _remove_active(active: ActiveAttributeEffect, event: AttributeEvent) -> voi
 	assert(active != null, "active is null")
 	assert(_actives.has(active), "(%s) not added to _actives" % active)
 	
-	# Run PRE_REMOVE callbacks
-	_in_monitor_signal_or_callback = true
-	_run_callbacks(AttributeEffectHook._Function.PRE_REMOVE, active)
-	_in_monitor_signal_or_callback = false
+	# Run PRE_REMOVE hooks
+	_in_monitor_signal_or_hook = true
+	_run_hooks(AttributeEffectHook._Function.PRE_REMOVE, active)
+	_in_monitor_signal_or_hook = false
 	
 	# Erase from array
 	_actives.erase(active)
@@ -910,13 +910,13 @@ func _remove_active(active: ActiveAttributeEffect, event: AttributeEvent) -> voi
 		else:
 			_effect_counts[active.get_effect().id] = new_count
 	
-	# Run REMOVED callbacks
-	_in_monitor_signal_or_callback = true
-	_run_callbacks(AttributeEffectHook._Function.REMOVED, active)
+	# Run REMOVED hooks
+	_in_monitor_signal_or_hook = true
+	_run_hooks(AttributeEffectHook._Function.REMOVED, active)
 	# Emit monitor signal
 	if active.get_effect().should_emit_removed_signal():
 		monitor_active_removed.emit(active)
-	_in_monitor_signal_or_callback = false
+	_in_monitor_signal_or_hook = false
 	
 	# Set removed in evenmt
 	event._remove_event = true
@@ -929,8 +929,8 @@ func _remove_active(active: ActiveAttributeEffect, event: AttributeEvent) -> voi
 ## Removes all [ActiveAttributeEffect]s from this attribute. Iterates the internal
 ## array of actives & removes them one by one.
 func remove_all_effects() -> void:
-	assert(!_in_monitor_signal_or_callback, "can not call mutating methods on an Attribute" + \
-	"from a callback or while handling a signal prefixed with monitor_")
+	assert(!_in_monitor_signal_or_hook, "can not call mutating methods on an Attribute" + \
+	"from a hook or while handling a signal prefixed with monitor_")
 	var to_remove: Array[ActiveAttributeEffect] = _actives.duplicate_array()
 	for active: ActiveAttributeEffect in to_remove:
 		var event: AttributeEvent = AttributeEvent.new(self, active)
@@ -1044,26 +1044,26 @@ func _apply_permanent_active(active: ActiveAttributeEffect, current_tick: int, e
 	
 	_set_base_value_pre_validated(active._last_final_attribute_value, event)
 	
-	_in_monitor_signal_or_callback = true
-	# Run callbacks
-	_run_callbacks(AttributeEffectHook._Function.APPLIED, active)
+	_in_monitor_signal_or_hook = true
+	# Run hooks
+	_run_hooks(AttributeEffectHook._Function.APPLIED, active)
 	# Emit signal
 	if active.get_effect().should_emit_applied_signal():
 		monitor_active_applied.emit(active)
-	_in_monitor_signal_or_callback = false
+	_in_monitor_signal_or_hook = false
 
 
-# Runs the callback [param _function] on all [AttributeEffectHook]s who have
+# Runs the hook [param _function] on all [AttributeEffectHook]s who have
 # implemented that function.
-func _run_callbacks(_function: AttributeEffectHook._Function, active: ActiveAttributeEffect, 
+func _run_hooks(_function: AttributeEffectHook._Function, active: ActiveAttributeEffect, 
 additional_args: Array[Variant] = []) -> void:
 	if !AttributeEffectHook._can_run(_function, active.get_effect()):
 		return
 	var function_name: String = AttributeEffectHook._function_names[_function]
 	var args: Array[Variant] = [self, active]
 	args.append_array(additional_args)
-	for callback: AttributeEffectHook in active.get_effect()._callbacks_by_function.get(_function):
-		callback.callv(function_name, args)
+	for hook: AttributeEffectHook in active.get_effect()._hooks_by_function.get(_function):
+		hook.callv(function_name, args)
 
 
 func _to_string() -> String:

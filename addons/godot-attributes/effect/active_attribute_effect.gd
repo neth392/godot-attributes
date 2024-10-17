@@ -9,8 +9,8 @@ var remaining_duration: float:
 		remaining_duration = max(0.0, _value)
 
 ## Customizable metadata for this [ActiveAttributeEffect], for use with conditions,
-## callbacks, etc. Not in use by the Attribute system itself, but used with some of
-## the built in conditions, callbacks, & modifiers.
+## hooks, etc. Not in use by the Attribute system itself, but used with some of
+## the built in conditions, hooks, & modifiers.
 var meta: Dictionary[Variant, Variant] = {}
 
 ## The remaining amount of time, in seconds, until this effect is next triggered.
