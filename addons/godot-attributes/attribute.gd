@@ -268,7 +268,8 @@ var _current_value: float:
 var _paused_at: int
 
 # Internal flag to prevent mutations to this attribute while a signal prefixed with "monitor_"
-# is currently being emitted.
+# is currently being emitted. Used to prevent logic-breaking changes from code executed outside
+# of this class.
 var _in_monitor_signal_or_hook: bool = false
 
 func _enter_tree() -> void:
@@ -750,7 +751,7 @@ func add_active(active: ActiveAttributeEffect) -> void:
 	
 	# Run pre_add hooks
 	_in_monitor_signal_or_hook = true
-	_run_hooks(AttributeEffectHook._Function.PRE_ADD, active)
+	_run_hooks(AttributeEffectHook._Function.BEFORE_ACTIVE_ADDED, active, event)
 	_in_monitor_signal_or_hook = false
 	
 	# At this point it can be added
@@ -769,13 +770,10 @@ func add_active(active: ActiveAttributeEffect) -> void:
 	
 	# Run hooks & emit signal
 	_in_monitor_signal_or_hook = true
-	_run_hooks(AttributeEffectHook._Function.ADDED, active)
-	_in_monitor_signal_or_hook = false
-	
+	_run_hooks(AttributeEffectHook._Function.AFTER_ACTIVE_ADDED, active, event)
 	if active.get_effect().should_emit_added_signal():
-		_in_monitor_signal_or_hook = true
 		monitor_active_added.emit(active)
-		_in_monitor_signal_or_hook = false
+	_in_monitor_signal_or_hook = false
 	
 	# Update current value if a temporary active is added & has value
 	if active.get_effect().is_temporary() && active.get_effect().has_value:
@@ -818,8 +816,10 @@ func _set_active_stack_count(active: ActiveAttributeEffect, new_stack_count: int
 	var previous_stack_count: int = active._stack_count
 	active._stack_count = new_stack_count
 	event._new_active_stack_count = new_stack_count
-	_run_hooks(AttributeEffectHook._Function.STACK_CHANGED, active, [previous_stack_count])
+	
 	_in_monitor_signal_or_hook = true
+	_run_hooks(AttributeEffectHook._Function.AFTER_ACTIVE_STACK_CHANGED, active, event,
+	[previous_stack_count])
 	monitor_active_stack_count_changed.emit(active, previous_stack_count)
 	_in_monitor_signal_or_hook = false
 	
@@ -891,9 +891,12 @@ func _remove_active(active: ActiveAttributeEffect, event: AttributeEvent) -> voi
 	assert(active != null, "active is null")
 	assert(_actives.has(active), "(%s) not added to _actives" % active)
 	
+	# Set removed in evenmt
+	event._remove_event = true
+	
 	# Run PRE_REMOVE hooks
 	_in_monitor_signal_or_hook = true
-	_run_hooks(AttributeEffectHook._Function.PRE_REMOVE, active)
+	_run_hooks(AttributeEffectHook._Function.BEFORE_ACTIVE_REMOVED, active, event)
 	_in_monitor_signal_or_hook = false
 	
 	# Erase from array
@@ -912,14 +915,11 @@ func _remove_active(active: ActiveAttributeEffect, event: AttributeEvent) -> voi
 	
 	# Run REMOVED hooks
 	_in_monitor_signal_or_hook = true
-	_run_hooks(AttributeEffectHook._Function.REMOVED, active)
+	_run_hooks(AttributeEffectHook._Function.AFTER_ACTIVE_REMOVED, active, event)
 	# Emit monitor signal
 	if active.get_effect().should_emit_removed_signal():
 		monitor_active_removed.emit(active)
 	_in_monitor_signal_or_hook = false
-	
-	# Set removed in evenmt
-	event._remove_event = true
 	
 	# Update current value if is TEMPORARY w/ value
 	if active.get_effect().is_temporary() && active.get_effect().has_value:
@@ -1046,7 +1046,7 @@ func _apply_permanent_active(active: ActiveAttributeEffect, current_tick: int, e
 	
 	_in_monitor_signal_or_hook = true
 	# Run hooks
-	_run_hooks(AttributeEffectHook._Function.APPLIED, active)
+	_run_hooks(AttributeEffectHook._Function.AFTER_ACTIVE_APPLIED, active, event)
 	# Emit signal
 	if active.get_effect().should_emit_applied_signal():
 		monitor_active_applied.emit(active)
@@ -1056,11 +1056,11 @@ func _apply_permanent_active(active: ActiveAttributeEffect, current_tick: int, e
 # Runs the hook [param _function] on all [AttributeEffectHook]s who have
 # implemented that function.
 func _run_hooks(_function: AttributeEffectHook._Function, active: ActiveAttributeEffect, 
-additional_args: Array[Variant] = []) -> void:
+event: AttributeEvent, additional_args: Array[Variant] = []) -> void:
 	if !AttributeEffectHook._can_run(_function, active.get_effect()):
 		return
 	var function_name: String = AttributeEffectHook._function_names[_function]
-	var args: Array[Variant] = [self, active]
+	var args: Array[Variant] = [self, active, event]
 	args.append_array(additional_args)
 	for hook: AttributeEffectHook in active.get_effect()._hooks_by_function.get(_function):
 		hook.callv(function_name, args)

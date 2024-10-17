@@ -8,39 +8,37 @@
 class_name AttributeEffectHook extends Resource
 
 enum _Function {
-	PRE_ADD = 0,
-	ADDED = 1,
-	APPLIED = 2,
-	PRE_REMOVE = 3,
-	REMOVED = 4,
-	STACK_CHANGED = 5,
+	BEFORE_ACTIVE_ADDED = 0,
+	AFTER_ACTIVE_ADDED = 1,
+	AFTER_ACTIVE_APPLIED = 2,
+	BEFORE_ACTIVE_REMOVED = 3,
+	AFTER_ACTIVE_REMOVED = 4,
+	AFTER_ACTIVE_STACK_CHANGED = 5,
 }
 
 static var _temporary_functions: Array[_Function] = [
-		_Function.PRE_ADD,
-		_Function.ADDED,
-		_Function.PRE_REMOVE,
-		_Function.REMOVED,
-		_Function.STACK_CHANGED,
+		_Function.BEFORE_ACTIVE_ADDED,
+		_Function.AFTER_ACTIVE_ADDED,
+		_Function.BEFORE_ACTIVE_REMOVED,
+		_Function.AFTER_ACTIVE_REMOVED,
+		_Function.AFTER_ACTIVE_STACK_CHANGED,
 	]
 
-static var _functions_by_name: Dictionary[String, _Function] = {
-	"_pre_add": _Function.PRE_ADD,
-	"_added": _Function.ADDED,
-	"_applied": _Function.APPLIED,
-	"_pre_remove": _Function.PRE_REMOVE,
-	"_removed": _Function.REMOVED,
-	"_stack_changed": _Function.STACK_CHANGED,
+static var _function_names: Dictionary[_Function, String] = {
+	_Function.BEFORE_ACTIVE_ADDED: "_before_active_added",
+	_Function.AFTER_ACTIVE_ADDED: "_after_active_added",
+	_Function.AFTER_ACTIVE_APPLIED: "_after_active_applied",
+	_Function.BEFORE_ACTIVE_REMOVED: "_before_active_removed",
+	_Function.AFTER_ACTIVE_REMOVED: "_after_active_removed",
+	_Function.AFTER_ACTIVE_STACK_CHANGED: "_after_active_stack_changed",
 }
 
-static var _function_names: Dictionary[_Function, String] = {
-	_Function.PRE_ADD: "_pre_add",
-	_Function.ADDED: "_added",
-	_Function.APPLIED: "_applied",
-	_Function.PRE_REMOVE: "_pre_remove",
-	_Function.REMOVED: "_removed",
-	_Function.STACK_CHANGED: "_stack_changed",
-}
+static var _functions_by_name: Dictionary[String, _Function]
+
+static func _init() -> void:
+	# Populate _functions_by_name
+	for _function: _Function in _function_names:
+		_functions_by_name[_function_names[_function]] = _function
 
 # Used to detect what functions a hook has implemented - trickery here is that
 # in the Array Script.get_script_method_list() returns, methods will appear more
@@ -83,37 +81,38 @@ func _run_assertions(effect: AttributeEffect) -> void:
 
 
 ## Called before the [param active] is to be added to the [param attribute].
-## [br]NOTE: Called for both PERMANENT and TEMPORARY effects.
-func _pre_add(attribute: Attribute, active: ActiveAttributeEffect) -> void:
+func _before_active_added(attribute: Attribute, active: ActiveAttributeEffect, 
+event: AttributeEvent) -> void:
 	pass
 
 
 ## Called after the [param active] has been added to the [param attribute].
-## [br]NOTE: Called for both PERMANENT and TEMPORARY effects.
-func _added(attribute: Attribute, active: ActiveAttributeEffect) -> void:
+func _after_active_added(attribute: Attribute, active: ActiveAttributeEffect, 
+event: AttributeEvent) -> void:
 	pass
 
 
 ## Called after the [param active] has been applied to the [param attribute].
 ## [br]NOTE: ONLY called for PERMANENT effects.
-func _applied(attribute: Attribute, active: ActiveAttributeEffect) -> void:
+func _after_active_applied(attribute: Attribute, active: ActiveAttributeEffect, 
+event: AttributeEvent) -> void:
 	pass
 
 
 ## Called before the [param active] is to be removed from the [param attribute].
-## [br]NOTE: Called for both PERMANENT and TEMPORARY effects.
-func _pre_remove(attribute: Attribute, active: ActiveAttributeEffect) -> void:
+func _before_active_removed(attribute: Attribute, active: ActiveAttributeEffect, 
+event: AttributeEvent) -> void:
 	pass
 
 
 ## Called after the [param active] has been removed from the [param attribute].
-## [br]NOTE: Called for both PERMANENT and TEMPORARY effects.
-func _removed(attribute: Attribute, active: ActiveAttributeEffect) -> void:
+func _after_active_removed(attribute: Attribute, active: ActiveAttributeEffect, 
+event: AttributeEvent) -> void:
 	pass
 
 
 ## Called after the [param active]'s stack count has changed. [param previous_stack_count] was
 ## the previous count before the change.
-## [br]NOTE: Called for both PERMANENT and TEMPORARY effects.
-func _stack_changed(attribute: Attribute, active: ActiveAttributeEffect, previous_stack_count: int) -> void:
+func _after_stack_changed(attribute: Attribute, active: ActiveAttributeEffect,
+event: AttributeEvent, previous_stack_count: int) -> void:
 	pass
