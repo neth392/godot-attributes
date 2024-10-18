@@ -22,7 +22,7 @@ static func duration() -> AttributeModifiedValueGetter:
 
 func get_modified(attribute: Attribute, active: ActiveAttributeEffect) -> float:
 	var modified_value: AttributeUtil.Reference = AttributeUtil.Reference.new(\
-	_get_modifiable_value(active.get_effect()).get_modified(attribute, active))
+	_get_effect_value(active.get_effect()).get_modified(attribute, active))
 	
 	_get_modifier_actives(attribute._actives).for_each(
 		func(modifier: ActiveAttributeEffect) -> void:
@@ -34,8 +34,8 @@ func get_modified(attribute: Attribute, active: ActiveAttributeEffect) -> float:
 	return modified_value.ref
 
 
-func _get_modifiable_value(effect: AttributeEffect) -> ModifiableValue:
-	assert(false, "_get_modifiable_value not implemented")
+func _get_effect_value(effect: AttributeEffect) -> AttributeEffectValue:
+	assert(false, "_get_effect_value not implemented")
 	return null
 
 
@@ -51,7 +51,7 @@ func _get_modifiers(effect: AttributeEffect) -> AttributeEffectModifierArray:
 
 class Value extends AttributeModifiedValueGetter:
 	
-	func _get_modifiable_value(effect: AttributeEffect) -> ModifiableValue:
+	func _get_effect_value(effect: AttributeEffect) -> AttributeEffectValue:
 		return effect.value
 	
 	func _get_modifier_actives(cluster: ActiveAttributeEffectCluster) -> ActiveAttributeEffectArray:
@@ -63,7 +63,7 @@ class Value extends AttributeModifiedValueGetter:
 
 class Period extends AttributeModifiedValueGetter:
 	
-	func _get_modifiable_value(effect: AttributeEffect) -> ModifiableValue:
+	func _get_effect_value(effect: AttributeEffect) -> AttributeEffectValue:
 		return effect.period_in_seconds
 	
 	func _get_modifier_actives(cluster: ActiveAttributeEffectCluster) -> ActiveAttributeEffectArray:
@@ -75,7 +75,7 @@ class Period extends AttributeModifiedValueGetter:
 
 class Duration extends AttributeModifiedValueGetter:
 	
-	func _get_modifiable_value(effect: AttributeEffect) -> ModifiableValue:
+	func _get_effect_value(effect: AttributeEffect) -> AttributeEffectValue:
 		return effect.duration_in_seconds
 	
 	func _get_modifier_actives(cluster: ActiveAttributeEffectCluster) -> ActiveAttributeEffectArray:

@@ -31,7 +31,7 @@ _value_to_use: Attribute.Value = Attribute.Value.CURRENT_VALUE) -> DerivedModifi
 ## The path to the [Attribute] to derive from. Must be absolute (can not be relative).
 @export_node_path("Attribute") var attribute_path: NodePath:
 	set(value):
-		assert(value.is_empty() || value.is_absolute(), "attribute_path(%s) is not absolute" % value)
+		assert(value.is_empty() || value.is_absolute(), "attribute_path (%s) is not absolute" % value)
 		attribute_path = value
 
 ## The value to use of the [Attribute].

@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://addons/godot-attributes/effect/attribute_effect_hook.gd" id="1_vpylb"]
 [ext_resource type="Script" path="res://addons/godot-attributes/effect/attribute_effect_condition.gd" id="2_fbj2g"]
-[ext_resource type="Script" path="res://addons/godot-attributes/effect/modifiable_value.gd" id="5_lqo07"]
+[ext_resource type="Script" path="res://addons/godot-attributes/effect/attribute_effect_value.gd" id="5_lqo07"]
 [ext_resource type="Script" path="res://addons/godot-attributes/effect/attribute_effect.gd" id="6_ba8jk"]
 [ext_resource type="Script" path="res://addons/godot-attributes/effect/calculators/multiply_then_add_calculator.gd" id="7_86myk"]
 

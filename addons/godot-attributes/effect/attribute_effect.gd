@@ -82,7 +82,7 @@ enum DurationType {
 
 ## The value that is applied to an [Attribute]'s value (base or current, based on
 ## [member type]).
-@export var value: ModifiableValue
+@export var value: AttributeEffectValue
 
 ## Determines how the [member value] is applied to an [Attribute] (i.e. added, multiplied, etc).
 @export var value_calculator: AttributeEffectCalculator
@@ -116,7 +116,7 @@ enum DurationType {
 		notify_property_list_changed()
 
 ## The amount of time in seconds this [AttributeEffect] lasts.
-@export var duration_in_seconds: ModifiableValue
+@export var duration_in_seconds: AttributeEffectValue
 
 ## If the effect should automatically be applied when it's duration expires.
 ## [br]NOTE: Only available for [enum Type.PERMANENT] effects.
@@ -157,7 +157,7 @@ enum DurationType {
 ## Amount of time, in seconds, between when this effect is applied to an [Attribute].
 ## [br]Zero or less means every frame.
 ## [br]NOTE: Only available for [enum Type.PERMANENT] effects.
-@export var period_in_seconds: ModifiableValue
+@export var period_in_seconds: AttributeEffectValue
 
 ## If [member period_in_seconds] should apply as a "delay" between when this effect 
 ## is added to an [Attribute] and its first time applying.
@@ -398,7 +398,7 @@ func _validate_property(property: Dictionary) -> void:
 		return
 	
 	if property.name == "apply_blockers":
-		if !can_be_blocker() || !is_add_blocker():
+		if !can_be_blocker() || !is_apply_blocker():
 			_no_editor(property)
 		return
 	
@@ -414,7 +414,7 @@ func _validate_property(property: Dictionary) -> void:
 			_no_editor(property)
 		return
 	
-	if property.name == "period_modfifiers":
+	if property.name == "period_modifiers":
 		if !can_be_modifier() || !is_period_modifier():
 			_no_editor(property)
 		return
