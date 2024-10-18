@@ -27,18 +27,25 @@ _value_to_use: Attribute.Value = Attribute.Value.CURRENT_VALUE) -> DerivedModifi
 	modifier.value_to_use = _value_to_use
 	return modifier
 
+## The value of the [Attribute] to use, either base value or current value.
+@export var value_to_use: Attribute.Value
 
-## The path to the [Attribute] to derive from. Must be absolute (can not be relative).
-@export_node_path("Attribute") var attribute_path: NodePath:
+
+@export_storage var _attribute_path: NodePath:
 	set(value):
 		assert(value.is_empty() || value.is_absolute(), "attribute_path (%s) is not absolute" % value)
 		attribute_path = value
 
-## The value to use of the [Attribute].
-@export var value_to_use: Attribute.Value
 
 # Internal cache of the [Attribute] instance.
-var _cache: WeakRef
+var _attribute_ref: WeakRef
+
+
+func populate(attribute: Attribute, _context: String = "") -> void:
+	assert(attribute != null, "attribute is null")
+	if context == _context && attribute_id == attribute.id:
+		_attribute_path = attribute.get_path()
+		_attribute_ref = weakref(attribute)
 
 
 func _modify(value: float, attribute: Attribute, active: ActiveAttributeEffect) -> float:

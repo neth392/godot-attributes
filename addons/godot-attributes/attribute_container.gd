@@ -16,6 +16,12 @@ signal tag_added(tag: StringName)
 ## Emitted when [param tag] is removed from this container.
 signal tag_removed(tag: StringName)
 
+## The ID of this container. Should not be changed at runtime.
+@export var id: StringName:
+	set(value):
+		assert(!is_node_ready(), "can not change id at runtime")
+		id = value
+
 ## Tags to be added to the internal _tags [Dictionary] in _ready.
 @export var default_tags: PackedStringArray
 

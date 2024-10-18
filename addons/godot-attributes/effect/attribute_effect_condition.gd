@@ -10,7 +10,6 @@ class_name AttributeEffectCondition extends Resource
 ## when used as an add or block condition on an [AttributeEffect].
 @export var emit_blocked_signal: bool = false
 
-
 ## If true, the condition result is negated.
 @export var negate: bool = false
 
