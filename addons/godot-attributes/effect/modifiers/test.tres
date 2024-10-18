@@ -5,11 +5,11 @@
 
 [resource]
 script = ExtResource("2_km82m")
-variable_one = ""
-static_float_one = null
-operator = ""
-variable_two = ""
-static_float_two = null
+variable_one = 1
+static_float_one = 0.0
+operator = 2
+variable_two = 3
+static_float_two = 0.0
 priority = 0
 stop_processing_modifiers = false
 duplicate_instances = false

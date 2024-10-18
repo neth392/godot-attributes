@@ -3,27 +3,60 @@
 @tool
 class_name SimpleEquationModifier extends AttributeEffectModifier
 
-static var _variables: Dictionary[String, Callable] = {
-	"Static Float": func(args: Args) -> float: return args.static_float,
-	"Value": func(args: Args) -> float: return args.value,
-	"Active Stack Count": func(args: Args) -> float: return args.active._stack_count,
+## Represents an accessible variable
+enum Variable {
+	## A static floating point value set in the editor inspector for this modifier.
+	STATIC_FLOAT,
+	## The [AttributeEffect]'s currently modified value. Accounts for other [AttributeEffectModifier]s
+	## that have applied to the effect's value prior to this modifier.
+	MODIFIED_EFFECT_VALUE,
+	## The [AttributeEffect]'s raw value. Does NOT account for any other [AttributeEffectModifier]s
+	## that have applied to the effect's value prior to this modifier.
+	RAW_EFFECT_VALUE,
+	## The current stack count of the [ActiveAttributeEffect].
+	## See [method ActiveAttributeEffect.get_stack_count].
+	ACTIVE_STACK_COUNT,
+	## The number of times the [ActiveAttributeEffect] has been applied.
+	## See [method ActiveAttributeEffect.get_apply_count].
+	ACTIVE_APPLY_COUNT,
 }
 
-static var _operators: Dictionary[String, Callable] = {
-	"ADD (+)": func(v1: float, v2: float) -> float: return v1 + v2,
-	"SUBTRACT (-)": func(v1: float, v2: float) -> float: return v1 - v2,
-	"MULTIPLY (*)": func(v1: float, v2: float) -> float: return v1 * v2,
-	"DIVIDE (/)": func(v1: float, v2: float) -> float: return v1 / v2,
-	"EXPONENTIAL (^)": func(v1: float, v2: float) -> float: return pow(v1, v2),
+static var _variables: Dictionary[Variable, Callable] = {
+	Variable.STATIC_FLOAT: func(args: Args) -> float: return args.static_float,
+	Variable.MODIFIED_EFFECT_VALUE: func(args: Args) -> float: return args.value,
+	Variable.RAW_EFFECT_VALUE: func(args: Args) -> float: return args.active.get_effect().value.get_raw(),
+	Variable.ACTIVE_STACK_COUNT: func(args: Args) -> float: return args.active._stack_count,
 }
 
-@export var variable_one: String:
+## Determines the operator of [variable_one] and [variable_two]'s equation. 
+enum Operator {
+	## Add [member variable_two] to [member variable_one].
+	ADD,
+	## Subtract [member variable_two] from [member variable_one].
+	SUBTRACT,
+	## Multiply [member variable_one] by [member variable_two].
+	MULTIPLY,
+	## Divide [member variable_one] by [member variable_two].
+	DIVIDE,
+	## Raise [member variable_one] to the power of [member variable_two].
+	EXPONENTIAL,
+}
+
+static var _operators: Dictionary[Operator, Callable] = {
+	Operator.ADD: func(v1: float, v2: float) -> float: return v1 + v2,
+	Operator.SUBTRACT: func(v1: float, v2: float) -> float: return v1 - v2,
+	Operator.MULTIPLY: func(v1: float, v2: float) -> float: return v1 * v2,
+	Operator.DIVIDE: func(v1: float, v2: float) -> float: return v1 / v2,
+	Operator.EXPONENTIAL: func(v1: float, v2: float) -> float: return pow(v1, v2),
+}
+
+@export var variable_one: Variable:
 	set(value):
 		variable_one = value
 		notify_property_list_changed()
 @export var static_float_one: float
-@export var operator: String
-@export var variable_two: String:
+@export var operator: Operator
+@export var variable_two: Variable:
 	set(value):
 		variable_two = value
 		notify_property_list_changed()
@@ -31,32 +64,21 @@ static var _operators: Dictionary[String, Callable] = {
 
 
 func _validate_property(property: Dictionary) -> void:
-	if property.name == "variable_one" || property.name == "variable_two":
-		property.hint = PROPERTY_HINT_ENUM
-		property.hint_string = ",".join(PackedStringArray(_variables.keys()))
-		return
-	if property.name == "operator":
-		property.hint = PROPERTY_HINT_ENUM
-		property.hint_string = ",".join(PackedStringArray(_operators.keys()))
-		return
 	if property.name == "static_float_one":
-		if variable_one != "Static Float":
+		if variable_one != Variable.STATIC_FLOAT:
 			property.usage = PROPERTY_USAGE_NO_EDITOR
 		return
 	if property.name == "static_float_two":
-		if variable_two != "Static Float":
+		if variable_two != Variable.STATIC_FLOAT:
 			property.usage = PROPERTY_USAGE_NO_EDITOR
 		return
 
 
 func _modify(value: float, attribute: Attribute, active: ActiveAttributeEffect) -> float:
-	assert(!operator.is_empty(), "operator is empty")
 	assert(_operators.has(operator), "operator (%s) not found in available operators (%s)" \
 	% [operator, _operators.keys()])
-	assert(!variable_one.is_empty(), "variable_one is empty")
 	assert(_variables.has(variable_one), "variable_one (%s) not found in available variables (%s)" \
 	% [variable_one, _variables.keys()])
-	assert(!variable_two.is_empty(), "variable_two is empty")
 	assert(_variables.has(variable_two), "variable_two (%s) not found in available variables (%s)" \
 	% [variable_two, _variables.keys()])
 	

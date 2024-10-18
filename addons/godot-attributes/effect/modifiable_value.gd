@@ -29,6 +29,11 @@ enum ValueType {
 				return 0.0
 
 
+## Returns the raw, unmodified value.
+func get_raw() -> float:
+	return _value
+
+
 ## Returns [member value] modified by [member modifiers].
 func get_modified(attribute: Attribute, active: ActiveAttributeEffect) -> float:
 	return modify_value(_value, attribute, active)
