@@ -26,7 +26,7 @@ func _ready():
 	health_attribute.monitor_active_apply_blocked.connect(_monitor_active_apply_blocked)
 	health_attribute.event_occurred.connect(_event_active_apply_blocked)
 	
-	var drain_effect: AttributeEffect = load("res://tests/drain_effect.tres") as AttributeEffect
+	var drain_effect: AttributeEffect = load("res://dev_testing/drain_effect.tres") as AttributeEffect
 	health_attribute.add_active(drain_effect.create_active_effect())
 
 

@@ -1,6 +1,6 @@
 [gd_scene load_steps=7 format=3 uid="uid://dwtw6af6jkrgt"]
 
-[ext_resource type="Script" path="res://tests/test.gd" id="1_4c6uj"]
+[ext_resource type="Script" path="res://dev_testing/test.gd" id="1_4c6uj"]
 [ext_resource type="Script" path="res://addons/godot-attributes/attribute_container.gd" id="2_2qnf1"]
 [ext_resource type="Script" path="res://addons/godot-attributes/attribute.gd" id="3_jgq5p"]
 [ext_resource type="Script" path="res://addons/godot-attributes/validator/attribute_value_validator.gd" id="4_0ok4b"]

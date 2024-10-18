@@ -394,12 +394,10 @@ func _to_string() -> String:
 
 
 func _process(delta: float) -> void:
-	print("PROCESS")
 	_actives.for_each(_process_active)
 
 
 func _physics_process(delta: float) -> void:
-	print("PHYSICS")
 	_actives.for_each(_process_active)
 
 
@@ -424,14 +422,14 @@ func _process_active(active: ActiveAttributeEffect) -> void:
 	# Update period
 	var period_expired: bool = false
 	if active.get_effect().has_period():
-		active.remaining_period -= seconds_since_last_process
-		period_expired = active.remaining_period <= 0.0
+		active._remaining_period -= seconds_since_last_process
+		period_expired = active._remaining_period <= 0.0
 	
 	# Update duration
 	var duration_expired: bool = true
 	if active.get_effect().has_duration():
-		active.remaining_duration -= seconds_since_last_process
-		duration_expired = active.remaining_duration <= 0.0
+		active._remaining_duration -= seconds_since_last_process
+		duration_expired = active._remaining_duration <= 0.0
 	
 	# Do not continue processing if period & duration have not expired
 	# Using this to avoid constructing a new AttributeEvent unless it will be used
@@ -469,7 +467,7 @@ func _process_active(active: ActiveAttributeEffect) -> void:
 		# Otherwise reset the period
 		else:
 			# Update period
-			active.remaining_period += AttributeModifiedValueGetter.period().get_modified(self, active)
+			active._remaining_period += AttributeModifiedValueGetter.period().get_modified(self, active)
 	# This should never trigger, but just to be sure assert such
 	else:
 		assert(false, "duration_expired or period_expired are both false somehow")
@@ -771,13 +769,13 @@ func add_active(active: ActiveAttributeEffect) -> void:
 	# Initialize if not done so
 	if !active.is_initialized():
 		if active.get_effect().has_period() && active.get_effect().initial_period:
-			active.remaining_period = AttributeModifiedValueGetter.period().get_modified(self, active)
+			active._remaining_period = AttributeModifiedValueGetter.period().get_modified(self, active)
 		if active.get_effect().has_duration():
-			active.remaining_duration = AttributeModifiedValueGetter.duration().get_modified(self, active)
+			active._remaining_duration = AttributeModifiedValueGetter.duration().get_modified(self, active)
 		active._initialized = true
 	
 	# Ensure duration is valid
-	assert(!active.get_effect().has_duration() || active.remaining_duration > 0.0,
+	assert(!active.get_effect().has_duration() || active._remaining_duration > 0.0,
 	"active (%s) has a remaining_duration <= 0.0" % active)
 	
 	# Run pre_add hooks
@@ -811,14 +809,14 @@ func add_active(active: ActiveAttributeEffect) -> void:
 		_update_current_value(event)
 		
 	# Apply it if permanent (must be to have a period) & initial period <= 0.0
-	elif active.get_effect().has_period() && active.remaining_period <= 0.0:
+	elif active.get_effect().has_period() && active._remaining_period <= 0.0:
 		_apply_permanent_active(active, current_tick, event)
 		# Remove if it hit apply limit
 		if active.hit_apply_limit():
 			_remove_active(active, event)
 		# Update period
 		else:
-			active.remaining_period += AttributeModifiedValueGetter.period().get_modified(self, active)
+			active._remaining_period += AttributeModifiedValueGetter.period().get_modified(self, active)
 	
 	# Emit the event
 	event_occurred.emit(event)
