@@ -300,7 +300,6 @@ func _init(_id: StringName = "") -> void:
 	id = _id
 	if Engine.is_editor_hint():
 		return
-	
 	# Hook initialization
 	for _function: int in AttributeEffectHook._Function.values():
 		_hooks_by_function[_function] = []

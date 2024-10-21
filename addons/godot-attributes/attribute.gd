@@ -251,7 +251,9 @@ signal monitor_active_apply_blocked(blocked: ActiveAttributeEffect)
 
 # Dictionary of in the format of [code]{[member AttributeEffect.id] : int}[/code] count of all 
 # applied [ActiveAttributeEffect]s with that effect.
-@export_storage var _effect_counts: Dictionary[StringName, int] = {}
+@export_storage var _effect_counts: Dictionary[StringName, int]
+
+@export_storage var _derived_modifier_storage: Dictionary[String, Attribute]
 
 # The [AttributeContainer] this attribute belongs to stored as a [WeakRef] for
 # circular reference safety.
@@ -261,6 +263,8 @@ var _container_ref: WeakRef = weakref(null)
 ## [br]WARNING: Do not set this directly, it is automatically calculated.
 var _current_value: float:
 	set(value):
+		var node: Node
+		node.get_instance_id()
 		var prev_current_value: float = _current_value
 		_current_value = value
 		update_configuration_warnings()

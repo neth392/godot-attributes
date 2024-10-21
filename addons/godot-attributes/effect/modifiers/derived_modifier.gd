@@ -1,6 +1,5 @@
-## Overrides an [AttributeEffect]'s value with the value of an [Attribute]. Internally,
-## it uses a [NodePath] to locate the [Attribute]. So ensure your [NodePath]s remain constant
-## across saving & loading.
+## Overrides an [AttributeEffect]'s value with the value of an [Attribute]. 
+## TODO explain more in doc
 @tool
 class_name DerivedModifier extends AttributeEffectModifier
 
@@ -30,15 +29,10 @@ _value_to_use: Attribute.Value = Attribute.Value.CURRENT_VALUE) -> DerivedModifi
 ## The value of the [Attribute] to use, either base value or current value.
 @export var value_to_use: Attribute.Value
 
+@export var context: String
 
-@export_storage var _attribute_path: NodePath:
-	set(value):
-		assert(value.is_empty() || value.is_absolute(), "attribute_path (%s) is not absolute" % value)
-		attribute_path = value
-
-
-# Internal cache of the [Attribute] instance.
-var _attribute_ref: WeakRef
+## The [member Attribute.id] of the [Attribute] to use.
+@export var attribute_id: StringName
 
 
 func populate(attribute: Attribute, _context: String = "") -> void:

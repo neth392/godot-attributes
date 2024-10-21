@@ -15,8 +15,18 @@ static func _sort_a_before_b(a: AttributeEffectModifier, b: AttributeEffectModif
 		if !Engine.is_editor_hint():
 			assert(!_modifiers.has(null), "_modifiers has null element")
 			value.sort_custom(_sort_a_before_b)
+			
+			# Add to derived modifiers
+			_derived_modifiers.clear()
+			for modifier: AttributeEffectModifier in value:
+				if modifier is DerivedModifier:
+					_derived_modifiers.append(modifier)
+		
 		_modifiers = value
 
+# Internal array of [DerivedMofifier]s to allow quicker population of the necessary
+# fields. Order does not matter, and won't be stored as its auto populated by _modifiers.
+var _derived_modifiers: Array[DerivedModifier]
 
 ## Returns true if the [param modifier] exists, false if not.
 func has(modifier: AttributeEffectModifier) -> bool:
@@ -40,16 +50,28 @@ func add(modifier: AttributeEffectModifier) -> bool:
 	if index == _modifiers.size(): # Wasn't added in loop, append it to back
 		_modifiers.append(modifier)
 	
+	# Add to derived modifiers
+	if modifier is DerivedModifier:
+		_derived_modifiers.append(modifier)
+	
 	return true
 
 
-## Removes the [param modifier]. If [param remove_all_instances] is true, all instances
-## of it are removed. If false, only the first instance is removed.
-func remove(modifier: AttributeEffectModifier, remove_all_instances: bool) -> void:
-	_modifiers.erase(modifier)
-	if remove_all_instances:
+## Removes all instances of the [param modifier].
+func remove(modifier: AttributeEffectModifier) -> void:
 		while _modifiers.has(modifier):
 			_modifiers.erase(modifier)
+		# Remove from derived modifiers
+		if modifier is DerivedModifier:
+			_derived_modifiers.erase(modifier)
+
+
+## Removes the first instance of [param modifier].
+func remove_first(modifier: AttributeEffectModifier) -> void:
+	_modifiers.erase(modifier)
+	# Remove from derived modifiers if no longer in _modifiers
+	if modifier is DerivedModifier && !_modifiers.has(modifier):
+		_derived_modifiers.erase(modifier)
 
 
 ## Modifies the [param value] by applying the [member _modifiers] to it. [param attribute]
@@ -63,3 +85,8 @@ func modify_value(value: float, attribute: Attribute, active: ActiveAttributeEff
 		if modifier.stop_processing_modifiers:
 			return modified_value
 	return modified_value
+
+
+## Returns true if there are any instances of a [DerivedModifier] in this array.
+func has_derived() -> bool:
+	return !_derived_modifiers.is_empty()
