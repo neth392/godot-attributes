@@ -263,8 +263,6 @@ var _container_ref: WeakRef = weakref(null)
 ## [br]WARNING: Do not set this directly, it is automatically calculated.
 var _current_value: float:
 	set(value):
-		var node: Node
-		node.get_instance_id()
 		var prev_current_value: float = _current_value
 		_current_value = value
 		update_configuration_warnings()

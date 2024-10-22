@@ -1,32 +1,43 @@
-[gd_resource type="Resource" script_class="AttributeEffect" load_steps=13 format=3 uid="uid://cimvqfqcsbjf5"]
+[gd_resource type="Resource" script_class="AttributeEffect" load_steps=15 format=3 uid="uid://cimvqfqcsbjf5"]
 
 [ext_resource type="Script" path="res://addons/godot-attributes/effect/attribute_effect_hook.gd" id="1_0dcue"]
 [ext_resource type="Script" path="res://addons/godot-attributes/effect/attribute_effect_condition.gd" id="2_yreqe"]
 [ext_resource type="Script" path="res://addons/godot-attributes/effect/attribute_effect_modifier.gd" id="3_ak05a"]
 [ext_resource type="Script" path="res://addons/godot-attributes/effect/attribute_effect_value.gd" id="5_qmwkg"]
 [ext_resource type="Script" path="res://addons/godot-attributes/effect/modifiers/simple_equation_modifier.gd" id="6_5vlr1"]
+[ext_resource type="Script" path="res://addons/godot-attributes/effect/modifiers/derived_modifier.gd" id="6_6bj27"]
 [ext_resource type="Script" path="res://addons/godot-attributes/effect/attribute_effect.gd" id="6_ytxh1"]
-[ext_resource type="Script" path="res://addons/godot-attributes/effect/calculators/subtract_calculator.gd" id="7_yhgdu"]
+[ext_resource type="Script" path="res://addons/godot-attributes/effect/calculators/override_calculator.gd" id="8_ioc24"]
 
-[sub_resource type="Resource" id="Resource_owen8"]
+[sub_resource type="Resource" id="Resource_wom75"]
 script = ExtResource("5_qmwkg")
-type = 0
-_value = 30.0
+_value = 10.0
 _modifiers = Array[ExtResource("3_ak05a")]([])
 
-[sub_resource type="Resource" id="Resource_5ggf0"]
+[sub_resource type="Resource" id="Resource_a346w"]
 script = ExtResource("5_qmwkg")
-type = 0
 _value = 1.0
 _modifiers = Array[ExtResource("3_ak05a")]([])
 
-[sub_resource type="Resource" id="Resource_gi5hk"]
+[sub_resource type="Resource" id="Resource_gbjcc"]
+script = ExtResource("6_6bj27")
+value_to_use = 0
+attribute_id = &"Health"
+context = ""
+if_attribute_missing = 0
+_attribute_path = NodePath("")
+priority = 0
+stop_processing_modifiers = false
+duplicate_instances = false
+conditions = Array[ExtResource("2_yreqe")]([])
+
+[sub_resource type="Resource" id="Resource_p5lpt"]
 script = ExtResource("6_5vlr1")
-variable_one = 100
-fixed_float_one = 2.0
-operator = 0
-variable_two = 0
-fixed_float_two = 0.0
+variable_one = 0
+fixed_float_one = 0.0
+operator = 2
+variable_two = 100
+fixed_float_two = 0.1
 priority = 0
 stop_processing_modifiers = false
 duplicate_instances = false
@@ -34,13 +45,11 @@ conditions = Array[ExtResource("2_yreqe")]([])
 
 [sub_resource type="Resource" id="Resource_xmxxa"]
 script = ExtResource("5_qmwkg")
-type = 0
 _value = 1.0
-_modifiers = Array[ExtResource("3_ak05a")]([SubResource("Resource_gi5hk")])
+_modifiers = Array[ExtResource("3_ak05a")]([SubResource("Resource_gbjcc"), SubResource("Resource_p5lpt")])
 
-[sub_resource type="Resource" id="Resource_bmvt3"]
-script = ExtResource("7_yhgdu")
-attribute_value_to_use = 0
+[sub_resource type="Resource" id="Resource_pt82k"]
+script = ExtResource("8_ioc24")
 
 [resource]
 script = ExtResource("6_ytxh1")
@@ -50,17 +59,17 @@ tags = Array[StringName]([])
 type = 1
 has_value = true
 value = SubResource("Resource_xmxxa")
-value_calculator = SubResource("Resource_bmvt3")
+value_calculator = SubResource("Resource_pt82k")
 _emit_added_signal = true
 _emit_applied_signal = true
 _emit_removed_signal = true
 duration_type = 1
-duration_in_seconds = SubResource("Resource_owen8")
+duration = SubResource("Resource_wom75")
 _apply_on_expire = false
 _apply_limit = false
 apply_limit_amount = 0
 count_apply_if_blocked = false
-period_in_seconds = SubResource("Resource_5ggf0")
+period = SubResource("Resource_a346w")
 initial_period = false
 _apply_on_expire_if_period_is_zero = false
 stack_mode = 0

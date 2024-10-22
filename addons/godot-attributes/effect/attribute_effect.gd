@@ -500,17 +500,18 @@ func populate_derived_modifiers(attribute: Attribute, context: String = "") -> v
 ## Shorthand function to create an [ActiveAttributeEffect] for this [AttributeEffect].
 func create_active_effect() -> ActiveAttributeEffect:
 	# TODO more verbose method of checking if derived are populated
-	assert(value.is_all_derived_populated(), "a DerivedModifier in value" + \
+	# TODO cleanup
+	assert(value == null || value.is_all_derived_populated(), "a DerivedModifier in value" + \
 	"is not populated")
-	assert(duration.is_all_derived_populated(), "a DerivedModifier in duration" + \
+	assert(duration == null || duration.is_all_derived_populated(), "a DerivedModifier in duration" + \
 	"is not populated")
-	assert(period.is_all_derived_populated(), "a DerivedModifier in period" + \
+	assert(period == null || period.is_all_derived_populated(), "a DerivedModifier in period" + \
 	"is not populated")
-	assert(value_modifiers.is_all_derived_populated(), "a DerivedModifier in value_modifiers" + \
+	assert(value_modifiers == null || value_modifiers.is_all_derived_populated(), "a DerivedModifier in value_modifiers" + \
 	"is not populated")
-	assert(period_modifiers.is_all_derived_populated(), "a DerivedModifier in period_modifiers" + \
+	assert(period_modifiers == null || period_modifiers.is_all_derived_populated(), "a DerivedModifier in period_modifiers" + \
 	"is not populated")
-	assert(duration_modifiers.is_all_derived_populated(), "a DerivedModifier in duration_modifiers" + \
+	assert(duration_modifiers == null || duration_modifiers.is_all_derived_populated(), "a DerivedModifier in duration_modifiers" + \
 	"is not populated")
 	return ActiveAttributeEffect.new(self)
 

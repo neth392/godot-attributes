@@ -15,9 +15,8 @@ script = ExtResource("1_4c6uj")
 
 [node name="AttributeContainer" type="Node" parent="."]
 script = ExtResource("2_2qnf1")
-id = null
 
-[node name="Attribute" type="Node" parent="AttributeContainer"]
+[node name="HealthAttribute" type="Node" parent="AttributeContainer"]
 script = ExtResource("3_jgq5p")
 id = &"Health"
 _base_value = 200.0

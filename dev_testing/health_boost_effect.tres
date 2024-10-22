@@ -1,20 +1,21 @@
-[gd_resource type="Resource" script_class="AttributeEffect" load_steps=9 format=3 uid="uid://clrlp0hitfp38"]
+[gd_resource type="Resource" script_class="AttributeEffect" load_steps=10 format=3 uid="uid://clrlp0hitfp38"]
 
 [ext_resource type="Script" path="res://addons/godot-attributes/effect/attribute_effect_hook.gd" id="1_vpylb"]
 [ext_resource type="Script" path="res://addons/godot-attributes/effect/attribute_effect_condition.gd" id="2_fbj2g"]
+[ext_resource type="Script" path="res://addons/godot-attributes/effect/attribute_effect_modifier.gd" id="3_tj3qk"]
 [ext_resource type="Script" path="res://addons/godot-attributes/effect/attribute_effect_value.gd" id="5_lqo07"]
 [ext_resource type="Script" path="res://addons/godot-attributes/effect/attribute_effect.gd" id="6_ba8jk"]
 [ext_resource type="Script" path="res://addons/godot-attributes/effect/calculators/multiply_then_add_calculator.gd" id="7_86myk"]
 
-[sub_resource type="Resource" id="Resource_6tn1a"]
+[sub_resource type="Resource" id="Resource_x2jii"]
 script = ExtResource("5_lqo07")
-type = 0
-_value = 5.0
+_value = 10.0
+_modifiers = Array[ExtResource("3_tj3qk")]([])
 
 [sub_resource type="Resource" id="Resource_lksua"]
 script = ExtResource("5_lqo07")
-type = 0
 _value = 0.1
+_modifiers = Array[ExtResource("3_tj3qk")]([])
 
 [sub_resource type="Resource" id="Resource_0f7rb"]
 script = ExtResource("7_86myk")
@@ -34,19 +35,23 @@ _emit_added_signal = true
 _emit_applied_signal = true
 _emit_removed_signal = true
 duration_type = 1
-duration_in_seconds = SubResource("Resource_6tn1a")
+duration = SubResource("Resource_x2jii")
 _apply_on_expire = false
 _apply_limit = false
 apply_limit_amount = 0
+count_apply_if_blocked = false
 initial_period = false
 _apply_on_expire_if_period_is_zero = false
 stack_mode = 3
 _log_history = false
 add_conditions = Array[ExtResource("2_fbj2g")]([])
 apply_conditions = Array[ExtResource("2_fbj2g")]([])
-_callbacks = Array[ExtResource("1_vpylb")]([])
-_blocker = false
+_hooks = Array[ExtResource("1_vpylb")]([])
+_add_blocker = false
 add_blockers = Array[ExtResource("2_fbj2g")]([])
+_apply_blocker = false
 apply_blockers = Array[ExtResource("2_fbj2g")]([])
-_modifier = false
+_value_modifier = false
+_period_modifier = false
+_duration_modifier = false
 metadata = {}

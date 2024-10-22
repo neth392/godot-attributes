@@ -1,6 +1,6 @@
 extends Node
 
-@onready var health_attribute: Attribute = $AttributeContainer/Attribute
+@onready var health_attribute: Attribute = $AttributeContainer/HealthAttribute
 
 var tick_started: int
 
@@ -27,6 +27,7 @@ func _ready():
 	health_attribute.event_occurred.connect(_event_active_apply_blocked)
 	
 	var drain_effect: AttributeEffect = load("res://dev_testing/drain_effect.tres") as AttributeEffect
+	drain_effect.populate_derived_modifiers(health_attribute)
 	health_attribute.add_active(drain_effect.create_active_effect())
 
 
