@@ -69,7 +69,7 @@ enum DurationType {
 		if type != Type.PERMANENT && duration_type == DurationType.INSTANT:
 			# INSTANT not compatible with TEMPORARY or BLOCKER
 			duration_type = DurationType.INFINITE
-		if type == Type.PERMANENT && !has_value:
+		if must_have_value() && !has_value:
 			has_value = true
 		if has_period() && period == null:
 			period = AttributeEffectValue.new()
@@ -314,6 +314,11 @@ func _init(_id: StringName = "") -> void:
 
 
 func _validate_property(property: Dictionary) -> void:
+	if property.name == "has_value":
+		if must_have_value():
+			property.usage |= PROPERTY_USAGE_READ_ONLY
+		return
+	
 	if property.name == "value" || property.name == "value_calculator":
 		if !has_value:
 			_no_editor(property)
