@@ -71,12 +71,16 @@ enum DurationType {
 			duration_type = DurationType.INFINITE
 		if type == Type.PERMANENT && !has_value:
 			has_value = true
+		if has_period() && period == null:
+			period = AttributeEffectValue.new()
 		notify_property_list_changed()
 
 ## If true, this effect must have a [member value] which applies to an [Attribute].
 @export var has_value: bool:
 	set(_value):
 		has_value = _value
+		if has_value && value == null:
+			value = AttributeEffectValue.new()
 		assert(!must_have_value() || has_value, "must_have_value() is true but has_value is false")
 		notify_property_list_changed()
 
@@ -113,6 +117,10 @@ enum DurationType {
 			duration_type = DurationType.INFINITE
 			return
 		duration_type = _value
+		if has_duration() && duration == null:
+			duration = AttributeEffectValue.new()
+		if has_period() && period == null:
+			period = AttributeEffectValue.new()
 		notify_property_list_changed()
 
 ## The amount of time in seconds this [AttributeEffect] lasts.
