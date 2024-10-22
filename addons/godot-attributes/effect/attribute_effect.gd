@@ -116,7 +116,7 @@ enum DurationType {
 		notify_property_list_changed()
 
 ## The amount of time in seconds this [AttributeEffect] lasts.
-@export var duration_in_seconds: AttributeEffectValue
+@export var duration: AttributeEffectValue
 
 ## If the effect should automatically be applied when it's duration expires.
 ## [br]NOTE: Only available for [enum Type.PERMANENT] effects.
@@ -157,9 +157,9 @@ enum DurationType {
 ## Amount of time, in seconds, between when this effect is applied to an [Attribute].
 ## [br]Zero or less means every frame.
 ## [br]NOTE: Only available for [enum Type.PERMANENT] effects.
-@export var period_in_seconds: AttributeEffectValue
+@export var period: AttributeEffectValue
 
-## If [member period_in_seconds] should apply as a "delay" between when this effect 
+## If [member period] should apply as a "delay" between when this effect 
 ## is added to an [Attribute] and its first time applying.
 ## [br]NOTE: Only available for [enum Type.PERMANENT] effects.
 @export var initial_period: bool = false
@@ -268,7 +268,7 @@ enum DurationType {
 		_period_modifier = value
 		notify_property_list_changed()
 
-## Modifies the [member period_in_seconds] of other [AttributeEffect]s.
+## Modifies the [member period] of other [AttributeEffect]s.
 ## Only used if [member _period_modifier] is true, and only applicable for
 ## non-instant effects.
 @export var period_modifiers: AttributeEffectModifierArray
@@ -280,7 +280,7 @@ enum DurationType {
 		_duration_modifier = value
 		notify_property_list_changed()
 
-## Modifies the [member duration_in_seconds] of other [AttributeEffect]s.
+## Modifies the [member duration] of other [AttributeEffect]s.
 ## Only used if [member _duration_modifier] is true, and only applicable for
 ## non-instant effects.
 @export var duration_modifiers: AttributeEffectModifierArray
@@ -331,7 +331,7 @@ func _validate_property(property: Dictionary) -> void:
 		property.hint_string = _format_enum(DurationType, exclude)
 		return
 	
-	if property.name == "duration_in_seconds":
+	if property.name == "duration":
 		if !has_duration():
 			_no_editor(property)
 		return
@@ -356,7 +356,7 @@ func _validate_property(property: Dictionary) -> void:
 			_no_editor(property)
 		return
 	
-	if property.name == "period_in_seconds" || property.name == "initial_period":
+	if property.name == "period" || property.name == "initial_period":
 		if !has_period():
 			_no_editor(property)
 		return
@@ -478,8 +478,40 @@ func apply_calculator(attr_base_value: float, attr_current_value: float, effect_
 	return value_calculator._calculate(attr_base_value, attr_current_value, effect_value)
 
 
+## Populates all of the [DerivedModifier]s present on this effect with
+## [param attribute], see [method DerivedModifier.populate] for more information.
+## Must be done at runtime before creating an [ActiveAttributeEffect] of this resource
+## each time this resource is loaded or when a new instance.
+func populate_derived_modifiers(attribute: Attribute, context: String = "") -> void:
+	if value != null:
+		value.populate_derived(attribute, context)
+	if duration != null:
+		duration.populate_derived(attribute, context)
+	if period != null:
+		period.populate_derived(attribute, context)
+	if value_modifiers != null:
+		value_modifiers.populate_derived(attribute, context)
+	if period_modifiers != null:
+		period_modifiers.populate_derived(attribute, context)
+	if duration_modifiers != null:
+		duration_modifiers.populate_derived(attribute, context)
+
+
 ## Shorthand function to create an [ActiveAttributeEffect] for this [AttributeEffect].
 func create_active_effect() -> ActiveAttributeEffect:
+	# TODO more verbose method of checking if derived are populated
+	assert(value.is_all_derived_populated(), "a DerivedModifier in value" + \
+	"is not populated")
+	assert(duration.is_all_derived_populated(), "a DerivedModifier in duration" + \
+	"is not populated")
+	assert(period.is_all_derived_populated(), "a DerivedModifier in period" + \
+	"is not populated")
+	assert(value_modifiers.is_all_derived_populated(), "a DerivedModifier in value_modifiers" + \
+	"is not populated")
+	assert(period_modifiers.is_all_derived_populated(), "a DerivedModifier in period_modifiers" + \
+	"is not populated")
+	assert(duration_modifiers.is_all_derived_populated(), "a DerivedModifier in duration_modifiers" + \
+	"is not populated")
 	return ActiveAttributeEffect.new(self)
 
 
@@ -657,12 +689,12 @@ func has_apply_limit() -> bool:
 	return can_have_apply_limit() && _apply_limit
 
 
-## Returns true if this effect has a [member duration_in_seconds].
+## Returns true if this effect has a [member duration].
 func has_duration() -> bool:
 	return duration_type == DurationType.HAS_DURATION
 
 
-## Returns true if this effect has a [member period_in_seconds].
+## Returns true if this effect has a [member period].
 func has_period() -> bool:
 	return type == Type.PERMANENT && !is_instant()
 

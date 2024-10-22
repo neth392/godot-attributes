@@ -90,3 +90,18 @@ func modify_value(value: float, attribute: Attribute, active: ActiveAttributeEff
 ## Returns true if there are any instances of a [DerivedModifier] in this array.
 func has_derived() -> bool:
 	return !_derived_modifiers.is_empty()
+
+
+## Populates all [DerivedModifier]s (if any exist) with the [param attribute].
+## See [method DerivedModifier.populate] for more information.
+func populate_derived(attribute: Attribute, context: String = "") -> void:
+	for derived_modifier: DerivedModifier in _derived_modifiers:
+		derived_modifier.populate(attribute, context)
+
+
+## Returns true if all [DerivedModifier]s are populated, false if not.
+func is_all_derived_populated() -> bool:
+	for derived_modifier: DerivedModifier in _derived_modifiers:
+		if !derived_modifier.is_populated():
+			return false
+	return true

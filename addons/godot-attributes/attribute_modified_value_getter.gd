@@ -64,7 +64,7 @@ class Value extends AttributeModifiedValueGetter:
 class Period extends AttributeModifiedValueGetter:
 	
 	func _get_effect_value(effect: AttributeEffect) -> AttributeEffectValue:
-		return effect.period_in_seconds
+		return effect.period
 	
 	func _get_modifier_actives(cluster: ActiveAttributeEffectCluster) -> ActiveAttributeEffectArray:
 		return cluster.period_modifiers
@@ -76,10 +76,10 @@ class Period extends AttributeModifiedValueGetter:
 class Duration extends AttributeModifiedValueGetter:
 	
 	func _get_effect_value(effect: AttributeEffect) -> AttributeEffectValue:
-		return effect.duration_in_seconds
+		return effect.duration
 	
 	func _get_modifier_actives(cluster: ActiveAttributeEffectCluster) -> ActiveAttributeEffectArray:
 		return cluster.duration_modifiers
 	
 	func _get_modifiers(effect: AttributeEffect) -> AttributeEffectModifierArray:
-		return effect.duration_in_seconds
+		return effect.duration

@@ -3,7 +3,7 @@
 @tool
 class_name StackDurationHook extends AttributeEffectHook
 
-## Determines how [member duration_in_seconds] is modified when an [ActiveAttributeEffect]
+## Determines how [member duration] is modified when an [ActiveAttributeEffect]
 ## is stacked. Only applicable if [member duration_type] is [enum DurationType.HAS_DURATION].
 enum Mode {
 	## Does nothing on stacking.
