@@ -5,6 +5,7 @@ extends Node
 var tick_started: int
 
 func _ready():
+	
 	tick_started = Time.get_ticks_usec()
 	# Connect value signals
 	health_attribute.monitor_current_value_changed.connect(_monitor_current_value_changed)

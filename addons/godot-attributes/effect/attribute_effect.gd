@@ -156,6 +156,7 @@ enum DurationType {
 		return apply_on_expire if can_apply_on_expire() else false
 
 @export_group("Apply Limit")
+## TODO RESUME HERE WITH FEATURES
 
 ## If true, [member apply_limit_amount] is the maximum amount of times an effect
 ## can apply. If the limit is hit, the effect is removed immediately.

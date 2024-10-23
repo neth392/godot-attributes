@@ -23,17 +23,17 @@ func _get_property_name() -> StringName:
 	return &""
 
 
-## Returns the default value when the feature can't be configured.
-func _get_default_value() -> Variant:
-	assert(false, "_get_requirements_string not implemented")
-	return null
-
-
 ## Returns an array of property names of other features this feature depends on.
 ## For use in sorting the internal feature array.
 func _get_depends_on() -> Array[StringName]:
 	assert(false, "_get_depends_on not implemented")
 	return []
+
+
+## Returns the default value when needed by the editor for an invalid value.
+func _get_default_value(effect: AttributeEffect) -> Variant:
+	assert(false, "_get_requirements_string not implemented")
+	return null
 
 
 ## Returns whether or not to show this feature in the editor inspector. Optional,
@@ -42,13 +42,19 @@ func _show_in_editor(effect: AttributeEffect) -> bool:
 	return true
 
 
-## Allows overriding the property.hint_string in _validate_property. Optional.
+## Returns whether or not to make this property read only in the editor inspector. Optional,
+## retunrs false by default.
+func _make_read_only(effect: AttributeEffect) -> bool:
+	return false
+
+
+## Allows overriding the property.hint_string in _validate_property. Optional,
+## returns [param hint_string] by default.
 func _override_hint_string(effect: AttributeEffect, hint_string: String) -> String:
 	return hint_string
 
 
-## Returns true if the [param effect]'s requirements are met for this feature to be
-## configurable, false if not.
+## Returns true if the [param value] meets the [param effect]'s requirements, false if not.
 func _meets_requirements(value: Variant, effect: AttributeEffect) -> bool:
 	assert(false, "_meets_requirements not implemented")
 	return false

@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://dso5oqxvaguma"]
+
+[ext_resource type="Script" path="res://dev_testing/test_no_attribute.gd" id="1_dd44q"]
+
+[node name="TestNoAttribute" type="Node"]
+script = ExtResource("1_dd44q")
