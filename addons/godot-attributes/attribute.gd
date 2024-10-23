@@ -300,12 +300,6 @@ func _ready() -> void:
 	_actives = ActiveAttributeEffectCluster.new(same_priority_sorting_method)
 	_current_value = _validate_value(_base_value, _current_value_validators)
 	
-	## Find & set history
-	#for child: Node in get_children():
-		#if child is AttributeHistory:
-			#_history = child
-			#break
-	
 	# Handle default effects
 	if allow_effects && !default_effects.is_empty():
 		if defer_default_effects:
@@ -367,15 +361,6 @@ func _get_configuration_warnings() -> PackedStringArray:
 					warnings.append("Sibling Attribute (%s) has the same ID" % child.name)
 	if default_effects.has(null):
 		warnings.append("_default_effects has a null element")
-	
-	var has_history: bool = false
-	for child: Node in get_children():
-		if child is AttributeHistory:
-			if has_history:
-				warnings.append("Multiple AttributeHistory children detected")
-				break
-			else:
-				has_history = true
 	
 	if _base_value_validators.has(null):
 		warnings.append("_base_value_validators has a null element")
@@ -1052,10 +1037,6 @@ func _apply_permanent_active(active: ActiveAttributeEffect, current_tick: int, e
 	
 	# Set tick last applied
 	active._tick_last_applied = current_tick
-	
-	## Add to history - TODO reimplement
-	#if has_history() && active.get_effect().should_log_history():
-		#_history._add_to_history(active) 
 	
 	_set_base_value_pre_validated(active._last_final_attribute_value, event)
 	

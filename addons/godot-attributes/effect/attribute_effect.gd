@@ -95,16 +95,28 @@ enum DurationType {
 
 ## If true, [signal Attribute.effect_added] will be emitted every time an
 ## [ActiveAttributeEffect] of this effect is added to an [Attribute].
-@export var _emit_added_signal: bool = false
+@export var emit_added_signal: bool = false:
+	set(value):
+		assert(Engine.is_editor_hint() || can_emit_added_signal() || !emit_added_signal,
+		"This type of effect can not emit the added signal")
+		emit_added_signal = value
 
 ## If true, [signal Attribute.effect_applied] will be emitted every time an
 ## [ActiveAttributeEffect] of this effect is successfully applied on an [Attribute].
 ## [br]NOTE: ONLY AVAILABLE FOR [enum Type.PERMANENT] as TEMPORARY effects are not reliably applied.
-@export var _emit_applied_signal: bool = false
+@export var emit_applied_signal: bool = false:
+	set(value):
+		assert(Engine.is_editor_hint() || can_emit_applied_signal() || !emit_applied_signal,
+		"This type of effect can not emit the applied signal")
+		emit_applied_signal = value
 
 ## If true, [signal Attribute.effect_removed] will be emitted every time an
 ## [ActiveAttributeEffect] of this effect is removed from an [Attribute].
-@export var _emit_removed_signal: bool = false
+@export var emit_removed_signal: bool = false:
+	set(value):
+		assert(Engine.is_editor_hint() || can_emit_removed_signal() || !emit_removed_signal,
+		"This type of effect can not emit the removed signal")
+		emit_removed_signal = value
 
 @export_group("Duration")
 
@@ -191,12 +203,6 @@ enum DurationType {
 			return
 		stack_mode = _value
 		notify_property_list_changed()
-
-@export_group("Attribute History")
-
-## If true, anytime this effect is applied to an [Attribute] it is registered
-## in that attribute's [AttributeHistory] if one exists.
-@export var _log_history: bool = false
 
 @export_group("Conditions")
 
@@ -324,17 +330,17 @@ func _validate_property(property: Dictionary) -> void:
 			_no_editor(property)
 		return
 	
-	if property.name == "_emit_applied_signal":
+	if property.name == "emit_applied_signal":
 		if !can_emit_applied_signal():
 			_no_editor(property)
 		return
 	
-	if property.name == "_emit_added_signal":
+	if property.name == "emit_added_signal":
 		if !can_emit_added_signal():
 			_no_editor(property)
 		return
 	
-	if property.name == "_emit_removed_signal":
+	if property.name == "emit_removed_signal":
 		if !can_emit_removed_signal():
 			_no_editor(property)
 		return
@@ -381,11 +387,6 @@ func _validate_property(property: Dictionary) -> void:
 	
 	if property.name == "stack_mode":
 		if is_instant():
-			_no_editor(property)
-		return
-	
-	if property.name == "_log_history":
-		if !can_log_history():
 			_no_editor(property)
 		return
 	
@@ -642,7 +643,7 @@ func can_emit_added_signal() -> bool:
 ## Whether or not this effect should cause [signal Attriubte.effect_added] to be
 ## emitted when an active effect of this effect is added.
 func should_emit_added_signal() -> bool:
-	return can_emit_added_signal() && _emit_added_signal
+	return can_emit_added_signal() && emit_added_signal
 
 
 ## Whether or not this effect can emit [signal Attribute.effect_applied].
@@ -653,7 +654,7 @@ func can_emit_applied_signal() -> bool:
 ## Whether or not this effect should cause [signal Attriubte.effect_applied] to be
 ## emitted when an active effect of this effect is applied.
 func should_emit_applied_signal() -> bool:
-	return can_emit_applied_signal() && _emit_applied_signal
+	return can_emit_applied_signal() && emit_applied_signal
 
 
 ## Whether or not this effect can emit [signal Attribute.effect_removed].
@@ -664,7 +665,7 @@ func can_emit_removed_signal() -> bool:
 ## Whether or not this effect should cause [signal Attriubte.effect_removed] to be
 ## emitted when an active effect of this effect is removed.
 func should_emit_removed_signal() -> bool:
-	return can_emit_removed_signal() && _emit_removed_signal
+	return can_emit_removed_signal() && emit_removed_signal
 
 
 ## Whether or not this effect supports [member apply_on_expire]
@@ -711,16 +712,6 @@ func has_duration() -> bool:
 ## Returns true if this effect has a [member period].
 func has_period() -> bool:
 	return type == Type.PERMANENT && !is_instant()
-
-
-## Returns true if this effect supports [member _log_history].
-func can_log_history() -> bool:
-	return type == Type.PERMANENT
-
-
-## Returns true if this effect's applications should be logged in an [AttributeHistory].
-func should_log_history() -> bool:
-	return can_log_history() && _log_history
 
 
 ## If this effect is stackable.
