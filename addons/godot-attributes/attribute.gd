@@ -787,7 +787,7 @@ func add_active(active: ActiveAttributeEffect) -> void:
 	# Run hooks & emit signal
 	_in_monitor_signal_or_hook = true
 	_run_hooks(AttributeEffectHook._Function.AFTER_ACTIVE_ADDED, active, event)
-	if active.get_effect().should_emit_added_signal():
+	if active.get_effect().emit_added_signal:
 		monitor_active_added.emit(active)
 	_in_monitor_signal_or_hook = false
 	
@@ -968,7 +968,7 @@ func _remove_active(active: ActiveAttributeEffect, event: AttributeEvent) -> voi
 	_in_monitor_signal_or_hook = true
 	_run_hooks(AttributeEffectHook._Function.AFTER_ACTIVE_REMOVED, active, event)
 	# Emit monitor signal
-	if active.get_effect().should_emit_removed_signal():
+	if active.get_effect().emit_removed_signal:
 		monitor_active_removed.emit(active)
 	_in_monitor_signal_or_hook = false
 	
@@ -1044,7 +1044,7 @@ func _apply_permanent_active(active: ActiveAttributeEffect, current_tick: int, e
 	# Run hooks
 	_run_hooks(AttributeEffectHook._Function.AFTER_ACTIVE_APPLIED, active, event)
 	# Emit signal
-	if active.get_effect().should_emit_applied_signal():
+	if active.get_effect().emit_applied_signal:
 		monitor_active_applied.emit(active)
 	_in_monitor_signal_or_hook = false
 

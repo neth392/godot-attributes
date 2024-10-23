@@ -97,26 +97,32 @@ enum DurationType {
 ## [ActiveAttributeEffect] of this effect is added to an [Attribute].
 @export var emit_added_signal: bool = false:
 	set(value):
-		assert(Engine.is_editor_hint() || can_emit_added_signal() || !emit_added_signal,
+		assert(can_emit_added_signal() || !emit_added_signal,
 		"This type of effect can not emit the added signal")
 		emit_added_signal = value
+	get():
+		return emit_added_signal if can_emit_added_signal() else false
 
 ## If true, [signal Attribute.effect_applied] will be emitted every time an
 ## [ActiveAttributeEffect] of this effect is successfully applied on an [Attribute].
 ## [br]NOTE: ONLY AVAILABLE FOR [enum Type.PERMANENT] as TEMPORARY effects are not reliably applied.
 @export var emit_applied_signal: bool = false:
 	set(value):
-		assert(Engine.is_editor_hint() || can_emit_applied_signal() || !emit_applied_signal,
+		assert(can_emit_applied_signal() || !emit_applied_signal,
 		"This type of effect can not emit the applied signal")
 		emit_applied_signal = value
+	get():
+		return emit_applied_signal if can_emit_applied_signal() else false
 
 ## If true, [signal Attribute.effect_removed] will be emitted every time an
 ## [ActiveAttributeEffect] of this effect is removed from an [Attribute].
 @export var emit_removed_signal: bool = false:
 	set(value):
-		assert(Engine.is_editor_hint() || can_emit_removed_signal() || !emit_removed_signal,
+		assert(can_emit_removed_signal() || !emit_removed_signal,
 		"This type of effect can not emit the removed signal")
 		emit_removed_signal = value
+	get():
+		return emit_removed_signal if can_emit_removed_signal() else false
 
 @export_group("Duration")
 
@@ -140,12 +146,14 @@ enum DurationType {
 
 ## If the effect should automatically be applied when it's duration expires.
 ## [br]NOTE: Only available for [enum Type.PERMANENT] effects.
-@export var _apply_on_expire: bool = false:
+@export var apply_on_expire: bool = false:
 	set(_value):
-		assert(!_value || can_apply_on_expire(), "_apply_on_expire can not be true when " +\
+		assert(!_value || can_apply_on_expire(), "apply_on_expire can not be true when " +\
 		"duration_type != HAS_DURATION or when type != PERKMANENT")
-		_apply_on_expire = _value
+		apply_on_expire = _value
 		notify_property_list_changed()
+	get():
+		return apply_on_expire if can_apply_on_expire() else false
 
 @export_group("Apply Limit")
 
@@ -345,10 +353,10 @@ func _validate_property(property: Dictionary) -> void:
 			_no_editor(property)
 		return
 	
-	if property.name == "duration_type":
-		var exclude: Array = [] if can_be_instant() else [DurationType.INSTANT]
-		property.hint_string = _format_enum(DurationType, exclude)
-		return
+	#if property.name == "duration_type":
+		#var exclude: Array = [] if can_be_instant() else [DurationType.INSTANT]
+		#property.hint_string = _format_enum(DurationType, exclude)
+		#return
 	
 	if property.name == "duration":
 		if !has_duration():
@@ -381,7 +389,7 @@ func _validate_property(property: Dictionary) -> void:
 		return
 	
 	if property.name == "_apply_on_expire_if_period_is_zero":
-		if !can_apply_on_expire_if_period_is_zero() || is_apply_on_expire():
+		if !can_apply_on_expire_if_period_is_zero():
 			_no_editor(property)
 		return
 	
@@ -441,17 +449,6 @@ func _validate_property(property: Dictionary) -> void:
 ## Helper method for _validate_property.
 func _no_editor(property: Dictionary) -> void:
 	property.usage = PROPERTY_USAGE_STORAGE
-
-
-## Helper method for _validate_property.
-func _format_enum(_enum: Dictionary, exclude: Array) -> String:
-	var hint_string: Array[String] = []
-	for name: String in _enum.keys():
-		var value: int = _enum[name]
-		if exclude.has(value):
-			continue
-		hint_string.append("%s:%s" % [name.to_camel_case().capitalize(), value])
-	return ",".join(hint_string)
 
 
 ## Adds the [param hook] from this effect. An assertion is in place to prevent
@@ -640,21 +637,9 @@ func can_emit_added_signal() -> bool:
 	return duration_type != DurationType.INSTANT
 
 
-## Whether or not this effect should cause [signal Attriubte.effect_added] to be
-## emitted when an active effect of this effect is added.
-func should_emit_added_signal() -> bool:
-	return can_emit_added_signal() && emit_added_signal
-
-
 ## Whether or not this effect can emit [signal Attribute.effect_applied].
 func can_emit_applied_signal() -> bool:
 	return type == Type.PERMANENT
-
-
-## Whether or not this effect should cause [signal Attriubte.effect_applied] to be
-## emitted when an active effect of this effect is applied.
-func should_emit_applied_signal() -> bool:
-	return can_emit_applied_signal() && emit_applied_signal
 
 
 ## Whether or not this effect can emit [signal Attribute.effect_removed].
@@ -662,34 +647,14 @@ func can_emit_removed_signal() -> bool:
 	return duration_type != DurationType.INSTANT
 
 
-## Whether or not this effect should cause [signal Attriubte.effect_removed] to be
-## emitted when an active effect of this effect is removed.
-func should_emit_removed_signal() -> bool:
-	return can_emit_removed_signal() && emit_removed_signal
-
-
 ## Whether or not this effect supports [member apply_on_expire]
 func can_apply_on_expire() -> bool:
 	return duration_type == DurationType.HAS_DURATION && type == Type.PERMANENT
 
 
-## Whether or not this effect should automatically apply on the same frame that it expires.
-## Returns true if [method can_apply_on_expire] and [member _apply_on_expire] are both true.
-func is_apply_on_expire() -> bool:
-	return can_apply_on_expire() && _apply_on_expire
-
-
 ## Whether or not this effect supports [member _apply_on_expire_if_period_is_zero]
 func can_apply_on_expire_if_period_is_zero() -> bool:
-	return has_period()
-
-
-## Whether or not this effect should automatically apply on the same frame that it expires
-## ONLY IF the remaining period is <= 0.0
-## Returns true if [method can_apply_on_expire_if_period_is_zero] and 
-## [member _apply_on_expire_if_period_is_zero] are both true.
-func is_apply_on_expire_if_period_is_zero() -> bool:
-	return can_apply_on_expire_if_period_is_zero() && _apply_on_expire_if_period_is_zero
+	return !apply_on_expire && has_period()
 
 
 ## Whether or not this effect supports [member _apply_limit] & [member apply_limit_amount]
