@@ -14,7 +14,7 @@ func _get_default_value(effect: AttributeEffect) -> Variant:
 	return false
 
 
-func _meets_requirements(value: Variant, effect: AttributeEffect) -> bool:
+func _value_meets_requirements(value: Variant, effect: AttributeEffect) -> bool:
 	return value == false || effect.duration_type != AttributeEffect.DurationType.INSTANT
 
 

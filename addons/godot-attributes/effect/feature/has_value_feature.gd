@@ -22,7 +22,7 @@ func _make_read_only(effect: AttributeEffect) -> bool:
 	return effect.type == AttributeEffect.Type.PERMANENT
 
 
-func _meets_requirements(value: Variant, effect: AttributeEffect) -> bool:
+func _value_meets_requirements(value: Variant, effect: AttributeEffect) -> bool:
 	return value == true || effect.type == AttributeEffect.Type.TEMPORARY
 
 

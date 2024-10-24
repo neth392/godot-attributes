@@ -18,7 +18,7 @@ func _show_in_editor(effect: AttributeEffect) -> bool:
 	return effect.has_value
 
 
-func _meets_requirements(value: Variant, effect: AttributeEffect) -> bool:
+func _value_meets_requirements(value: Variant, effect: AttributeEffect) -> bool:
 	return value != null if effect.has_value else effect.value == null
 
 

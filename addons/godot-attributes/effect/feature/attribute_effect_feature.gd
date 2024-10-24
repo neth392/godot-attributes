@@ -1,10 +1,9 @@
-## Represents a feature in an [AttributeEffect] of which certain requirements
-## must be met to configure this feature.
+## Represents a property ("feature") in [AttributeEffect]. Contains the logic for each individual
+## property, separating it from the spaghetti mess that [AttributeEffect] once was.
 @tool
 class_name AttributeEffectFeature extends Object
 
 const NO_REQUIREMENTS: String = "NO REQUIREMENTS"
-
 
 ## Helper method for _validate_property.
 func format_enum(_enum: Dictionary, exclude: Array) -> String:
@@ -55,8 +54,8 @@ func _override_hint_string(effect: AttributeEffect, hint_string: String) -> Stri
 
 
 ## Returns true if the [param value] meets the [param effect]'s requirements, false if not.
-func _meets_requirements(value: Variant, effect: AttributeEffect) -> bool:
-	assert(false, "_meets_requirements not implemented")
+func _value_meets_requirements(value: Variant, effect: AttributeEffect) -> bool:
+	assert(false, "_value_meets_requirements not implemented")
 	return false
 
 

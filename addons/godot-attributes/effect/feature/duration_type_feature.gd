@@ -16,14 +16,12 @@ func _get_default_value(effect: AttributeEffect) -> Variant:
 
 func _override_hint_string(effect: AttributeEffect, hint_string: String) -> String:
 	# Hide INSTANT in editor when not feasible
-	if !_meets_requirements(AttributeEffect.DurationType.INSTANT, effect):
+	if !_value_meets_requirements(AttributeEffect.DurationType.INSTANT, effect):
 		return format_enum(AttributeEffect.DurationType, [AttributeEffect.DurationType.INSTANT])
 	return hint_string
 
 
-func _meets_requirements(value: Variant, effect: AttributeEffect) -> bool:
-	assert(value is AttributeEffect.DurationType, "duration_type value must be " + \
-	"of type AttributeEffect.DurationType")
+func _value_meets_requirements(value: Variant, effect: AttributeEffect) -> bool:
 	if value == AttributeEffect.DurationType.INSTANT:
 		return effect.type == AttributeEffect.Type.PERMANENT
 	else:

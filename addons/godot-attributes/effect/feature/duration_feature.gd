@@ -18,8 +18,8 @@ func _show_in_editor(effect: AttributeEffect) -> bool:
 	return _has_duration(effect)
 
 
-func _meets_requirements(value: Variant, effect: AttributeEffect) -> bool:
-	return value != null if _has_duration(effect) else effect.value == null
+func _value_meets_requirements(value: Variant, effect: AttributeEffect) -> bool:
+	return (value != null) == _has_duration(effect)
 
 
 func _get_requirements_string(value: Variant) -> String:

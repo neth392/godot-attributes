@@ -1,4 +1,5 @@
-## Manages all [AttributeEffectFeature]s.
+## Manages all [AttributeEffectFeature]s, providing the interface to interact with them across
+## the project.
 @tool
 class_name AttributeEffectFeatureManager extends Object
 
@@ -7,16 +8,35 @@ static var _features_by_property: Dictionary[StringName, AttributeEffectFeature]
 
 static func _init() -> void:
 	# Load features
+	_features.append(preload("./add_blocker_feature.gd").new())
+	_features.append(preload("./add_blockers_feature.gd").new())
+	_features.append(preload("./add_conditions_feature.gd").new())
+	_features.append(preload("./apply_blocker_feature.gd").new())
+	_features.append(preload("./apply_blockers_feature.gd").new())
+	_features.append(preload("./apply_conditions_feature.gd").new())
+	_features.append(preload("./apply_limit_amount_feature.gd").new())
+	_features.append(preload("./apply_limit_feature.gd").new())
 	_features.append(preload("./apply_on_expire_feature.gd").new())
+	_features.append(preload("./apply_on_expire_if_period_is_zero_feature.gd").new())
+	_features.append(preload("./count_apply_if_blocked_feature.gd").new())
 	_features.append(preload("./duration_feature.gd").new())
+	_features.append(preload("./duration_modifiers_feature.gd").new())
+	_features.append(preload("./duration_modifier_feature.gd").new())
 	_features.append(preload("./duration_type_feature.gd").new())
 	_features.append(preload("./emit_added_signal_feature.gd").new())
 	_features.append(preload("./emit_applied_signal_feature.gd").new())
 	_features.append(preload("./emit_removed_signal_feature.gd").new())
 	_features.append(preload("./has_value_feature.gd").new())
+	_features.append(preload("./initial_period_feature.gd").new())
+	_features.append(preload("./period_feature.gd").new())
+	_features.append(preload("./period_modifiers_feature.gd").new())
+	_features.append(preload("./period_modifier_feature.gd").new())
+	_features.append(preload("./stack_mode_feature.gd").new())
 	_features.append(preload("./type_feature.gd").new())
 	_features.append(preload("./value_calculator_feature.gd").new())
 	_features.append(preload("./value_feature.gd").new())
+	_features.append(preload("./value_modifiers_feature.gd").new())
+	_features.append(preload("./value_modifier_feature.gd").new())
 	
 	# Add to dictionary for quicker lookups later
 	for feature: AttributeEffectFeature in _features:

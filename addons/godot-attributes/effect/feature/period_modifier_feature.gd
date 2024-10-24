@@ -3,7 +3,7 @@ extends AttributeEffectFeature
 
 
 func _get_property_name() -> StringName:
-	return &"emit_added_signal"
+	return &"period_modifier"
 
 
 func _get_depends_on() -> Array[StringName]:
@@ -23,6 +23,7 @@ func _value_meets_requirements(value: Variant, effect: AttributeEffect) -> bool:
 
 
 func _get_requirements_string(value: Variant) -> String:
-	if value == true:
+	if value == false:
+		return NO_REQUIREMENTS
+	else:
 		return "duration_type != AttributeEffect.DurationType.INSTANT"
-	return NO_REQUIREMENTS
