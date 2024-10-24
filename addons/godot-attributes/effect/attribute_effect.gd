@@ -65,15 +65,9 @@ enum DurationType {
 ## The type of effect, see [enum AttributeEffect.Type]
 @export var type: Type = Type.PERMANENT:
 	set(_value):
-		type = _value
-		if type != Type.PERMANENT && duration_type == DurationType.INSTANT:
-			# INSTANT not compatible with TEMPORARY or BLOCKER
-			duration_type = DurationType.INFINITE
-		if must_have_value() && !has_value:
-			has_value = true
-		if has_period() && period == null:
-			period = AttributeEffectValue.new()
-		notify_property_list_changed()
+		if AttributeEffectFeatureManager.validate_user_set_value(self, &"type", _value):
+			type = _value
+			AttributeEffectFeatureManager.notify_value_changed(self, &"type")
 
 ## If true, this effect must have a [member value] which applies to an [Attribute].
 @export var has_value: bool:
@@ -329,127 +323,7 @@ func _init(_id: StringName = "") -> void:
 
 
 func _validate_property(property: Dictionary) -> void:
-	if property.name == "has_value":
-		if must_have_value():
-			property.usage |= PROPERTY_USAGE_READ_ONLY
-		return
-	
-	if property.name == "value" || property.name == "value_calculator":
-		if !has_value:
-			_no_editor(property)
-		return
-	
-	if property.name == "emit_applied_signal":
-		if !can_emit_applied_signal():
-			_no_editor(property)
-		return
-	
-	if property.name == "emit_added_signal":
-		if !can_emit_added_signal():
-			_no_editor(property)
-		return
-	
-	if property.name == "emit_removed_signal":
-		if !can_emit_removed_signal():
-			_no_editor(property)
-		return
-	
-	#if property.name == "duration_type":
-		#var exclude: Array = [] if can_be_instant() else [DurationType.INSTANT]
-		#property.hint_string = _format_enum(DurationType, exclude)
-		#return
-	
-	if property.name == "duration":
-		if !has_duration():
-			_no_editor(property)
-		return
-	
-	if property.name == "_apply_on_expire":
-		if !can_apply_on_expire():
-			_no_editor(property)
-		return
-	
-	if property.name == "apply_limit":
-		if !can_have_apply_limit():
-			_no_editor(property)
-		return
-	
-	if property.name == "apply_limit_amount":
-		if !can_have_apply_limit() || !apply_limit:
-			_no_editor(property)
-		return
-	
-	if property.name == "count_apply_if_blocked":
-		if !can_have_apply_limit() || !apply_limit:
-			_no_editor(property)
-		return
-	
-	if property.name == "period" || property.name == "initial_period":
-		if !has_period():
-			_no_editor(property)
-		return
-	
-	if property.name == "apply_on_expire_if_period_is_zero":
-		if !can_apply_on_expire_if_period_is_zero():
-			_no_editor(property)
-		return
-	
-	if property.name == "stack_mode":
-		if is_instant():
-			_no_editor(property)
-		return
-	
-	if property.name == "add_conditions":
-		if !has_add_conditions():
-			_no_editor(property)
-		return
-	
-	if property.name == "apply_conditions":
-		if !has_apply_conditions():
-			_no_editor(property)
-		return
-	
-	if property.name == "add_blocker" || property.name == "apply_blocker":
-		if !can_be_blocker():
-			_no_editor(property)
-		return
-	
-	if property.name == "add_blockers":
-		if !can_be_blocker() ||  !is_add_blocker():
-			_no_editor(property)
-		return
-	
-	if property.name == "apply_blockers":
-		if !can_be_blocker() || !is_apply_blocker():
-			_no_editor(property)
-		return
-	
-	if property.name == "value_modifier" \
-	or property.name == "period_modifier" \
-	or property.name == "duration_modifier":
-		if !can_be_modifier():
-			_no_editor(property)
-		return
-	
-	if property.name == "value_modifiers":
-		if !can_be_modifier() || !is_value_modifier():
-			_no_editor(property)
-		return
-	
-	if property.name == "period_modifiers":
-		if !can_be_modifier() || !is_period_modifier():
-			_no_editor(property)
-		return
-	
-	if property.name == "duration_modifiers":
-		if !can_be_modifier() || !is_duration_modifier():
-			_no_editor(property)
-		return
-
-
-## Helper method for _validate_property.
-func _no_editor(property: Dictionary) -> void:
-	property.usage = PROPERTY_USAGE_STORAGE
+	AttributeEffectFeatureManager.validate_property(self, property)
 
 
 ## Adds the [param hook] from this effect. An assertion is in place to prevent
@@ -556,7 +430,7 @@ func can_be_instant() -> bool:
 ## Returns true if this effect supports [member duration_type] of 
 ## [enum DurationType.INSTANT] and is currently INSTANT.
 func is_instant() -> bool:
-	return can_be_instant() && duration_type == DurationType.INSTANT
+	return duration_type == DurationType.INSTANT
 
 
 ## Helper function returning true if the effect's type is 
@@ -581,20 +455,6 @@ func is_any_blocker() -> bool:
 	return add_blocker || apply_blocker
 
 
-## If true, this effect can utilize [member add_blockers] which
-## are sets of [AttributeEffectCondition]s that can block other [AttributeEffect]s
-## from being added to any [Attribute] this effect is currently added to.
-func is_add_blocker() -> bool:
-	return add_blocker
-
-
-## If true, this effect can utilize [member apply_blockers] which
-## are sets of [AttributeEffectCondition]s that can block other [AttributeEffect]s
-## from applying to any [Attribute] this effect is currently added to.func is_apply_blocker() -> bool:
-func is_apply_blocker() -> bool:
-	return apply_blocker
-
-
 ## Returns true if this effect can be a modifier of value, duration, or period.
 func can_be_modifier() -> bool:
 	return !is_instant()
@@ -603,34 +463,6 @@ func can_be_modifier() -> bool:
 ## Returns true if this effect is a value, duration, or period modifier.
 func is_any_modifier() -> bool:
 	return value_modifier || duration_modifier || period_modifier
-
-
-## If true, this effect has [member value_modifiers] which once applied to an [Attribute] will
-## modify the value of other [AttributeEffect]s. Only applicable for non-instant effects.
-func is_value_modifier() -> bool:
-	return value_modifier
-
-
-## If true, this effect has [member value_modifiers] which once applied to an [Attribute] will
-## modify the duration of other [AttributeEffect]s. Only applicable for non-instant effects.
-func is_duration_modifier() -> bool:
-	return duration_modifier
-
-
-## If true, this effect has [member value_modifiers] which once applied to an [Attribute] will
-## modify the period of other [AttributeEffect]s. Only applicable for non-instant effects.
-func is_period_modifier() -> bool:
-	return period_modifier
-
-
-## Whether or not this effect supports [member add_conditions]
-func has_add_conditions() -> bool:
-	return duration_type != DurationType.INSTANT
-
-
-## Whether or not this effect supports [member apply_conditions]
-func has_apply_conditions() -> bool:
-	return has_value
 
 
 ## Whether or not this effect can emit [signal Attribute.effect_added].
@@ -661,13 +493,6 @@ func can_apply_on_expire_if_period_is_zero() -> bool:
 ## Whether or not this effect supports [member apply_limit] & [member apply_limit_amount]
 func can_have_apply_limit() -> bool:
 	return duration_type != DurationType.INSTANT && type == Type.PERMANENT
-
-
-## Whether or not this effect has an [member apply_limit_amount] (that maximum number
-## of times it can apply before being instantly removed)
-## Returns true if [method can_have_apply_limit] and [member apply_limit] are both true.
-func has_apply_limit() -> bool:
-	return can_have_apply_limit() && apply_limit
 
 
 ## Returns true if this effect has a [member duration].

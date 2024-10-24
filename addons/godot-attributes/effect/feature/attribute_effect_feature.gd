@@ -63,3 +63,7 @@ func _value_meets_requirements(value: Variant, effect: AttributeEffect) -> bool:
 func _get_requirements_string(value: Variant) -> String:
 	assert(false, "_get_requirements_string not implemented")
 	return ""
+
+
+func _to_string() -> String:
+	return "AttributeEffectFeature(property_name=%s)" % _get_property_name()

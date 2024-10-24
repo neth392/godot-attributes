@@ -7,7 +7,6 @@ static var _features: Array[AttributeEffectFeature]
 static var _features_by_property: Dictionary[StringName, AttributeEffectFeature]
 
 static func _init() -> void:
-	# Load features
 	_features.append(preload("./add_blocker_feature.gd").new())
 	_features.append(preload("./add_blockers_feature.gd").new())
 	_features.append(preload("./add_conditions_feature.gd").new())
@@ -60,3 +59,40 @@ static func _init() -> void:
 		# A goes before B if B depends on A
 		return b._get_depends_on().has(a._get_property_name())
 	)
+
+
+## Validates the property (same as [method _validate_property]) but must be manually called
+## by other [method _validate_property] implementations.
+static func validate_property(effect: AttributeEffect, property: Dictionary) -> void:
+	assert(_features_by_property.has(property.name), ("property (%s) not found in " + \
+	"_features_by_property") % property.name)
+	var feature: AttributeEffectFeature = _features_by_property[property.name]
+	
+	# Editor visibility
+	if !feature._show_in_editor(effect):
+		property.usage = PROPERTY_USAGE_NO_EDITOR
+	elif feature._make_read_only(effect):
+		property.usage |= PROPERTY_USAGE_READ_ONLY
+	
+	# Hint String
+	property.hint_string = feature._override_hint_string(effect, property.hint_string)
+
+
+static func validate_user_set_value(effect: AttributeEffect, property_name: StringName, value: Variant) -> bool:
+	assert(_features.has(property_name), "no feature found for property_name %s" % property_name)
+	# TODO is this needed in the editor?
+	
+	var feature: AttributeEffectFeature = _features_by_property[property_name]
+	
+	if !feature._value_meets_requirements(value, effect):
+		var requirements: String = feature._get_requirements_string(value)
+		push_warning(("AttributeEffect(id=%s) does not meet the requirements to set property (%s) " + \
+		"to value (%s), property will not be set. Requirements: %s") \
+		% [effect.id, property_name, value, requirements])
+		return false
+	
+	return true
+
+
+static func notify_value_changed(effect: AttributeEffect, property_name: StringName) -> void:
+	pass
