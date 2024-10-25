@@ -63,129 +63,147 @@ enum DurationType {
 @export var tags: Array[StringName]
 
 ## The type of effect, see [enum AttributeEffect.Type]
-@export var type: Type = Type.PERMANENT:
+@export var type: Type = \
+AttributeEffectFeatureManager.i().get_default_value(self, &"type"):
 	set(_value):
-		if AttributeEffectFeatureManager.validate_user_set_value(self, &"type", _value):
+		if AttributeEffectFeatureManager.i().validate_user_set_value(self, &"type", _value):
 			type = _value
-			AttributeEffectFeatureManager.notify_value_changed(self, &"type")
+			AttributeEffectFeatureManager.i().notify_value_changed(self, &"type")
 
 ## If true, this effect must have a [member value] which applies to an [Attribute].
-@export var has_value: bool:
+@export var has_value: bool = \
+AttributeEffectFeatureManager.i().get_default_value(self, &"has_value"):
 	set(_value):
-		has_value = _value
-		if has_value && value == null:
-			value = AttributeEffectValue.new()
-		assert(!must_have_value() || has_value, "must_have_value() is true but has_value is false")
-		notify_property_list_changed()
+		if AttributeEffectFeatureManager.i().validate_user_set_value(self, &"has_value", _value):
+			has_value = _value
+			AttributeEffectFeatureManager.i().notify_value_changed(self, &"has_value")
 
 ## The value that is applied to an [Attribute]'s value (base or current, based on
 ## [member type]).
-@export var value: AttributeEffectValue
+@export var value: AttributeEffectValue = \
+AttributeEffectFeatureManager.i().get_default_value(self, &"value"):
+	set(_value):
+		if AttributeEffectFeatureManager.i().validate_user_set_value(self, &"value", _value):
+			value = _value
+			AttributeEffectFeatureManager.i().notify_value_changed(self, &"value")
 
 ## Determines how the [member value] is applied to an [Attribute] (i.e. added, multiplied, etc).
-@export var value_calculator: AttributeEffectCalculator
+@export var value_calculator: AttributeEffectCalculator = \
+AttributeEffectFeatureManager.i().get_default_value(self, &"value_calculator"):
+	set(_value):
+		if AttributeEffectFeatureManager.i().validate_user_set_value(self, &"value_calculator", _value):
+			value_calculator = _value
+			AttributeEffectFeatureManager.i().notify_value_changed(self, &"value_calculator")
 
 @export_group("Signals")
 
 ## If true, [signal Attribute.effect_added] will be emitted every time an
 ## [ActiveAttributeEffect] of this effect is added to an [Attribute].
-@export var emit_added_signal: bool = false:
-	set(value):
-		assert(can_emit_added_signal() || !emit_added_signal,
-		"This type of effect can not emit the added signal")
-		emit_added_signal = value
-	get():
-		return emit_added_signal if can_emit_added_signal() else false
+@export var emit_added_signal: bool = \
+AttributeEffectFeatureManager.i().get_default_value(self, &"emit_added_signal"):
+	set(_value):
+		if AttributeEffectFeatureManager.i().validate_user_set_value(self, &"emit_added_signal", _value):
+			emit_added_signal = _value
+			AttributeEffectFeatureManager.i().notify_value_changed(self, &"emit_added_signal")
 
 ## If true, [signal Attribute.effect_applied] will be emitted every time an
 ## [ActiveAttributeEffect] of this effect is successfully applied on an [Attribute].
 ## [br]NOTE: ONLY AVAILABLE FOR [enum Type.PERMANENT] as TEMPORARY effects are not reliably applied.
-@export var emit_applied_signal: bool = false:
-	set(value):
-		assert(can_emit_applied_signal() || !emit_applied_signal,
-		"This type of effect can not emit the applied signal")
-		emit_applied_signal = value
-	get():
-		return emit_applied_signal if can_emit_applied_signal() else false
+@export var emit_applied_signal: bool = \
+AttributeEffectFeatureManager.i().get_default_value(self, &"emit_applied_signal"):
+	set(_value):
+		if AttributeEffectFeatureManager.i().validate_user_set_value(self, &"emit_applied_signal", _value):
+			emit_applied_signal = _value
+			AttributeEffectFeatureManager.i().notify_value_changed(self, &"emit_applied_signal")
 
 ## If true, [signal Attribute.effect_removed] will be emitted every time an
 ## [ActiveAttributeEffect] of this effect is removed from an [Attribute].
-@export var emit_removed_signal: bool = false:
-	set(value):
-		assert(can_emit_removed_signal() || !emit_removed_signal,
-		"This type of effect can not emit the removed signal")
-		emit_removed_signal = value
-	get():
-		return emit_removed_signal if can_emit_removed_signal() else false
+@export var emit_removed_signal: bool = \
+AttributeEffectFeatureManager.i().get_default_value(self, &"emit_removed_signal"):
+	set(_value):
+		if AttributeEffectFeatureManager.i().validate_user_set_value(self, &"emit_removed_signal", _value):
+			emit_removed_signal = _value
+			AttributeEffectFeatureManager.i().notify_value_changed(self, &"emit_removed_signal")
 
 @export_group("Duration")
 
 ## How long the effect lasts.
-@export var duration_type: DurationType:
+@export var duration_type: DurationType = \
+AttributeEffectFeatureManager.i().get_default_value(self, &"duration_type"):
 	set(_value):
-		assert(_value != DurationType.INSTANT || can_be_instant(), "duration_type can not" + \
-		"be INSTANT when type != PERMANENT")
-		if type == Type.TEMPORARY && _value == DurationType.INSTANT:
-			duration_type = DurationType.INFINITE
-			return
-		duration_type = _value
-		if has_duration() && duration == null:
-			duration = AttributeEffectValue.new()
-		if has_period() && period == null:
-			period = AttributeEffectValue.new()
-		notify_property_list_changed()
+		if AttributeEffectFeatureManager.i().validate_user_set_value(self, &"duration_type", _value):
+			duration_type = _value
+			AttributeEffectFeatureManager.i().notify_value_changed(self, &"duration_type")
 
 ## The amount of time in seconds this [AttributeEffect] lasts.
-@export var duration: AttributeEffectValue
+@export var duration: AttributeEffectValue = \
+AttributeEffectFeatureManager.i().get_default_value(self, &"duration"):
+	set(_value):
+		if AttributeEffectFeatureManager.i().validate_user_set_value(self, &"duration", _value):
+			duration = _value
+			AttributeEffectFeatureManager.i().notify_value_changed(self, &"duration")
 
 ## If the effect should automatically be applied when it's duration expires.
 ## [br]NOTE: Only available for [enum Type.PERMANENT] effects.
-@export var apply_on_expire: bool = false:
+@export var apply_on_expire: bool = \
+AttributeEffectFeatureManager.i().get_default_value(self, &"apply_on_expire"):
 	set(_value):
-		assert(!_value || can_apply_on_expire(), "apply_on_expire can not be true when " +\
-		"duration_type != HAS_DURATION or when type != PERKMANENT")
-		apply_on_expire = _value
-		notify_property_list_changed()
-	get():
-		return apply_on_expire if can_apply_on_expire() else false
+		if AttributeEffectFeatureManager.i().validate_user_set_value(self, &"apply_on_expire", _value):
+			apply_on_expire = _value
+			AttributeEffectFeatureManager.i().notify_value_changed(self, &"apply_on_expire")
 
 @export_group("Apply Limit")
-## TODO RESUME HERE WITH FEATURES
 
 ## If true, [member apply_limit_amount] is the maximum amount of times an effect
 ## can apply. If the limit is hit, the effect is removed immediately.
 ## [br]NOTE: Only available for [enum Type.PERMANENT] effects.
-@export var apply_limit: bool = false:
+@export var apply_limit: bool = \
+AttributeEffectFeatureManager.i().get_default_value(self, &"apply_limit"):
 	set(_value):
-		assert(!apply_limit || can_have_apply_limit(), "apply_limit can not be true when " +\
-		"duration_type == INSTANT or when type != PERMANENT")
-		apply_limit = _value
-		notify_property_list_changed()
+		if AttributeEffectFeatureManager.i().validate_user_set_value(self, &"apply_limit", _value):
+			apply_limit = _value
+			AttributeEffectFeatureManager.i().notify_value_changed(self, &"apply_limit")
 
 ## The maximum amount of times this effect can be applied to an [Attribute], inclusive. If this
 ## number is reached, the effect is then instantly removed from the [Attribute].
 ## [br]NOTE: Only available for [enum Type.PERMANENT] effects.
-@export_range(1, 100, 1, "or_greater", "hide_slider") var apply_limit_amount: int:
+@export_range(1, 100, 1, "or_greater", "hide_slider") var apply_limit_amount: int = \
+AttributeEffectFeatureManager.i().get_default_value(self, &"apply_limit_amount"):
 	set(_value):
-		if !Engine.is_editor_hint() && has_apply_limit():
-			assert(_value > 0, "apply_limit_amount must be > 0")
-		apply_limit_amount = _value
+		if AttributeEffectFeatureManager.i().validate_user_set_value(self, &"apply_limit_amount", _value):
+			apply_limit_amount = _value
+			AttributeEffectFeatureManager.i().notify_value_changed(self, &"apply_limit_amount")
 
 ## If true, whenever this effect's apply is blocked by an [AttributeEffectCondition],
 ## the internal apply count used in the apply limit system will still increment.
-@export var count_apply_if_blocked: bool = false
+@export var count_apply_if_blocked: bool = \
+AttributeEffectFeatureManager.i().get_default_value(self, &"count_apply_if_blocked"):
+	set(_value):
+		if AttributeEffectFeatureManager.i().validate_user_set_value(self, &"count_apply_if_blocked", _value):
+			count_apply_if_blocked = _value
+			AttributeEffectFeatureManager.i().notify_value_changed(self, &"count_apply_if_blocked")
 
 @export_group("Period")
 
 ## Amount of time, in seconds, between when this effect is applied to an [Attribute].
 ## [br]Zero or less means every frame.
 ## [br]NOTE: Only available for [enum Type.PERMANENT] effects.
-@export var period: AttributeEffectValue
+@export var period: AttributeEffectValue = \
+AttributeEffectFeatureManager.i().get_default_value(self, &"period"):
+	set(_value):
+		if AttributeEffectFeatureManager.i().validate_user_set_value(self, &"period", _value):
+			period = _value
+			AttributeEffectFeatureManager.i().notify_value_changed(self, &"period")
 
 ## If [member period] should apply as a "delay" between when this effect 
 ## is added to an [Attribute] and its first time applying.
 ## [br]NOTE: Only available for [enum Type.PERMANENT] effects.
-@export var initial_period: bool = false
+@export var initial_period: bool = \
+AttributeEffectFeatureManager.i().get_default_value(self, &"initial_period"):
+	set(_value):
+		if AttributeEffectFeatureManager.i().validate_user_set_value(self, &"initial_period", _value):
+			initial_period = _value
+			AttributeEffectFeatureManager.i().notify_value_changed(self, &"initial_period")
 
 ## For special edge cases, if true the effect will be applied on it's expiration if
 ## the remaining period has reached 0.0 at the same frame. If [member _apply_on_expire]
@@ -194,32 +212,65 @@ enum DurationType {
 ## will be applied when it expires as the remaining period for the next application
 ## will reach zero on the same frame.
 ## [br]NOTE: Only available for [enum Type.PERMANENT] effects.
-@export var apply_on_expire_if_period_is_zero: bool = false
+@export var apply_on_expire_if_period_is_zero: bool = \
+AttributeEffectFeatureManager.i().get_default_value(self, &"apply_on_expire_if_period_is_zero"):
+	set(_value):
+		if AttributeEffectFeatureManager.i().validate_user_set_value(self, 
+		&"apply_on_expire_if_period_is_zero", _value):
+			apply_on_expire_if_period_is_zero = _value
+			AttributeEffectFeatureManager.i().notify_value_changed(self, &"apply_on_expire_if_period_is_zero")
 
 @export_group("Stacking")
 
 ## The [StackMode] to use when duplicate [AttributeEffect]s are found.
-@export var stack_mode: StackMode:
+@export var stack_mode: StackMode = \
+AttributeEffectFeatureManager.i().get_default_value(self, &"stack_mode"):
 	set(_value):
-		if duration_type == DurationType.INSTANT && _value == StackMode.COMBINE:
-			stack_mode = StackMode.DENY
-			return
-		stack_mode = _value
-		notify_property_list_changed()
+		if AttributeEffectFeatureManager.i().validate_user_set_value(self, &"stack_mode", _value):
+			stack_mode = _value
+			AttributeEffectFeatureManager.i().notify_value_changed(self, &"stack_mode")
 
 @export_group("Conditions")
+
+## Whether or not this effect supports [member add_condition]s. Added for internal efficiency.
+@export var has_add_conditions: bool = \
+AttributeEffectFeatureManager.i().get_default_value(self, &"has_add_conditions"):
+	set(_value):
+		if AttributeEffectFeatureManager.i().validate_user_set_value(self, &"has_add_conditions", _value):
+			has_add_conditions = _value
+			AttributeEffectFeatureManager.i().notify_value_changed(self, &"has_add_conditions")
+
 
 ## All [AttributeEffectCondition]s that must be met for this effect to be
 ## added to an [Attribute]. This array can safely be directly modified or set.
 ##[br]NOTE: Not supported for INSTANT effects, as they are just applied & not added.
-@export var add_conditions: Array[AttributeEffectCondition]
+@export var add_conditions: Array[AttributeEffectCondition] = \
+AttributeEffectFeatureManager.i().get_default_value(self, &"add_conditions"):
+	set(_value):
+		if AttributeEffectFeatureManager.i().validate_user_set_value(self, &"add_conditions", _value):
+			add_conditions = _value
+			AttributeEffectFeatureManager.i().notify_value_changed(self, &"add_conditions")
+
+## Whether or not this effect supports [member apply_condition]s. Added for internal efficiency.
+@export var has_apply_conditions: bool = \
+AttributeEffectFeatureManager.i().get_default_value(self, &"has_apply_conditions"):
+	set(_value):
+		if AttributeEffectFeatureManager.i().validate_user_set_value(self, &"has_apply_conditions", _value):
+			has_apply_conditions = _value
+			AttributeEffectFeatureManager.i().notify_value_changed(self, &"has_apply_conditions")
+
 
 ## All [AttributeEffectCondition]s that must be met for this effect to be
 ## applied to an [Attribute]. This array can safely be directly modified or set.[br]
 ## [br]NOTE: When using with TEMPORARY effects, [method Attribute.update_current_value]
 ## will need to be called manually if a condition changes. That fucntion is only automatically
 ## called when an effect is added/removed or a PERMANENT effect is applied.
-@export var apply_conditions: Array[AttributeEffectCondition]
+@export var apply_conditions: Array[AttributeEffectCondition] = \
+AttributeEffectFeatureManager.i().get_default_value(self, &"apply_conditions"):
+	set(_value):
+		if AttributeEffectFeatureManager.i().validate_user_set_value(self, &"apply_conditions", _value):
+			apply_conditions = _value
+			AttributeEffectFeatureManager.i().notify_value_changed(self, &"apply_conditions")
 
 @export_group("Hooks")
 
@@ -241,66 +292,101 @@ enum DurationType {
 ## are sets of [AttributeEffectCondition]s that can block other [AttributeEffect]s
 ## from being added to any [Attribute] this effect is currently added to.
 ## Only applicable for non-instant effects.
-@export var add_blocker: bool = false:
-	set(value):
-		add_blocker = value
-		notify_property_list_changed()
+@export var add_blocker: bool = \
+AttributeEffectFeatureManager.i().get_default_value(self, &"add_blocker"):
+	set(_value):
+		if AttributeEffectFeatureManager.i().validate_user_set_value(self, &"add_blocker", _value):
+			add_blocker = _value
+			AttributeEffectFeatureManager.i().notify_value_changed(self, &"add_blocker")
 
 ## Blocks other [AttributeEffect]s from being added to an [Attribute] if they
 ## do NOT meet any of these conditions. Only used if [member add_blocker] is true.
-@export var add_blockers: Array[AttributeEffectCondition]
+@export var add_blockers: Array[AttributeEffectCondition] = \
+AttributeEffectFeatureManager.i().get_default_value(self, &"add_blockers"):
+	set(_value):
+		if AttributeEffectFeatureManager.i().validate_user_set_value(self, &"add_blockers", _value):
+			add_blockers = _value
+			AttributeEffectFeatureManager.i().notify_value_changed(self, &"add_blockers")
 
 ## If true, this effect can utilize [member apply_blockers] which
 ## are sets of [AttributeEffectCondition]s that can block other [AttributeEffect]s
 ## from applying to any [Attribute] this effect is currently added to.
 ## Only applicable for non-instant effects, and only applicable for non-instant effects.
-@export var apply_blocker: bool = false:
-	set(value):
-		apply_blocker = value
-		notify_property_list_changed()
+@export var apply_blocker: bool = \
+AttributeEffectFeatureManager.i().get_default_value(self, &"apply_blocker"):
+	set(_value):
+		if AttributeEffectFeatureManager.i().validate_user_set_value(self, &"apply_blocker", _value):
+			apply_blocker = _value
+			AttributeEffectFeatureManager.i().notify_value_changed(self, &"apply_blocker")
 
 ## Blocks other [AttributeEffect]s from being applied to an [Attribute] if they
 ## do NOT meet any of these conditions. Only used if [member apply_blocker] is true,
 ## and only applicable for non-instant effects.
-@export var apply_blockers: Array[AttributeEffectCondition]
+@export var apply_blockers: Array[AttributeEffectCondition] = \
+AttributeEffectFeatureManager.i().get_default_value(self, &"apply_blockers"):
+	set(_value):
+		if AttributeEffectFeatureManager.i().validate_user_set_value(self, &"apply_blockers", _value):
+			apply_blockers = _value
+			AttributeEffectFeatureManager.i().notify_value_changed(self, &"apply_blockers")
 
 @export_group("Modifiers")
 
 ## If true, this effect has [member value_modifiers] which once applied to an [Attribute] will
 ## modify the value of other [AttributeEffect]s. Only applicable for non-instant effects.
-@export var value_modifier: bool = false:
-	set(value):
-		value_modifier = value
-		notify_property_list_changed()
+@export var value_modifier: bool = \
+AttributeEffectFeatureManager.i().get_default_value(self, &"value_modifier"):
+	set(_value):
+		if AttributeEffectFeatureManager.i().validate_user_set_value(self, &"value_modifier", _value):
+			value_modifier = _value
+			AttributeEffectFeatureManager.i().notify_value_changed(self, &"value_modifier")
 
 ## Modifies the [member value] of other [AttributeEffect]s.
 ## Only used if [member value_modifier] is true, and only applicable for
 ## non-instant effects.
-@export var value_modifiers: AttributeEffectModifierArray
+@export var value_modifiers: AttributeEffectModifierArray = \
+AttributeEffectFeatureManager.i().get_default_value(self, &"value_modifiers"):
+	set(_value):
+		if AttributeEffectFeatureManager.i().validate_user_set_value(self, &"value_modifiers", _value):
+			value_modifiers = _value
+			AttributeEffectFeatureManager.i().notify_value_changed(self, &"value_modifiers")
 
 ## If true, this effect has [member value_modifiers] which once applied to an [Attribute] will
 ## modify the period of other [AttributeEffect]s. Only applicable for non-instant effects.
-@export var period_modifier: bool = false:
-	set(value):
-		period_modifier = value
-		notify_property_list_changed()
+@export var period_modifier: bool = \
+AttributeEffectFeatureManager.i().get_default_value(self, &"period_modifier"):
+	set(_value):
+		if AttributeEffectFeatureManager.i().validate_user_set_value(self, &"period_modifier", _value):
+			period_modifier = _value
+			AttributeEffectFeatureManager.i().notify_value_changed(self, &"period_modifier")
 
 ## Modifies the [member period] of other [AttributeEffect]s.
 ## Only used if [member period_modifier] is true, and only applicable for
 ## non-instant effects.
-@export var period_modifiers: AttributeEffectModifierArray
+@export var period_modifiers: AttributeEffectModifierArray = \
+AttributeEffectFeatureManager.i().get_default_value(self, &"period_modifiers"):
+	set(_value):
+		if AttributeEffectFeatureManager.i().validate_user_set_value(self, &"period_modifiers", _value):
+			period_modifiers = _value
+			AttributeEffectFeatureManager.i().notify_value_changed(self, &"period_modifiers")
 
 ## If true, this effect has [member value_modifiers] which once applied to an [Attribute] will
 ## modify the duration of other [AttributeEffect]s. Only applicable for non-instant effects.
-@export var duration_modifier: bool = false:
-	set(value):
-		duration_modifier = value
-		notify_property_list_changed()
+@export var duration_modifier: bool = \
+AttributeEffectFeatureManager.i().get_default_value(self, &"duration_modifier"):
+	set(_value):
+		if AttributeEffectFeatureManager.i().validate_user_set_value(self, &"duration_modifier", _value):
+			duration_modifier = _value
+			AttributeEffectFeatureManager.i().notify_value_changed(self, &"duration_modifier")
 
 ## Modifies the [member duration] of other [AttributeEffect]s.
 ## Only used if [member duration_modifier] is true, and only applicable for
 ## non-instant effects.
-@export var duration_modifiers: AttributeEffectModifierArray
+@export var duration_modifiers: AttributeEffectModifierArray \
+= AttributeEffectFeatureManager.i().get_default_value(self, &"duration_modifiers"):
+	set(_value):
+		if AttributeEffectFeatureManager.i().validate_user_set_value(self, &"duration_modifiers", _value):
+			duration_modifiers = _value
+			AttributeEffectFeatureManager.i().notify_value_changed(self, &"duration_modifiers")
 
 @export_group("Metadata")
 
@@ -323,7 +409,15 @@ func _init(_id: StringName = "") -> void:
 
 
 func _validate_property(property: Dictionary) -> void:
-	AttributeEffectFeatureManager.validate_property(self, property)
+	AttributeEffectFeatureManager.i().validate_property(self, property)
+
+
+func _property_can_revert(property: StringName) -> bool:
+	return AttributeEffectFeatureManager.i().is_feature(property)
+
+
+func _property_get_revert(property: StringName) -> Variant:
+	return AttributeEffectFeatureManager.i().get_default_value(self, property)
 
 
 ## Adds the [param hook] from this effect. An assertion is in place to prevent

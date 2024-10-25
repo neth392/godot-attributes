@@ -202,7 +202,7 @@ func is_applying() -> bool:
 ## Returns true if [method get_effect] has an apply limit & this active effect's [method get_apply_count]
 ## has either met or exceeded the [member AttributeEffect.apply_limit_amount].
 func hit_apply_limit() -> bool:
-	return _effect.has_apply_limit() && _apply_count >= _effect.apply_limit_amount
+	return _effect.apply_limit && _apply_count >= _effect.apply_limit_amount
 
 
 ## Returns true if the effect expired due to duration, false if not. Can be useful

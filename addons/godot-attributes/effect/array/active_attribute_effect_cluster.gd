@@ -33,15 +33,15 @@ func add(active: ActiveAttributeEffect) -> void:
 	super.add(active)
 	if active.get_effect().is_temporary() && active.get_effect().has_value:
 		temporaries_w_value.add(active)
-	if active.get_effect().is_add_blocker():
+	if active.get_effect().add_blocker:
 		add_blockers.add(active)
-	if active.get_effect().is_apply_blocker():
+	if active.get_effect().apply_blocker:
 		apply_blockers.add(active)
-	if active.get_effect().is_value_modifier():
+	if active.get_effect().value_modifier:
 		value_modifiers.add(active)
-	if active.get_effect().is_period_modifier():
+	if active.get_effect().period_modifier:
 		period_modifiers.add(active)
-	if active.get_effect().is_duration_modifier():
+	if active.get_effect().duration_modifier:
 		duration_modifiers.add(active)
 
 

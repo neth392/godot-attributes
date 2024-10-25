@@ -430,8 +430,8 @@ func _process_active(active: ActiveAttributeEffect) -> void:
 	# Handle duration expiring
 	if duration_expired:
 		# Apply it if apply on expire, or apply if apply on expire if period is zero
-		if active.get_effect().is_apply_on_expire() \
-		or (period_expired && active.get_effect().is_apply_on_expire_if_period_is_zero()): 
+		if active.get_effect().apply_on_expire \
+		or (period_expired && active.get_effect().apply_on_expire_if_period_is_zero): 
 			# Apply it
 			_apply_permanent_active(active, current_tick, event)
 		

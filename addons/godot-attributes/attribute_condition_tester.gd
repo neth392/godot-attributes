@@ -135,7 +135,7 @@ class ApplyTester extends AttributeConditionTester:
 		attribute.monitor_active_apply_blocked.emit(active)
 	
 	func _has_own_conditions(effect: AttributeEffect) -> bool:
-		return effect.has_apply_conditions()
+		return effect.has_apply_conditions
 	
 	func _get_own_conditions(effect: AttributeEffect) -> Array[AttributeEffectCondition]:
 		return effect.apply_conditions
@@ -160,7 +160,7 @@ class AddTester extends AttributeConditionTester:
 		attribute.monitor_active_add_blocked.emit(active)
 	
 	func _has_own_conditions(effect: AttributeEffect) -> bool:
-		return effect.has_add_conditions()
+		return effect.has_add_conditions
 	
 	func _get_own_conditions(effect: AttributeEffect) -> Array[AttributeEffectCondition]:
 		return effect.add_conditions
