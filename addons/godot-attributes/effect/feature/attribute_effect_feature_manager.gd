@@ -116,6 +116,8 @@ func validate_user_set_value(effect: AttributeEffect, property_name: StringName,
 		% [effect.id, property_name, _var_to_string(value), requirements])
 		return false
 	
+	feature._validate_value(value, effect)
+	
 	return true
 
 

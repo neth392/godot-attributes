@@ -25,6 +25,11 @@ func _value_meets_requirements(value: Variant, effect: AttributeEffect) -> bool:
 	return effect.has_add_conditions != value.is_read_only()
 
 
+func _validate_value(value: Variant, effect: AttributeEffect) -> void:
+	if !effect.has_add_conditions:
+		value.make_read_only()
+
+
 func _get_requirements_string(value: Variant) -> String:
 	if !value.is_read_only():
 		return "has_add_conditions == true"

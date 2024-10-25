@@ -59,6 +59,13 @@ func _value_meets_requirements(value: Variant, effect: AttributeEffect) -> bool:
 	return false
 
 
+## Called when the [param value] is about to be set to the propery on [param effect]. 
+## Optional, does nothing by default, but provided specifically to make [Array]s read-only
+## in some cases.
+func _validate_value(value: Variant, effect: AttributeEffect) -> void:
+	pass
+
+
 ## Returns the requirements for this feature to be set to [param value].
 func _get_requirements_string(value: Variant) -> String:
 	assert(false, "_get_requirements_string not implemented")
