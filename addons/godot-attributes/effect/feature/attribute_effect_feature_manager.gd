@@ -11,50 +11,50 @@ static func i() -> AttributeEffectFeatureManager:
 		_instance = AttributeEffectFeatureManager.new()
 	return _instance
 
-var _features: Array[AttributeEffectFeature]
+var _loaded_features: Array[AttributeEffectFeature]
 var _features_by_property: Dictionary[StringName, AttributeEffectFeature]
 var _depended_on_by: Dictionary[StringName, Array]
 
 func _init() -> void:
-	_features.append(preload("./add_blocker_feature.gd").new())
-	_features.append(preload("./add_blockers_feature.gd").new())
-	_features.append(preload("./add_conditions_feature.gd").new())
-	_features.append(preload("./apply_blocker_feature.gd").new())
-	_features.append(preload("./apply_blockers_feature.gd").new())
-	_features.append(preload("./apply_conditions_feature.gd").new())
-	_features.append(preload("./apply_limit_amount_feature.gd").new())
-	_features.append(preload("./apply_limit_feature.gd").new())
-	_features.append(preload("./apply_on_expire_feature.gd").new())
-	_features.append(preload("./apply_on_expire_if_period_is_zero_feature.gd").new())
-	_features.append(preload("./count_apply_if_blocked_feature.gd").new())
-	_features.append(preload("./duration_feature.gd").new())
-	_features.append(preload("./duration_modifiers_feature.gd").new())
-	_features.append(preload("./duration_modifier_feature.gd").new())
-	_features.append(preload("./duration_type_feature.gd").new())
-	_features.append(preload("./emit_added_signal_feature.gd").new())
-	_features.append(preload("./emit_applied_signal_feature.gd").new())
-	_features.append(preload("./emit_removed_signal_feature.gd").new())
-	_features.append(preload("./has_add_conditions_feature.gd").new())
-	_features.append(preload("./has_apply_conditions_feature.gd").new())
-	_features.append(preload("./has_value_feature.gd").new())
-	_features.append(preload("./initial_period_feature.gd").new())
-	_features.append(preload("./period_feature.gd").new())
-	_features.append(preload("./period_modifiers_feature.gd").new())
-	_features.append(preload("./period_modifier_feature.gd").new())
-	_features.append(preload("./stack_mode_feature.gd").new())
-	_features.append(preload("./type_feature.gd").new())
-	_features.append(preload("./value_calculator_feature.gd").new())
-	_features.append(preload("./value_feature.gd").new())
-	_features.append(preload("./value_modifiers_feature.gd").new())
-	_features.append(preload("./value_modifier_feature.gd").new())
+	_loaded_features.append(preload("./add_blocker_feature.gd").new())
+	_loaded_features.append(preload("./add_blockers_feature.gd").new())
+	_loaded_features.append(preload("./add_conditions_feature.gd").new())
+	_loaded_features.append(preload("./apply_blocker_feature.gd").new())
+	_loaded_features.append(preload("./apply_blockers_feature.gd").new())
+	_loaded_features.append(preload("./apply_conditions_feature.gd").new())
+	_loaded_features.append(preload("./apply_limit_amount_feature.gd").new())
+	_loaded_features.append(preload("./apply_limit_feature.gd").new())
+	_loaded_features.append(preload("./apply_on_expire_feature.gd").new())
+	_loaded_features.append(preload("./apply_on_expire_if_period_is_zero_feature.gd").new())
+	_loaded_features.append(preload("./count_apply_if_blocked_feature.gd").new())
+	_loaded_features.append(preload("./duration_feature.gd").new())
+	_loaded_features.append(preload("./duration_modifiers_feature.gd").new())
+	_loaded_features.append(preload("./duration_modifier_feature.gd").new())
+	_loaded_features.append(preload("./duration_type_feature.gd").new())
+	_loaded_features.append(preload("./emit_added_signal_feature.gd").new())
+	_loaded_features.append(preload("./emit_applied_signal_feature.gd").new())
+	_loaded_features.append(preload("./emit_removed_signal_feature.gd").new())
+	_loaded_features.append(preload("./has_add_conditions_feature.gd").new())
+	_loaded_features.append(preload("./has_apply_conditions_feature.gd").new())
+	_loaded_features.append(preload("./has_value_feature.gd").new())
+	_loaded_features.append(preload("./initial_period_feature.gd").new())
+	_loaded_features.append(preload("./period_feature.gd").new())
+	_loaded_features.append(preload("./period_modifiers_feature.gd").new())
+	_loaded_features.append(preload("./period_modifier_feature.gd").new())
+	_loaded_features.append(preload("./stack_mode_feature.gd").new())
+	_loaded_features.append(preload("./type_feature.gd").new())
+	_loaded_features.append(preload("./value_calculator_feature.gd").new())
+	_loaded_features.append(preload("./value_feature.gd").new())
+	_loaded_features.append(preload("./value_modifiers_feature.gd").new())
+	_loaded_features.append(preload("./value_modifier_feature.gd").new())
 	
 	# Add to dictionary for quicker lookups later
-	for feature: AttributeEffectFeature in _features:
+	for feature: AttributeEffectFeature in _loaded_features:
 		_features_by_property[feature._get_property_name()] = feature
 	
 	# Assert no circular dependencies & that all dependencies exist
 	if OS.is_debug_build():
-		for featureA: AttributeEffectFeature in _features:
+		for featureA: AttributeEffectFeature in _loaded_features:
 			for depends_on: StringName in featureA._get_depends_on():
 				assert(_features_by_property.has(depends_on), "feature %s's dependency %s is missing" \
 				% [featureA._get_property_name(), depends_on])
@@ -65,20 +65,17 @@ func _init() -> void:
 				"circular dependencies detected between features %s & %s" \
 				% [featureA._get_property_name(), featureB._get_property_name()])
 	
-	# Sort by dependencies
-	_features.sort_custom(func(a: AttributeEffectFeature, b: AttributeEffectFeature) -> bool:
-		# A goes before B if B depends on A
-		return b._get_depends_on().has(a._get_property_name())
-	)
-	
 	# Add to depend on by
-	for feature: AttributeEffectFeature in _features:
+	for feature: AttributeEffectFeature in _loaded_features:
 		for depends_on_name: StringName in feature._get_depends_on():
 			var depends_on: AttributeEffectFeature = _features_by_property[depends_on_name]
 			if !_depended_on_by.has(depends_on._get_property_name()):
 				_depended_on_by[depends_on._get_property_name()] = [feature]
 			else:
 				_depended_on_by[depends_on._get_property_name()].append(feature)
+	
+	# Clear loaded features
+	_loaded_features.clear()
 
 
 ## Returns true if the [param property_name] represents an [AttributeEffectFeature].
@@ -109,14 +106,15 @@ func validate_user_set_value(effect: AttributeEffect, property_name: StringName,
 	
 	var feature: AttributeEffectFeature = _features_by_property[property_name]
 	
+	assert(effect._loading || feature._can_set(), "AttributeEffect property (%s) can not be set" 
+	% feature._get_property_name())
+	
 	if !feature._value_meets_requirements(value, effect):
 		var requirements: String = feature._get_requirements_string(value)
 		push_warning(("AttributeEffect(id=%s) does not meet the requirements \nto set property (%s) " + \
 		"to value (%s), property will not be set.\nRequirements: %s") \
 		% [effect.id, property_name, _var_to_string(value), requirements])
 		return false
-	
-	feature._validate_value(value, effect)
 	
 	return true
 
@@ -126,6 +124,11 @@ func notify_value_changed(effect: AttributeEffect, property_name: StringName) ->
 		return
 	
 	effect.notify_property_list_changed()
+	
+	# Skip if the effect is still loading
+	if effect._loading:
+		return
+	
 	for feature: AttributeEffectFeature in _depended_on_by[property_name]:
 		var current_value: Variant = effect.get(feature._get_property_name())
 		
@@ -140,6 +143,12 @@ func notify_value_changed(effect: AttributeEffect, property_name: StringName) ->
 			effect.set(feature._get_property_name(), new_value)
 
 
+func get_default_value(effect: AttributeEffect, property_name: StringName) -> Variant:
+	assert(_features_by_property.has(property_name), "no property with name %s found" \
+	% property_name)
+	return _features_by_property[property_name]._get_default_value(effect)
+
+
 func _var_to_string(variant: Variant) -> String:
 	match typeof(variant):
 		TYPE_ARRAY:
@@ -148,9 +157,3 @@ func _var_to_string(variant: Variant) -> String:
 			return variant.get_script().get_global_name()
 		_:
 			return str(variant)
-
-
-func get_default_value(effect: AttributeEffect, property_name: StringName) -> Variant:
-	assert(_features_by_property.has(property_name), "no property with name %s found" \
-	% property_name)
-	return _features_by_property[property_name]._get_default_value(effect)

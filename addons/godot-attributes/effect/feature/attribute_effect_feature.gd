@@ -35,6 +35,12 @@ func _get_default_value(effect: AttributeEffect) -> Variant:
 	return null
 
 
+## Returns if this property is an array (which can't be set, only made read-only)
+func _has_array_behavior() -> bool:
+	#TODO fix this
+	return false
+
+
 ## Returns whether or not to show this feature in the editor inspector. Optional,
 ## returns true by default.
 func _show_in_editor(effect: AttributeEffect) -> bool:

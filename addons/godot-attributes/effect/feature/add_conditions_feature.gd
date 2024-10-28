@@ -17,6 +17,11 @@ func _get_default_value(effect: AttributeEffect) -> Variant:
 	return array
 
 
+## Returns true if
+func _has_array_behavior() -> bool:
+	return true
+
+
 func _show_in_editor(effect: AttributeEffect) -> bool:
 	return effect.has_add_conditions
 

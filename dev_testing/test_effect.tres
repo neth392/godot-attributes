@@ -18,6 +18,7 @@ attribute_value_to_use = 0
 
 [resource]
 script = ExtResource("3_35kq1")
+_loading_start = true
 id = &""
 priority = 0
 tags = Array[StringName]([])
@@ -36,7 +37,9 @@ count_apply_if_blocked = false
 initial_period = false
 apply_on_expire_if_period_is_zero = false
 stack_mode = 0
+has_add_conditions = false
 add_conditions = Array[ExtResource("2_qs6yr")]([])
+has_apply_conditions = false
 apply_conditions = Array[ExtResource("2_qs6yr")]([])
 _hooks = Array[ExtResource("1_21b8m")]([])
 add_blocker = false
@@ -47,3 +50,4 @@ value_modifier = false
 period_modifier = false
 duration_modifier = false
 metadata = {}
+_loading_end = true

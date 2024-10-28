@@ -5,6 +5,8 @@ extends Node
 var tick_started: int
 
 func _ready():
+	var drain_effect2: AttributeEffect = load("res://dev_testing/test_effect.tres") as AttributeEffect
+	return
 	
 	tick_started = Time.get_ticks_usec()
 	# Connect value signals

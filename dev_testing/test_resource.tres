@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="TestResource" load_steps=2 format=3 uid="uid://47an7a86bpk"]
+
+[ext_resource type="Script" path="res://dev_testing/test_resource.gd" id="1_hhemv"]
+
+[resource]
+script = ExtResource("1_hhemv")
+test1 = "hi!"
+test2 = false
+test3 = false
+test4 = false
+test5 = false
+test6 = "trueHi"

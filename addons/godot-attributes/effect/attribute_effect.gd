@@ -6,6 +6,11 @@
 @tool
 class_name AttributeEffect extends Resource
 
+# Hacky method of ensuring _loading_start & _loading_end's setters are always
+# called.
+static func _load_bool() -> bool:
+	return false
+
 ## The type of effect.
 ## [br] NOTE: This enum's structure determines the ordering of [ActiveAttributeEffectArray].
 enum Type {
@@ -43,6 +48,11 @@ enum DurationType {
 	## stored on it.
 	INSTANT = 2,
 }
+
+var _loading_start: bool = _load_bool():
+	set(_value):
+		print("START LOAD")
+		_loading = true
 
 ## The ID of this attribute effect.
 @export var id: StringName
@@ -394,6 +404,12 @@ AttributeEffectFeatureManager.i().get_default_value(self, &"duration_modifier"):
 ## used in any of the Attribute system's internals.
 @export var metadata: Dictionary[Variant, Variant]
 
+var _loading_end: bool = _load_bool():
+	set(_value):
+		print("END LOAD")
+		_loading = false
+
+var _loading: bool = false
 var _hooks_by_function: Dictionary[AttributeEffectHook._Function, Array]
 var _block_runtime_modifications: bool = false:
 	set(value):

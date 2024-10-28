@@ -1,12 +1,9 @@
 extends Node
 
 func _ready() -> void:
-	var boo: bool = true
-	var str: Variant = Test.new() if !boo else "hi!"
-	print(str)
-
-
-class Test extends Object:
+	var test1: TestResource = load("res://dev_testing/test_resource.tres")
+	test1.test5 = false
+	print("next!")
 	
-	func _init() -> void:
-		print("INITIATED")
+	var test2: TestResource = TestResource.new()
+	print("STOP")
