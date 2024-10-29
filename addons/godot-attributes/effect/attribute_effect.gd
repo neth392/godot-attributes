@@ -73,7 +73,6 @@ var _ignore_loading: bool = false
 @export var type: Type = \
 AttributeEffectFeatureManager.i().get_default_value(self, &"type"):
 	set(_value):
-		print("SET: Type")
 		if AttributeEffectFeatureManager.i().validate_user_set_value(self, &"type", _value):
 			type = _value
 			AttributeEffectFeatureManager.i().notify_value_changed(self, &"type")

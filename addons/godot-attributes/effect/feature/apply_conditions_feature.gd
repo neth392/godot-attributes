@@ -12,6 +12,8 @@ func _get_depends_on() -> Array[StringName]:
 
 func _get_default_value(effect: AttributeEffect) -> Variant:
 	var array: Array[AttributeEffectCondition] = []
+	if !effect.apply_conditions:
+		array.make_read_only()
 	return array
 
 
@@ -21,6 +23,11 @@ func _show_in_editor(effect: AttributeEffect) -> bool:
 
 func _value_meets_requirements(value: Variant, effect: AttributeEffect) -> bool:
 	return effect.has_apply_conditions || value.is_empty()
+
+
+func _before_value_set(value: Variant, effect: AttributeEffect) -> void:
+	if !effect.has_apply_conditions:
+		value.make_read_only()
 
 
 func _get_requirements_string(value: Variant) -> String:

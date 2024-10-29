@@ -116,6 +116,8 @@ func validate_user_set_value(effect: AttributeEffect, property_name: StringName,
 		% [effect.id, property_name, _var_to_string(value), requirements])
 		return false
 	
+	feature._before_value_set(value, effect)
+	
 	return true
 
 
@@ -138,7 +140,7 @@ func notify_value_changed(effect: AttributeEffect, property_name: StringName) ->
 			if !Engine.is_editor_hint():
 				push_warning(("AttributeEffect(id=%s) no longer meets requirements for \nproperty (%s) to " + \
 				"equal (%s), setting value to default (%s).\nRequirements: %s") \
-			% [effect.id, feature._get_property_name(), _var_to_string(current_value), 
+				% [effect.id, feature._get_property_name(), _var_to_string(current_value), 
 			_var_to_string(new_value), requirements])
 			effect.set(feature._get_property_name(), new_value)
 

@@ -5,7 +5,7 @@ extends Node
 var tick_started: int
 
 func _ready():
-	var e1: AttributeEffect = load("res://dev_testing/test_with_loading_vars.tres") as AttributeEffect
+	var e1: AttributeEffect = load("res://dev_testing/drain_effect.tres") as AttributeEffect
 	return
 	
 	#tick_started = Time.get_ticks_usec()
@@ -14,7 +14,7 @@ func _ready():
 	#health_attribute.event_occurred.connect(_event_current_value_changed)
 	#health_attribute.monitor_base_value_changed.connect(_monitor_base_value_changed)
 	#health_attribute.event_occurred.connect(_event_base_value_changed)
-	#
+	
 	## Connect effect signals
 	#health_attribute.monitor_active_added.connect(_monitor_active_added)
 	#health_attribute.event_occurred.connect(_event_active_added)

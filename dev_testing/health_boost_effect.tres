@@ -12,25 +12,26 @@ script = ExtResource("5_lqo07")
 _value = 10.0
 _modifiers = Array[ExtResource("3_tj3qk")]([])
 
-[sub_resource type="Resource" id="Resource_lksua"]
+[sub_resource type="Resource" id="Resource_qe5ik"]
 script = ExtResource("5_lqo07")
-_value = 0.1
+_value = 0.0
 _modifiers = Array[ExtResource("3_tj3qk")]([])
 
-[sub_resource type="Resource" id="Resource_0f7rb"]
+[sub_resource type="Resource" id="Resource_lp0q4"]
 script = ExtResource("7_86myk")
 multiply_effect_value_by = 0
 add_to = 1
 
 [resource]
 script = ExtResource("6_ba8jk")
+_loading_start = false
 id = &"boost"
 priority = 1
 tags = Array[StringName]([])
 type = 0
 has_value = true
-value = SubResource("Resource_lksua")
-value_calculator = SubResource("Resource_0f7rb")
+value = SubResource("Resource_qe5ik")
+value_calculator = SubResource("Resource_lp0q4")
 emit_added_signal = false
 emit_applied_signal = false
 emit_removed_signal = false
@@ -56,3 +57,4 @@ value_modifier = false
 period_modifier = false
 duration_modifier = false
 metadata = {}
+_loading_end = false
