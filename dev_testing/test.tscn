@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://dwtw6af6jkrgt"]
+[gd_scene load_steps=7 format=3 uid="uid://cxaciuxmlpkcv"]
 
 [ext_resource type="Script" path="res://dev_testing/test.gd" id="1_4c6uj"]
 [ext_resource type="Script" path="res://addons/godot-attributes/attribute_container.gd" id="2_2qnf1"]
