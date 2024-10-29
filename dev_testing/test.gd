@@ -5,7 +5,7 @@ extends Node
 var tick_started: int
 
 func _ready():
-	var e1: AttributeEffect = load("res://dev_testing/test_effect.tres") as AttributeEffect
+	var e1: AttributeEffect = load("res://dev_testing/test_with_loading_vars.tres") as AttributeEffect
 	return
 	
 	#tick_started = Time.get_ticks_usec()

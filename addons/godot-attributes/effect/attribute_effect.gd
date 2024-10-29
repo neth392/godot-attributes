@@ -48,7 +48,6 @@ var _ignore_loading: bool = false
 @export_storage var _loading_start: bool:
 	set(_value):
 		_loading_start = _value
-		print("SET _loading_start=", _value)
 		if !_ignore_loading:
 			_loading = true
 
@@ -406,20 +405,19 @@ AttributeEffectFeatureManager.i().get_default_value(self, &"duration_modifier"):
 @export_storage var _loading_end: bool:
 	set(_value):
 		_loading_end = _value
-		print("SET _loading_end=", _value)
 		if !_ignore_loading:
 			_loading = false
 
 var _loaded: bool = false
 var _loading: bool = false:
 	set(_value):
-		if _loaded: # Skip if already loaded
-			return
+		assert(!_loaded, "resource already loaded")
 		_loading = _value
 		if _loading:
 			print("LOADING")
 		else:
-			print("STOPPED LOADING")
+			_loaded = true
+			print("LOADING COMPLETE")
 
 var _hooks_by_function: Dictionary[AttributeEffectHook._Function, Array]
 var _block_runtime_modifications: bool = false:
@@ -427,20 +425,16 @@ var _block_runtime_modifications: bool = false:
 		_block_runtime_modifications = true
 
 func _init(_id: StringName = "") -> void:
-	print("_init")
-	changed
+	_ignore_loading = true
+	_loading_start = true
+	_loading_end = true
+	_ignore_loading = false
 	id = _id
 	if Engine.is_editor_hint():
 		return
 	# Hook initialization
 	for _function: int in AttributeEffectHook._Function.values():
 		_hooks_by_function[_function] = []
-
-
-# Internal used to detect when this script is being loaded. DO NOT CALL MANUALLY.
-func _toggle_load() -> bool:
-	_loading = !_loading
-	return false
 
 
 func _validate_property(property: Dictionary) -> void:

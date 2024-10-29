@@ -105,7 +105,6 @@ func validate_user_set_value(effect: AttributeEffect, property_name: StringName,
 	
 	# Ignore loading
 	if effect._loading:
-		print("LOADING1")
 		return true
 	
 	var feature: AttributeEffectFeature = _features_by_property[property_name]
@@ -128,7 +127,6 @@ func notify_value_changed(effect: AttributeEffect, property_name: StringName) ->
 	
 	# Skip if the effect is still loading
 	if effect._loading:
-		print("LOADING2")
 		return
 	
 	for feature: AttributeEffectFeature in _depended_on_by[property_name]:
