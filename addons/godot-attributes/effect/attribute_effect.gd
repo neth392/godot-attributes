@@ -6,11 +6,6 @@
 @tool
 class_name AttributeEffect extends Resource
 
-# Hacky method of ensuring _loading_start & _loading_end's setters are always
-# called.
-static func _load_bool() -> bool:
-	return false
-
 ## The type of effect.
 ## [br] NOTE: This enum's structure determines the ordering of [ActiveAttributeEffectArray].
 enum Type {
@@ -49,10 +44,13 @@ enum DurationType {
 	INSTANT = 2,
 }
 
-var _loading_start: bool = _load_bool():
+var _ignore_loading: bool = false
+@export_storage var _loading_start: bool:
 	set(_value):
-		print("START LOAD")
-		_loading = true
+		_loading_start = _value
+		print("SET _loading_start=", _value)
+		if !_ignore_loading:
+			_loading = true
 
 ## The ID of this attribute effect.
 @export var id: StringName
@@ -76,6 +74,7 @@ var _loading_start: bool = _load_bool():
 @export var type: Type = \
 AttributeEffectFeatureManager.i().get_default_value(self, &"type"):
 	set(_value):
+		print("SET: Type")
 		if AttributeEffectFeatureManager.i().validate_user_set_value(self, &"type", _value):
 			type = _value
 			AttributeEffectFeatureManager.i().notify_value_changed(self, &"type")
@@ -164,8 +163,8 @@ AttributeEffectFeatureManager.i().get_default_value(self, &"apply_on_expire"):
 
 @export_group("Apply Limit")
 
-## If true, [member apply_limit_amount] is the maximum amount of times an effect
 ## can apply. If the limit is hit, the effect is removed immediately.
+## If true, [member apply_limit_amount] is the maximum amount of times an effect
 ## [br]NOTE: Only available for [enum Type.PERMANENT] effects.
 @export var apply_limit: bool = \
 AttributeEffectFeatureManager.i().get_default_value(self, &"apply_limit"):
@@ -404,24 +403,44 @@ AttributeEffectFeatureManager.i().get_default_value(self, &"duration_modifier"):
 ## used in any of the Attribute system's internals.
 @export var metadata: Dictionary[Variant, Variant]
 
-var _loading_end: bool = _load_bool():
+@export_storage var _loading_end: bool:
 	set(_value):
-		print("END LOAD")
-		_loading = false
+		_loading_end = _value
+		print("SET _loading_end=", _value)
+		if !_ignore_loading:
+			_loading = false
 
-var _loading: bool = false
+var _loaded: bool = false
+var _loading: bool = false:
+	set(_value):
+		if _loaded: # Skip if already loaded
+			return
+		_loading = _value
+		if _loading:
+			print("LOADING")
+		else:
+			print("STOPPED LOADING")
+
 var _hooks_by_function: Dictionary[AttributeEffectHook._Function, Array]
 var _block_runtime_modifications: bool = false:
 	set(value):
 		_block_runtime_modifications = true
 
 func _init(_id: StringName = "") -> void:
+	print("_init")
+	changed
 	id = _id
 	if Engine.is_editor_hint():
 		return
 	# Hook initialization
 	for _function: int in AttributeEffectHook._Function.values():
 		_hooks_by_function[_function] = []
+
+
+# Internal used to detect when this script is being loaded. DO NOT CALL MANUALLY.
+func _toggle_load() -> bool:
+	_loading = !_loading
+	return false
 
 
 func _validate_property(property: Dictionary) -> void:

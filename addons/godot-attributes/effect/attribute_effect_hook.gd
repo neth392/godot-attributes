@@ -35,12 +35,12 @@ static var _function_names: Dictionary[_Function, String] = {
 	_Function.AFTER_ACTIVE_STACK_CHANGED: "_after_active_stack_changed",
 }
 
-static var _functions_by_name: Dictionary[String, _Function]
-
-static func _init() -> void:
-	# Populate _functions_by_name
-	for _function: _Function in _function_names:
-		_functions_by_name[_function_names[_function]] = _function
+static var _functions_by_name: Dictionary[String, _Function]:
+	get():
+		if _functions_by_name.is_empty():
+			for _function: _Function in _function_names:
+				_functions_by_name[_function_names[_function]] = _function
+		return _functions_by_name
 
 # Used to detect what functions a hook has implemented - trickery here is that
 # in the Array Script.get_script_method_list() returns, methods will appear more

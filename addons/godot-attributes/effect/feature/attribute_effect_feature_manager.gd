@@ -102,12 +102,13 @@ func validate_property(effect: AttributeEffect, property: Dictionary) -> void:
 
 func validate_user_set_value(effect: AttributeEffect, property_name: StringName, value: Variant) -> bool:
 	assert(_features_by_property.has(property_name), "no feature found for property_name %s" % property_name)
-	# TBD is this needed in the editor? Probably in the case other plugins try to mess with my stuff
+	
+	# Ignore loading
+	if effect._loading:
+		print("LOADING1")
+		return true
 	
 	var feature: AttributeEffectFeature = _features_by_property[property_name]
-	
-	assert(effect._loading || feature._can_set(), "AttributeEffect property (%s) can not be set" 
-	% feature._get_property_name())
 	
 	if !feature._value_meets_requirements(value, effect):
 		var requirements: String = feature._get_requirements_string(value)
@@ -127,6 +128,7 @@ func notify_value_changed(effect: AttributeEffect, property_name: StringName) ->
 	
 	# Skip if the effect is still loading
 	if effect._loading:
+		print("LOADING2")
 		return
 	
 	for feature: AttributeEffectFeature in _depended_on_by[property_name]:
@@ -141,6 +143,10 @@ func notify_value_changed(effect: AttributeEffect, property_name: StringName) ->
 			% [effect.id, feature._get_property_name(), _var_to_string(current_value), 
 			_var_to_string(new_value), requirements])
 			effect.set(feature._get_property_name(), new_value)
+
+
+func after_load(effect: AttributeEffect) -> void:
+	pass
 
 
 func get_default_value(effect: AttributeEffect, property_name: StringName) -> Variant:

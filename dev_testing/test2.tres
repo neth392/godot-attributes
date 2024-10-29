@@ -18,7 +18,6 @@ attribute_value_to_use = 0
 
 [resource]
 script = ExtResource("3_87yb5")
-_loading_start = true
 id = &""
 priority = 0
 tags = Array[StringName]([])
@@ -50,4 +49,3 @@ value_modifier = false
 period_modifier = false
 duration_modifier = false
 metadata = {}
-_loading_end = true

@@ -7,9 +7,9 @@
 [ext_resource type="Script" path="res://addons/godot-attributes/effect/calculators/add_calculator.gd" id="6_6h7pb"]
 [ext_resource type="Script" path="res://addons/godot-attributes/effect/attribute_effect.gd" id="6_ytxh1"]
 
-[sub_resource type="Resource" id="Resource_jodnw"]
+[sub_resource type="Resource" id="Resource_aoxos"]
 script = ExtResource("4_57ijg")
-_value = 1.0
+_value = 1.1
 _modifiers = Array[ExtResource("3_k7av6")]([])
 
 [sub_resource type="Resource" id="Resource_bwxm1"]
@@ -23,7 +23,6 @@ attribute_value_to_use = 0
 
 [resource]
 script = ExtResource("6_ytxh1")
-_loading_start = true
 id = &"minus_one_damage"
 priority = 0
 tags = Array[StringName]([])
@@ -39,7 +38,7 @@ apply_on_expire = false
 apply_limit = false
 apply_limit_amount = 1
 count_apply_if_blocked = false
-period = SubResource("Resource_jodnw")
+period = SubResource("Resource_aoxos")
 initial_period = false
 apply_on_expire_if_period_is_zero = false
 stack_mode = 0
@@ -56,4 +55,3 @@ value_modifier = false
 period_modifier = false
 duration_modifier = false
 metadata = {}
-_loading_end = true

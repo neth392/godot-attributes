@@ -35,12 +35,6 @@ func _get_default_value(effect: AttributeEffect) -> Variant:
 	return null
 
 
-## Returns if this property is an array (which can't be set, only made read-only)
-func _has_array_behavior() -> bool:
-	#TODO fix this
-	return false
-
-
 ## Returns whether or not to show this feature in the editor inspector. Optional,
 ## returns true by default.
 func _show_in_editor(effect: AttributeEffect) -> bool:
@@ -63,13 +57,6 @@ func _override_hint_string(effect: AttributeEffect, hint_string: String) -> Stri
 func _value_meets_requirements(value: Variant, effect: AttributeEffect) -> bool:
 	assert(false, "_value_meets_requirements not implemented")
 	return false
-
-
-## Called when the [param value] is about to be set to the propery on [param effect]. 
-## Optional, does nothing by default, but provided specifically to make [Array]s read-only
-## in some cases.
-func _validate_value(value: Variant, effect: AttributeEffect) -> void:
-	pass
 
 
 ## Returns the requirements for this feature to be set to [param value].
