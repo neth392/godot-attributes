@@ -412,11 +412,6 @@ var _loading: bool = false:
 	set(_value):
 		assert(!_loaded, "resource already loaded")
 		_loading = _value
-		if _loading:
-			print("LOADING")
-		else:
-			_loaded = true
-			print("LOADING COMPLETE")
 
 var _hooks_by_function: Dictionary[AttributeEffectHook._Function, Array]
 var _block_runtime_modifications: bool = false:

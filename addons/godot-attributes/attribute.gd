@@ -413,7 +413,7 @@ func _process_active(active: ActiveAttributeEffect) -> void:
 		period_expired = active._remaining_period <= 0.0
 	
 	# Update duration
-	var duration_expired: bool = true
+	var duration_expired: bool = false
 	if active.get_effect().has_duration():
 		active._remaining_duration -= seconds_since_last_process
 		duration_expired = active._remaining_duration <= 0.0

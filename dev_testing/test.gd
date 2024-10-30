@@ -5,33 +5,30 @@ extends Node
 var tick_started: int
 
 func _ready():
-	var e1: AttributeEffect = load("res://dev_testing/drain_effect.tres") as AttributeEffect
-	return
+	tick_started = Time.get_ticks_usec()
+	# Connect value signals
+	health_attribute.monitor_current_value_changed.connect(_monitor_current_value_changed)
+	health_attribute.event_occurred.connect(_event_current_value_changed)
+	health_attribute.monitor_base_value_changed.connect(_monitor_base_value_changed)
+	health_attribute.event_occurred.connect(_event_base_value_changed)
 	
-	#tick_started = Time.get_ticks_usec()
-	## Connect value signals
-	#health_attribute.monitor_current_value_changed.connect(_monitor_current_value_changed)
-	#health_attribute.event_occurred.connect(_event_current_value_changed)
-	#health_attribute.monitor_base_value_changed.connect(_monitor_base_value_changed)
-	#health_attribute.event_occurred.connect(_event_base_value_changed)
+	# Connect effect signals
+	health_attribute.monitor_active_added.connect(_monitor_active_added)
+	health_attribute.event_occurred.connect(_event_active_added)
+	health_attribute.monitor_active_applied.connect(_monitor_active_applied)
+	health_attribute.event_occurred.connect(_event_active_applied)
+	health_attribute.monitor_active_removed.connect(_monitor_active_removed)
+	health_attribute.event_occurred.connect(_event_active_removed)
+	health_attribute.monitor_active_stack_count_changed.connect(_monitor_active_stack_count_changed)
+	health_attribute.event_occurred.connect(_event_active_stack_count_changed)
+	health_attribute.monitor_active_add_blocked.connect(_monitor_active_add_blocked)
+	health_attribute.event_occurred.connect(_event_active_add_blocked)
+	health_attribute.monitor_active_apply_blocked.connect(_monitor_active_apply_blocked)
+	health_attribute.event_occurred.connect(_event_active_apply_blocked)
 	
-	## Connect effect signals
-	#health_attribute.monitor_active_added.connect(_monitor_active_added)
-	#health_attribute.event_occurred.connect(_event_active_added)
-	#health_attribute.monitor_active_applied.connect(_monitor_active_applied)
-	#health_attribute.event_occurred.connect(_event_active_applied)
-	#health_attribute.monitor_active_removed.connect(_monitor_active_removed)
-	#health_attribute.event_occurred.connect(_event_active_removed)
-	#health_attribute.monitor_active_stack_count_changed.connect(_monitor_active_stack_count_changed)
-	#health_attribute.event_occurred.connect(_event_active_stack_count_changed)
-	#health_attribute.monitor_active_add_blocked.connect(_monitor_active_add_blocked)
-	#health_attribute.event_occurred.connect(_event_active_add_blocked)
-	#health_attribute.monitor_active_apply_blocked.connect(_monitor_active_apply_blocked)
-	#health_attribute.event_occurred.connect(_event_active_apply_blocked)
-	#
-	#var drain_effect: AttributeEffect = load("res://dev_testing/drain_effect.tres") as AttributeEffect
-	#drain_effect.populate_derived_modifiers(health_attribute)
-	#health_attribute.add_active(drain_effect.create_active_effect())
+	var drain_effect: AttributeEffect = load("res://dev_testing/drain_effect.tres") as AttributeEffect
+	drain_effect.populate_derived_modifiers(health_attribute)
+	health_attribute.add_active(drain_effect.create_active_effect())
 
 
 func _print(message: String) -> void:
