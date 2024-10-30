@@ -17,7 +17,7 @@ var _iteration_count: int = 0:
 		_iteration_count = value
 var _break_loop: bool = false
 var _modify_is_added: bool
-var _allow_mutations: bool = true
+var _block_mutations: bool = false
 
 func _init(same_priority_sorting_method: Attribute.SamePrioritySortingMethod = \
 Attribute.SamePrioritySortingMethod.OLDER_FIRST, modify_is_added: bool = false) -> void:
@@ -29,27 +29,31 @@ Attribute.SamePrioritySortingMethod.OLDER_FIRST, modify_is_added: bool = false) 
 ## additions & removals. Mutating this instance within [member active_consumer] is safe as long as
 ## [param allow_mutations] is true. If [param allow_mutations] is false, mutations can not be
 ## made & errors will be thrown.
-func for_each(active_consumer: Callable, allow_mutations: bool = true) -> void:
+func for_each(active_consumer: Callable, safe: bool = true) -> void:
 	assert(active_consumer.is_valid(), "active_consumer (%s) is invalid" % active_consumer)
 	assert(active_consumer.get_argument_count() == 1, ("active_consumer (%s) must have only 1" + \
 	"argument of type ActiveAttributeEffect") % active_consumer)
 	
 	_iteration_count += 1
-	var prev_allow_mutations: bool = _allow_mutations
-	_allow_mutations = allow_mutations
-	if allow_mutations:
+	assert(!_block_mutations || !safe, "can not recursively call for_each(..., false) " + \
+	"while original call was for_each(..., true)")
+	
+	if !safe:
+		_block_mutations = true
+		for active: ActiveAttributeEffect in _data_array:
+			active_consumer.call(active)
+			if _break_loop:
+				_break_loop = false
+				break
+		_block_mutations = false
 		for active: ActiveAttributeEffect in _iterable_array:
 			active_consumer.call(active)
 			if _break_loop:
 				_break_loop = false
 				break
 	else:
-		for active: ActiveAttributeEffect in _data_array:
-			active_consumer.call(active)
-			if _break_loop:
-				_break_loop = false
-				break
-	_allow_mutations = prev_allow_mutations
+	
+	_block_mutations = !safe
 	_iteration_count -= 1
 	
 	# If no longer iterating & data array has changed, assign data array
@@ -91,7 +95,7 @@ func break_for_each() -> void:
 
 ## Adds [param active] to this array.
 func add(active: ActiveAttributeEffect) -> void:
-	assert(_allow_mutations, "for_each is currently iterating with 'safe' as false, can not " + \
+	assert(!_block_mutations, "for_each is currently iterating with 'safe' as false, can not " + \
 	"mutate the underlying data array.")
 	assert(active != null, "active is null")
 	assert(!_data_array.has(active), "%s already added to this array" % active)
@@ -122,7 +126,7 @@ func add(active: ActiveAttributeEffect) -> void:
 ## Erases [param active] from this array. If [param safe] is true, an error
 ## is not thrown if the element is not present in the array.
 func erase(active: ActiveAttributeEffect, safe: bool = false) -> void:
-	assert(_allow_mutations, "for_each is currently iterating with 'safe' as false, can not " + \
+	assert(!_block_mutations, "for_each is currently iterating with 'safe' as false, can not " + \
 	"mutate the underlying data array.")
 	assert(active != null, "active is null")
 	assert(safe || _data_array.has(active), "%s not found in this array" % active)
@@ -145,7 +149,7 @@ func erase(active: ActiveAttributeEffect, safe: bool = false) -> void:
 ## Clears the array. If currently iterating, [method break_for_each] is called
 ##& the array will be cleared immediately after.
 func clear() -> void:
-	assert(_allow_mutations, "for_each is currently iterating with 'safe' as false, can not " + \
+	assert(!_block_mutations, "for_each is currently iterating with 'safe' as false, can not " + \
 	"mutate the underlying data array.")
 	if _modify_is_added:
 		for active: ActiveAttributeEffect in _data_array:
