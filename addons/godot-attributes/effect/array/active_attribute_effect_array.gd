@@ -178,7 +178,7 @@ func duplicate_array() -> Array[ActiveAttributeEffect]:
 func _sort_new_before_other(new: ActiveAttributeEffect, other: ActiveAttributeEffect) -> bool:
 	if new.get_effect().type != other.get_effect().type:
 		return new.get_effect().type < other.get_effect().type
-	if new.get_effect().priroity == other.get_effect().priority:
+	if new.get_effect().priority == other.get_effect().priority:
 		match _same_priority_sorting_method:
 			Attribute.SamePrioritySortingMethod.OLDER_FIRST:
 				return false

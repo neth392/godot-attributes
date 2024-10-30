@@ -1,23 +1,10 @@
-[gd_scene load_steps=7 format=3 uid="uid://cxaciuxmlpkcv"]
+[gd_scene load_steps=3 format=3 uid="uid://cxaciuxmlpkcv"]
 
 [ext_resource type="Script" path="res://dev_testing/test.gd" id="1_4c6uj"]
 [ext_resource type="Script" path="res://addons/godot-attributes/attribute_container.gd" id="2_2qnf1"]
-[ext_resource type="Script" path="res://addons/godot-attributes/attribute.gd" id="3_jgq5p"]
-[ext_resource type="Script" path="res://addons/godot-attributes/validator/attribute_value_validator.gd" id="4_0ok4b"]
-[ext_resource type="Script" path="res://addons/godot-attributes/validator/int_validator.gd" id="5_kko03"]
-
-[sub_resource type="Resource" id="Resource_rdv2p"]
-script = ExtResource("5_kko03")
-rounding = 0
 
 [node name="Test" type="Node"]
 script = ExtResource("1_4c6uj")
 
 [node name="AttributeContainer" type="Node" parent="."]
 script = ExtResource("2_2qnf1")
-
-[node name="HealthAttribute" type="Node" parent="AttributeContainer"]
-script = ExtResource("3_jgq5p")
-id = &"Health"
-_base_value = 200.0
-_current_value_validators = Array[ExtResource("4_0ok4b")]([SubResource("Resource_rdv2p")])
