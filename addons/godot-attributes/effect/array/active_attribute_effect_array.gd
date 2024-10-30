@@ -27,23 +27,23 @@ Attribute.SamePrioritySortingMethod.OLDER_FIRST, modify_is_added: bool = false) 
 
 ## Executes the [param active_consumer] for each element in this array, excluding any pending
 ## additions & removals. Mutating this instance within [member active_consumer] is safe as long as
-## [param safe] is true. If [param safe] is false, mutations can not be made & errors will
-## be thrown.
-func for_each(active_consumer: Callable, safe: bool = true) -> void:
+## [param allow_mutations] is true. If [param allow_mutations] is false, mutations can not be
+## made & errors will be thrown.
+func for_each(active_consumer: Callable, allow_mutations: bool = true) -> void:
 	assert(active_consumer.is_valid(), "active_consumer (%s) is invalid" % active_consumer)
 	assert(active_consumer.get_argument_count() == 1, ("active_consumer (%s) must have only 1" + \
 	"argument of type ActiveAttributeEffect") % active_consumer)
 	
 	_iteration_count += 1
 	var prev_allow_mutations: bool = _allow_mutations
-	_allow_mutations = safe
-	if safe:
+	_allow_mutations = allow_mutations
+	if allow_mutations:
 		for active: ActiveAttributeEffect in _iterable_array:
 			active_consumer.call(active)
 			if _break_loop:
 				_break_loop = false
 				break
-	else: # Unsafe, use _data array
+	else:
 		for active: ActiveAttributeEffect in _data_array:
 			active_consumer.call(active)
 			if _break_loop:

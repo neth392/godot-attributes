@@ -217,6 +217,17 @@ signal monitor_active_apply_blocked(blocked: ActiveAttributeEffect)
 		if !Engine.is_editor_hint():
 			_update_processing()
 
+## How many frames should be skipped in between each _process call. For attributes
+## that may have many effects it is recommended to increase this from the default value of 0.
+## The greater the frames skipped the more chance for effects to be present longer than
+## their set duration, or longer time between applying of effects than their set periods, so only
+## use where precision doesn't have to be exact.
+@export_range(0, 100, 1, "or_greater", "hide_slider") var skip_process_frames: int = 0:
+	set(_value):
+		assert(_value >= 0, "skip_process_frames must be >= 0, but was set to %s" % _value)
+		skip_process_frames = _value
+		_frame_skipping_enabled = skip_process_frames > 0
+
 ## Determines how to sort effects who share the same priority.
 @export var same_priority_sorting_method: SamePrioritySortingMethod:
 	set(value):
@@ -244,9 +255,9 @@ signal monitor_active_apply_blocked(blocked: ActiveAttributeEffect)
 # Internally stores if there are any [ActiveAttributeEffect]s currently applied.
 # When set processing is updated, disabling it when no effects are applied to
 # help performance.
-@export_storage var _has_actives: bool = false:
+@export_storage var _has_processable_actives: bool = false:
 	set(value):
-		_has_actives = value
+		_has_processable_actives = value
 		_update_processing()
 
 # Dictionary of in the format of [code]{[member AttributeEffect.id] : int}[/code] count of all 
@@ -274,6 +285,8 @@ var _paused_at: int
 # of this class.
 var _in_monitor_signal_or_hook: bool = false
 
+var _frame_skipping_enabled: bool = false
+var _skipped_frames: int = 0
 
 ###################
 ## Tree Handling ##
@@ -381,11 +394,21 @@ func _to_string() -> String:
 
 
 func _process(delta: float) -> void:
-	_actives.for_each(_process_active)
+	if _frame_skipping_enabled:
+		if _skipped_frames < skip_process_frames:
+			_skipped_frames += 1
+			return
+		_skipped_frames = 0
+	_actives.processing_required.for_each(_process_active)
 
 
 func _physics_process(delta: float) -> void:
-	_actives.for_each(_process_active)
+	if _frame_skipping_enabled:
+		if _skipped_frames < skip_process_frames:
+			_skipped_frames += 1
+			return
+		_skipped_frames = 0
+	_actives.processing_required.for_each(_process_active)
 
 
 func _process_active(active: ActiveAttributeEffect) -> void:
@@ -778,7 +801,7 @@ func add_active(active: ActiveAttributeEffect) -> void:
 	# Add to array
 	_actives.add(active)
 	# Update _has_actives (which thus updates processing)
-	_has_actives = true
+	_has_processable_actives = !_actives.processing_required.is_empty()
 	
 	# Add to _effect_counts
 	var new_count: int = _effect_counts.get(active.get_effect().id, 0) + 1
@@ -954,7 +977,7 @@ func _remove_active(active: ActiveAttributeEffect, event: AttributeEvent) -> voi
 	_actives.erase(active)
 	
 	# Set _has_actives (updates the processing accordingly)
-	_has_actives = !_actives.is_empty()
+	_has_processable_actives = !_actives.processing_required.is_empty()
 	
 	# Remove it from _effect_counts
 	if _effect_counts.has(active.get_effect().id):
@@ -1055,7 +1078,7 @@ func _apply_permanent_active(active: ActiveAttributeEffect, current_tick: int, e
 
 
 func _update_processing() -> void:
-	var _can_process: bool = !Engine.is_editor_hint() && _has_actives && allow_effects
+	var _can_process: bool = !Engine.is_editor_hint() && _has_processable_actives && allow_effects
 	set_process(_can_process && effects_process_function == ProcessFunction.PROCESS)
 	set_physics_process(_can_process && effects_process_function == ProcessFunction.PHYSICS_PROCESS)
 

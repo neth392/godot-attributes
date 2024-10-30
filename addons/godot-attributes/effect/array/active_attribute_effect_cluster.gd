@@ -5,6 +5,8 @@
 @tool
 class_name ActiveAttributeEffectCluster extends ActiveAttributeEffectArray
 
+## Contains all actives that require processing; i.e, has a period or duration.
+var processing_required: ActiveAttributeEffectArray
 ## Contains all temporary actives.
 var temporaries_w_value: ActiveAttributeEffectArray
 ## Contains all modifier actives.
@@ -21,6 +23,7 @@ var apply_blockers: ActiveAttributeEffectArray
 
 func _init(same_priority_sorting_method: Attribute.SamePrioritySortingMethod) -> void:
 	super._init(same_priority_sorting_method, true)
+	processing_required = ActiveAttributeEffectArray.new(same_priority_sorting_method, false)
 	temporaries_w_value = ActiveAttributeEffectArray.new(same_priority_sorting_method, false)
 	value_modifiers = ActiveAttributeEffectArray.new(same_priority_sorting_method, false)
 	duration_modifiers = ActiveAttributeEffectArray.new(same_priority_sorting_method, false)
@@ -31,6 +34,8 @@ func _init(same_priority_sorting_method: Attribute.SamePrioritySortingMethod) ->
 
 func add(active: ActiveAttributeEffect) -> void:
 	super.add(active)
+	if active.get_effect().has_period() || active.get_effect().has_duration():
+		processing_required.add(active)
 	if active.get_effect().is_temporary() && active.get_effect().has_value:
 		temporaries_w_value.add(active)
 	if active.get_effect().add_blocker:
@@ -48,6 +53,7 @@ func add(active: ActiveAttributeEffect) -> void:
 
 func erase(active: ActiveAttributeEffect, safe: bool = false) -> void:
 	super.erase(active, false)
+	processing_required.erase(active, true)
 	temporaries_w_value.erase(active, true)
 	add_blockers.erase(active, true)
 	apply_blockers.erase(active, true)
@@ -58,6 +64,7 @@ func erase(active: ActiveAttributeEffect, safe: bool = false) -> void:
 
 func clear() -> void:
 	super.clear()
+	processing_required.clear()
 	temporaries_w_value.clear()
 	add_blockers.clear()
 	apply_blockers.clear()
