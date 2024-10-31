@@ -6,4 +6,3 @@
 script = ExtResource("1_ffwxc")
 id = &"health_attribute"
 _base_value = 200.0
-_has_processable_actives = null

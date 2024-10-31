@@ -333,14 +333,14 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_UNPAUSED:
 		var unpaused_at: int = _get_ticks()
 		var ticks_paused: float = _get_ticks() - _paused_at
-		_actives.for_each(
+		_actives.for_each_block_mutations(
 			func(active: ActiveAttributeEffect) -> void:
 				# If added during the pause, set process time to unpause time
 				if active._tick_added_on >= _paused_at:
 					active._tick_last_processed = unpaused_at
 				else: # If added before pause, add time puased to process time
 					active._tick_last_processed += ticks_paused
-		, false)
+		)
 
 
 ##################
@@ -399,7 +399,7 @@ func _process(delta: float) -> void:
 			_skipped_frames += 1
 			return
 		_skipped_frames = 0
-	_actives.processing_required.for_each(_process_active)
+	_actives.processing_required.for_each_allow_mutations(_process_active)
 
 
 func _physics_process(delta: float) -> void:
@@ -408,7 +408,7 @@ func _physics_process(delta: float) -> void:
 			_skipped_frames += 1
 			return
 		_skipped_frames = 0
-	_actives.processing_required.for_each(_process_active)
+	_actives.processing_required.for_each_allow_mutations(_process_active)
 
 
 func _process_active(active: ActiveAttributeEffect) -> void:
@@ -569,7 +569,7 @@ func update_current_value() -> void:
 
 func _update_current_value(event: AttributeEvent) -> void:
 	var new_current_value: AttributeUtil.Reference = AttributeUtil.Reference.new(_base_value)
-	_actives.temporaries_w_value.for_each(
+	_actives.temporaries_w_value.for_each_allow_mutations(
 		func(active: ActiveAttributeEffect) -> void:
 			# Skip if not added or is expired
 			if !active.is_added() || active.is_expired():
@@ -908,7 +908,7 @@ func remove_effect(effect: AttributeEffect) -> int:
 	assert(!_in_monitor_signal_or_hook, "can not call mutating methods on an Attribute" + \
 	"from a hook or while handling a signal prefixed with monitor_")
 	var removed: AttributeUtil.Reference = AttributeUtil.Reference.new(0)
-	_actives.for_each(
+	_actives.for_each_allow_mutations(
 		func(active: ActiveAttributeEffect) -> void:
 			if active.get_effect() == effect:
 				var event: AttributeEvent = AttributeEvent.new(self, active)
@@ -925,7 +925,7 @@ func remove_effects(effects: Array[AttributeEffect]) -> int:
 	assert(!_in_monitor_signal_or_hook, "can not call mutating methods on an Attribute" + \
 	"from a hook or while handling a signal prefixed with monitor_")
 	var removed: AttributeUtil.Reference = AttributeUtil.Reference.new(0)
-	_actives.for_each(
+	_actives.for_each_allow_mutations(
 		func(active: ActiveAttributeEffect) -> void:
 			if effects.has(active.get_effect()):
 				var event: AttributeEvent = AttributeEvent.new(self, active)

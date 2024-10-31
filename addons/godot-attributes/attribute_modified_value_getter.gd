@@ -24,12 +24,12 @@ func get_modified(attribute: Attribute, active: ActiveAttributeEffect) -> float:
 	var modified_value: AttributeUtil.Reference = AttributeUtil.Reference.new(\
 	_get_effect_value(active.get_effect()).get_modified(attribute, active))
 	
-	_get_modifier_actives(attribute._actives).for_each(
+	_get_modifier_actives(attribute._actives).for_each_block_mutations(
 		func(modifier: ActiveAttributeEffect) -> void:
 			if modifier.is_added() && !modifier.is_expired():
 				modified_value.ref = _get_modifiers(modifier.get_effect())\
 				.modify_value(modified_value.ref, attribute, active)
-	, false) # Unsafe iteration as mutations won't be made during it.
+	)
 	
 	return modified_value.ref
 

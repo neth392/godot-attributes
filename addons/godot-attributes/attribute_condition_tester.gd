@@ -54,7 +54,7 @@ func test(attribute: Attribute, active: ActiveAttributeEffect, event: AttributeE
 	var blockers: ActiveAttributeEffectArray = _get_blockers(attribute._actives)
 	if !blockers.is_empty():
 		var all_conditions_pass: AttributeUtil.Reference = AttributeUtil.Reference.new(true)
-		blockers.for_each(
+		blockers.for_each_block_mutations(
 			func(blocker: ActiveAttributeEffect) -> void:
 				if !blocker.is_added() || blocker.is_expired():
 					return
@@ -83,7 +83,7 @@ func test(attribute: Attribute, active: ActiveAttributeEffect, event: AttributeE
 					
 					# Break this loop
 					attribute._actives.break_for_each()
-		, false) # Unsafe iteration (array is not mutated)
+		)
 		
 		return all_conditions_pass.ref
 	
