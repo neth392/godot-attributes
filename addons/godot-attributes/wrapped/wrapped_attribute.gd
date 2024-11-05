@@ -21,11 +21,23 @@ const HARD_MAX: float = -1.79769e308
 		assert(_value == null || !_in_monitor_signal_or_hook, \
 		"can not change base_min while in a monitor signal or hook")
 		
+		var prev_value: float = get_base_min_value()
 		base_min = _value
+		
+		if !Engine.is_editor_hint():
+			_handle_base_min_change(prev_value)
+		
 		notify_property_list_changed()
 
 ## Which value of [member base_min] to use.
-@export var base_min_value_to_use: Attribute.Value
+@export var base_min_value_to_use: Attribute.Value:
+	set(_value):
+		if base_min == null || Engine.is_editor_hint():
+			base_min_value_to_use = _value
+			return
+		var prev_value: float = get_base_min_value()
+		base_min_value_to_use = _value
+		_handle_base_min_change(prev_value)
 
 @export_subgroup("Current Value")
 
@@ -137,6 +149,13 @@ func _get_value(attribute: Attribute, value_to_use: Attribute.Value) -> float:
 		_:
 			assert(false, "no implementation for value_to_use (%s)" % value_to_use)
 			return 0.0
+
+
+func _handle_base_min_change(prev_base_min: float) -> void:
+	var new_base_min: float = get_base_min_value()
+	if base_min != null && _base_value < new_base_min:
+		# TODO wrap base min
+		pass
 
 
 ## Returns true if [member base_min] is not null & thus there is a minimum for 

@@ -155,7 +155,7 @@ signal monitor_active_apply_blocked(blocked: ActiveAttributeEffect)
 @export var _base_value: float:
 	set(value):
 		if Engine.is_editor_hint():
-			var validated: float = _validate_value(value, _base_value_validators)
+			var validated: float = _validate_value(value, Value.BASE_VALUE)
 			if value != validated:
 				push_warning("Inputted _base_value was validated by _base_value_validators")
 			_base_value = validated
@@ -170,7 +170,7 @@ signal monitor_active_apply_blocked(blocked: ActiveAttributeEffect)
 		assert(false, "this is a display only property for the Edity Inspector")
 	get():
 		# TODO possibly implement default effects?
-		return _validate_value(_base_value, _current_value_validators)
+		return _validate_value(_base_value, Value.CURRENT_VALUE)
 
 @export_group("Value Validators")
 
@@ -311,7 +311,7 @@ func _ready() -> void:
 		return
 	
 	_actives = ActiveAttributeEffectCluster.new(same_priority_sorting_method)
-	_current_value = _validate_value(_base_value, _current_value_validators)
+	_current_value = _validate_value(_base_value, Value.CURRENT_VALUE)
 	
 	# Handle default effects
 	if allow_effects && !default_effects.is_empty():
@@ -493,11 +493,15 @@ func get_container() -> AttributeContainer:
 ##########################
 
 
-func _validate_value(value: float, validators: Array[AttributeValueValidator]) -> float:
+func _validate_value(value: float, value_type: Value) -> float:
 	var validated: float = value
+	
+	var validators: Array[AttributeValueValidator] = _current_value_validators \
+	if value_type == Value.CURRENT_VALUE else _base_value
+	
 	for validator: AttributeValueValidator in validators:
 		if validator != null:
-			validated = validator._validate(validated)
+			validated = validator._validate(self, validated, value_type)
 	return validated
 
 
@@ -516,7 +520,7 @@ func set_base_value(new_base_value: float) -> bool:
 	"from a hook or while handling a signal prefixed with monitor_")
 	
 	# Validate the new base value
-	var validated_new_base_value: float = _validate_value(new_base_value, _base_value_validators)
+	var validated_new_base_value: float = _validate_value(new_base_value, Value.BASE_VALUE)
 	if _base_value == validated_new_base_value:
 		return false
 	
@@ -578,7 +582,7 @@ func _update_current_value(event: AttributeEvent) -> void:
 			active._pending_raw_attribute_value = active.get_effect().apply_calculator(_base_value, 
 			new_current_value.ref, active._pending_effect_value)
 			active._pending_final_attribute_value = _validate_value(active._pending_raw_attribute_value, 
-			_current_value_validators)
+			Value.CURRENT_VALUE)
 			
 			if !AttributeConditionTester.temporary_apply().test(self, active, event):
 				event._apply_blocked_event = true
@@ -1030,7 +1034,7 @@ func _apply_permanent_active(active: ActiveAttributeEffect, current_tick: int, e
 	
 	# Validate the attribute's value
 	active._pending_final_attribute_value = _validate_value(active._pending_raw_attribute_value, 
-	_base_value_validators)
+	Value.BASE_VALUE)
 	
 	# Check apply conditions
 	if !AttributeConditionTester.permanent_apply().test(self, active, event):
