@@ -16,6 +16,8 @@ func _ready():
 	health_attribute.monitor_base_value_changed.connect(_monitor_base_value_changed)
 	health_attribute.event_occurred.connect(_event_base_value_changed)
 	
+	health_attribute.event_occurred.connect(test)
+	
 	# Connect effect signals
 	health_attribute.monitor_active_added.connect(_monitor_active_added)
 	health_attribute.event_occurred.connect(_event_active_added)
@@ -40,6 +42,10 @@ func _ready():
 		#$AttributeContainer.add_child(new_attr)
 		#for i2 in 1:
 			#new_attr.add_active(drain_effect.create_active_effect())
+
+
+func test(wrapped_event: WrappedAttributeEvent) -> void:
+	print("TEST", wrapped_event)
 
 
 func _print(message: String) -> void:

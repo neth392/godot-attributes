@@ -447,7 +447,7 @@ func _process_active(active: ActiveAttributeEffect) -> void:
 		return
 	
 	# At this point an event will be thrown as the period and/or duration has expired
-	var event: AttributeEvent = AttributeEvent.new(self, active)
+	var event: AttributeEvent = _create_event(active)
 	event._active_effect = active
 	
 	# Handle duration expiring
@@ -464,7 +464,7 @@ func _process_active(active: ActiveAttributeEffect) -> void:
 			_remove_active(active, event)
 		
 	# Handle period expiring if duration didn't expire
-	elif period_expired:
+	else:
 		# Apply it
 		_apply_permanent_active(active, current_tick, event)
 		
@@ -478,9 +478,6 @@ func _process_active(active: ActiveAttributeEffect) -> void:
 		else:
 			# Update period
 			active._remaining_period += AttributeModifiedValueGetter.period().get_modified(self, active)
-	# This should never trigger, but just to be sure assert such
-	else:
-		assert(false, "duration_expired or period_expired are both false somehow")
 	
 	# Emit the event
 	event_occurred.emit(event)
@@ -524,7 +521,7 @@ func set_base_value(new_base_value: float) -> bool:
 		return false
 	
 	# Create new event
-	var event: AttributeEvent = AttributeEvent.new(self)
+	var event: AttributeEvent = _create_event()
 	_set_base_value_pre_validated(new_base_value, event)
 	return true
 
@@ -561,7 +558,7 @@ func get_current_value() -> float:
 func update_current_value() -> void:
 	assert(!_in_monitor_signal_or_hook, "can not call mutating methods on an Attribute" + \
 	"from a hook or while handling a signal prefixed with monitor_")
-	var event: AttributeEvent = AttributeEvent.new(self)
+	var event: AttributeEvent = _create_event()
 	event._new_base_value = _base_value # Base value won't change here
 	_update_current_value(event)
 	event_occurred.emit(event)
@@ -738,7 +735,7 @@ func add_active(active: ActiveAttributeEffect) -> void:
 	% [active, self])
 	
 	var current_tick: int = _get_ticks()
-	var event: AttributeEvent = AttributeEvent.new(self, active)
+	var event: AttributeEvent = _create_event(active)
 	
 	# Effect is instant, ignore other logic & apply it
 	if active.get_effect().is_instant():
@@ -842,7 +839,7 @@ func add_active(active: ActiveAttributeEffect) -> void:
 ## [enum AttributeEffect.StackMode.COMBINE] or an error will be thrown (in debug mode
 ## via an assertion).
 func set_active_stack_count(active: ActiveAttributeEffect, new_stack_count: int) -> void:
-	var event: AttributeEvent = AttributeEvent.new(self, active)
+	var event: AttributeEvent = _create_event(active)
 	_set_active_stack_count(active, new_stack_count, event)
 	event_occurred.emit(event)
 
@@ -911,7 +908,7 @@ func remove_effect(effect: AttributeEffect) -> int:
 	_actives.for_each_allow_mutations(
 		func(active: ActiveAttributeEffect) -> void:
 			if active.get_effect() == effect:
-				var event: AttributeEvent = AttributeEvent.new(self, active)
+				var event: AttributeEvent = _create_event(active)
 				_remove_active(active, event)
 				removed.ref += 1
 				event_occurred.emit(event)
@@ -928,7 +925,7 @@ func remove_effects(effects: Array[AttributeEffect]) -> int:
 	_actives.for_each_allow_mutations(
 		func(active: ActiveAttributeEffect) -> void:
 			if effects.has(active.get_effect()):
-				var event: AttributeEvent = AttributeEvent.new(self, active)
+				var event: AttributeEvent = _create_event(active)
 				_remove_active(active, event)
 				removed.ref += 1
 				event_occurred.emit(event)
@@ -955,7 +952,7 @@ func remove_active(active: ActiveAttributeEffect) -> bool:
 	"from a hook or while handling a signal prefixed with monitor_")
 	if active == null || !has_active(active):
 		return false
-	var event: AttributeEvent = AttributeEvent.new(self, active)
+	var event: AttributeEvent = _create_event(active)
 	_remove_active(active, event)
 	event_occurred.emit(event)
 	return true
@@ -1007,7 +1004,7 @@ func remove_all_effects() -> void:
 	"from a hook or while handling a signal prefixed with monitor_")
 	var to_remove: Array[ActiveAttributeEffect] = _actives.duplicate_array()
 	for active: ActiveAttributeEffect in to_remove:
-		var event: AttributeEvent = AttributeEvent.new(self, active)
+		var event: AttributeEvent = _create_event(active)
 		_remove_active(active, event)
 		event_occurred.emit(event)
 
@@ -1070,6 +1067,14 @@ func _apply_permanent_active(active: ActiveAttributeEffect, current_tick: int, e
 	if active.get_effect().emit_applied_signal:
 		monitor_active_applied.emit(active)
 	_in_monitor_signal_or_hook = false
+
+####################
+## AttributeEvent ##
+####################
+
+
+func _create_event(active: ActiveAttributeEffect = null) -> AttributeEvent:
+	return AttributeEvent.new(self, active)
 
 
 ###################
