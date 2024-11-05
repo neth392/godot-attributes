@@ -148,22 +148,60 @@ func get_active_expected_duration() -> float:
 	return _remaining_duration + _active_duration
 
 
-### Returns the value retrieved from [member AttributeEffect.value] that is pending
-### application to the [Attribute]. If this active effect is not in a pending state, 0.0 is returned.
-#func get_pending_effect_value() -> float:
-	#return _pending_effect_value
-#
-#
-### Returns the value derived from appling the effect's [AttributeEffectCalculator] on the
-### [method get_pending_effect_value] & Attribute's value. This is the value that will be set
-### directly to the [Attribute]. If this active effect is not in a pending state, 0.0 is returned.
-#func get_pending_calculated_value() -> float:
-	#return _pending_calculated_value
-#
-#
-### Returns
-#func get_last_effect_value() -> float:
-	#return _last_effect_value
+## Returns the pending total value of the effect.
+func get_pending_effect_value() -> float:
+	return _pending_effect_value
+
+
+## Returns the [Attribute]s value at the current point in time before applying this effect.
+func get_pending_prior_attribute_value() -> float:
+	return _pending_prior_attribute_value
+
+
+## Returns what will be the raw, unvalidated value of the [Attribute] AFTER this effect
+## is to be applied.
+func get_pending_raw_attribute_value() -> float:
+	return _pending_raw_attribute_value
+
+
+## Returns what will be the final, validated value of the [Attribute] AFTER thiss effect
+## is to be applied.
+func get_pending_final_attribute_value() -> float:
+	return _pending_final_attribute_value
+
+
+## Returns [method get_pending_final_attribute_value] - [method get_pending_prior_attribute_value]
+## which returns the total difference this effect will have on the [Attribute] before
+## applying to it.
+func get_pending_difference() -> float:
+	return _pending_final_attribute_value - _pending_prior_attribute_value
+
+
+## Returns the total value of this effect after it was last applied to the [Attribute].
+func get_last_effect_value() -> float:
+	return _last_effect_value
+
+
+## Returns the [Attribute]'s prior value before this effect was last applied to it.
+func get_last_prior_attribute_value() -> float:
+	return _last_prior_attribute_value
+
+
+## Returns the raw, unvalidated value of the [Attribute] before this effect was last applied to it.
+func get_last_raw_attribute_value() -> float:
+	return _last_raw_attribute_value
+
+
+## Returns the final, validated value of the [Attribute] after this effect was last applied to it.
+func get_last_final_attribute_value() -> float:
+	return _last_final_attribute_value
+
+
+## Returns [method get_last_final_attribute_value] - [method get_last_prior_attribute_value]
+## which returns the total difference this effect had on the [Attribute]'s value when it
+## was last applied to it.
+func get_last_difference() -> float:
+	return _last_final_attribute_value - _last_prior_attribute_value
 
 
 ## If currently blocked, returns the [AttributeEffectCondition] that blocked this active effect

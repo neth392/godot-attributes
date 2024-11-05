@@ -18,8 +18,12 @@ const HARD_MAX: float = -1.79769e308
 ## the least value (inclusive) this attribute's base value can reach.
 @export var base_min: Attribute:
 	set(_value):
+		assert(_value == null || !_in_monitor_signal_or_hook, \
+		"can not change base_min while in a monitor signal or hook")
+		
 		base_min = _value
 		notify_property_list_changed()
+
 ## Which value of [member base_min] to use.
 @export var base_min_value_to_use: Attribute.Value
 
@@ -29,8 +33,12 @@ const HARD_MAX: float = -1.79769e308
 ## the least value (inclusive) this attribute's current value can reach.
 @export var current_min: Attribute:
 	set(_value):
+		assert(_value == null || !_in_monitor_signal_or_hook, \
+		"can not change current_min while in a monitor signal or hook")
+		
 		current_min = _value
 		notify_property_list_changed()
+
 ## Which value of [member current_min] to use.
 @export var current_min_value_to_use: Attribute.Value
 
@@ -42,8 +50,12 @@ const HARD_MAX: float = -1.79769e308
 ## the greatest value (inclusive) this attribute's base value can reach.
 @export var base_max: Attribute:
 	set(_value):
+		assert(_value == null || !_in_monitor_signal_or_hook, \
+		"can not change base_max while in a monitor signal or hook")
+		
 		base_max = _value
 		notify_property_list_changed()
+
 ## Which value of [member base_max] to use.
 @export var base_max_value_to_use: Attribute.Value
 
@@ -53,8 +65,12 @@ const HARD_MAX: float = -1.79769e308
 ## the greatest value (inclusive) this attribute's current value can reach.
 @export var current_max: Attribute:
 	set(_value):
+		assert(_value == null || !_in_monitor_signal_or_hook, \
+		"can not change current_max while in a monitor signal or hook")
+		
 		current_max = _value
 		notify_property_list_changed()
+
 ## Which value of [member current_max] to use.
 @export var current_max_value_to_use: Attribute.Value
 
@@ -79,6 +95,34 @@ func _validate_property(property: Dictionary) -> void:
 		if current_max == null:
 			property.usage = PROPERTY_USAGE_NO_EDITOR
 		return
+	super._validate_property(property)
+
+
+func _get_configuration_warnings() -> PackedStringArray:
+	var warnings: PackedStringArray = super._get_configuration_warnings()
+	
+	var base_min_value: float = get_base_min_value()
+	if has_base_min() && _base_value < base_min_value:
+		warnings.append("_base_value (%s) is < base_min's value of (%s)" \
+		% [_base_value, base_min_value])
+	
+	var base_max_value: float = get_base_max_value()
+	if has_base_max() && _base_value > base_max_value:
+		warnings.append("_base_value (%s) is > base_max's value of (%s)" \
+		% [_base_value, base_max_value])
+	
+	var current_min_value: float = get_current_min_value()
+	if has_current_min() && _current_value < current_min_value:
+		warnings.append("_current_value (%s) is < current_min's value of (%s)" \
+		% [_current_value, current_min_value])
+	
+	var current_max_value: float = get_current_max_value()
+	if has_current_max() && _current_value > current_max_value:
+		warnings.append("_current_value (%s) is > current_max's value of (%s)" \
+		% [_current_value, current_max_value])
+	
+	return warnings
+
 
 func _create_event(active: ActiveAttributeEffect = null) -> AttributeEvent:
 	return WrappedAttributeEvent.new(self, active)

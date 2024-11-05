@@ -7,7 +7,7 @@
 @icon("res://addons/godot-attributes/assets/attribute_icon.svg")
 class_name Attribute extends Node
 
-## Internal time unit used to appropriately set it to the [PauseTracker].
+## Internal time unit used.
 const INTERNAL_TIME_UNIT: AttributeUtil.TimeUnit = AttributeUtil.TimeUnit.MICROSECONDS
 
 ## Helper function currently for [method Time.get_ticks_usec], created so that

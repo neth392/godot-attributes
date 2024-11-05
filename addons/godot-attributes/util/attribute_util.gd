@@ -35,17 +35,6 @@ static func get_ticks_seconds() -> float:
 	return Time.get_ticks_usec() / 1_000_000.0
 
 
-## Converts the [param time] of unit [param origin_unit] to seconds.
-static func convert_to_seconds(time: float, origin_unit: TimeUnit) -> float:
-	assert(_conversions_to_seconds.has(origin_unit), 
-	"origin_unit (%s) not in _conversions_to_seconds" % origin_unit)
-	return time / _conversions_to_seconds[origin_unit]
-
-
-## Converts the [param time] of unit [param origin_unit] to the time in [param target_unit].
-static func convert_to(time: float, origin_unit: TimeUnit, target_unit: TimeUnit) -> float:
-	return convert_to_seconds(time, origin_unit) * _conversions_to_seconds[target_unit]
-
 
 class Reference extends Object:
 	var ref: Variant

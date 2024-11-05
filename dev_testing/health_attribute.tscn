@@ -10,4 +10,3 @@ base_max_value_to_use = null
 current_max_value_to_use = null
 id = &"health_attribute"
 _base_value = 200.0
-_current_value_display = 200.0
