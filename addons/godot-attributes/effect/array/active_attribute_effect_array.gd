@@ -5,7 +5,6 @@
 @tool
 class_name ActiveAttributeEffectArray extends Resource
 
-var _same_priority_sorting_method: Attribute.SamePrioritySortingMethod
 # Array which can be iterable. No mutations are made to it.
 var _iterable_array: Array[ActiveAttributeEffect]
 # Array which mutations are made to.
@@ -21,7 +20,18 @@ var _unsafe_iteration_count: int = 0:
 		_unsafe_iteration_count = value
 
 var _break_loop: bool = false
-var _modify_is_added: bool
+
+@export_storage var _same_priority_sorting_method: Attribute.SamePrioritySortingMethod
+@export_storage var _modify_is_added: bool
+@export_storage var _storage_array: Array[ActiveAttributeEffect]:
+	set(_value):
+		_data_array = _value
+	get():
+		var array: Array[ActiveAttributeEffect] = []
+		for active: ActiveAttributeEffect in _data_array:
+			if !active.get_effect().omit_from_save:
+				array.append(active)
+		return array
 
 func _init(same_priority_sorting_method: Attribute.SamePrioritySortingMethod = \
 Attribute.SamePrioritySortingMethod.OLDER_FIRST, modify_is_added: bool = false) -> void:

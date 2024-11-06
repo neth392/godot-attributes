@@ -38,4 +38,5 @@ period_modifier = false
 duration_modifier = false
 metadata = {}
 irremovable = true
+omit_from_save = true
 _loading_end = true

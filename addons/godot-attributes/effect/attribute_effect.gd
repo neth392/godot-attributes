@@ -413,6 +413,10 @@ AttributeEffectFeatureManager.i().get_default_value(self, &"duration_modifier"):
 			irremovable = _value
 			AttributeEffectFeatureManager.i().notify_value_changed(self, &"irremovable")
 
+## If true, this effect is omitted from being saved when applied to an [Attribute].
+## Designed for internal use in Godot Attributes.
+@export var omit_from_save: bool = false
+
 @export_storage var _loading_end: bool:
 	set(_value):
 		_loading_end = _value

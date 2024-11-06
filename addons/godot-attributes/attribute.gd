@@ -310,8 +310,13 @@ func _ready() -> void:
 	if Engine.is_editor_hint():
 		return
 	
-	_actives = ActiveAttributeEffectCluster.new(same_priority_sorting_method)
+	if _actives == null:
+		_actives = ActiveAttributeEffectCluster.new(same_priority_sorting_method)
 	_current_value = _validate_value(_base_value, Value.CURRENT_VALUE)
+	
+	# Handle built in effects
+	for effect: AttributeEffect in _get_built_in_effects():
+		add_active(effect.create_active_effect())
 	
 	# Handle default effects
 	if allow_effects && !default_effects.is_empty():
@@ -386,6 +391,14 @@ func _get_configuration_warnings() -> PackedStringArray:
 
 func _to_string() -> String:
 	return "Attribute(id=%s)" % id
+
+
+######################
+## Built In Effects ##
+######################
+
+func _get_built_in_effects() -> Array[AttributeEffect]:
+	return []
 
 
 ##############################

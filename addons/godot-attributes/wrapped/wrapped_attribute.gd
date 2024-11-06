@@ -96,6 +96,12 @@ const HARD_MAX: float = -1.79769e308
 @export var current_max_value_to_use: Attribute.Value
 
 
+func _ready() -> void:
+	var effect: AttributeEffect = preload("./wrapped_attribute_effect.tres") as AttributeEffect
+	# TODO handle configuration
+	super._ready()
+
+
 func _validate_property(property: Dictionary) -> void:
 	if property.name == "base_min_value_to_use":
 		if base_min == null:
@@ -143,6 +149,10 @@ func _get_configuration_warnings() -> PackedStringArray:
 		% [_current_value, current_max_value])
 	
 	return warnings
+
+
+func _get_built_in_effects() -> Array[AttributeEffect]:
+	return []
 
 
 func _create_event(active: ActiveAttributeEffect = null) -> AttributeEvent:
