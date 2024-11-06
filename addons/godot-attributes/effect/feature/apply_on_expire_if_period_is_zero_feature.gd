@@ -5,7 +5,7 @@ func _get_property_name() -> StringName:
 
 
 func _get_depends_on() -> Array[StringName]:
-	return [&"period", &"apply_on_expire"]
+	return [&"period", &"apply_on_expire", &"irremovable"]
 
 
 func _get_default_value(effect: AttributeEffect) -> Variant:
@@ -13,14 +13,14 @@ func _get_default_value(effect: AttributeEffect) -> Variant:
 
 
 func _show_in_editor(effect: AttributeEffect) -> bool:
-	return effect.period != null && !effect.apply_on_expire
+	return effect.period != null && !effect.apply_on_expire && !effect.irremovable
 
 
 func _value_meets_requirements(value: Variant, effect: AttributeEffect) -> bool:
-	return value == false || (effect.period != null && !effect.apply_on_expire)
+	return value == false || (effect.period != null && !effect.apply_on_expire && !effect.irremovable)
 
 
 func _get_requirements_string(value: Variant) -> String:
 	if value == true:
-		return "effect.period != null && effect.apply_on_expire == false"
+		return "effect.period != null && effect.apply_on_expire == false && effect.irremovable == false"
 	return NO_REQUIREMENTS

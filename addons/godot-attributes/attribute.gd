@@ -877,23 +877,27 @@ func _set_active_stack_count(active: ActiveAttributeEffect, new_stack_count: int
 
 
 func set_active_remaining_duration(active: ActiveAttributeEffect, new_remaining_duration: float) -> void:
+	assert(false, "feature not yet implemented")
 	# TODO implement
 	pass
 
 
 func _set_active_remaining_duration(active: ActiveAttributeEffect, new_remaining_duration: float,
 event: AttributeEvent) -> void:
+	assert(false, "feature not yet implemented")
 	# TODO implement
 	pass
 
 
 func set_active_remaining_period(active: ActiveAttributeEffect, new_remaining_period: float) -> void:
+	assert(false, "feature not yet implemented")
 	# TODO implement
 	pass
 
 
 func _set_active_remaining_period(active: ActiveAttributeEffect, new_remaining_period: float,
 event: AttributeEvent) -> void:
+	assert(false, "feature not yet implemented")
 	# TODO implement
 	pass
 
@@ -965,6 +969,7 @@ func remove_active(active: ActiveAttributeEffect) -> bool:
 func _remove_active(active: ActiveAttributeEffect, event: AttributeEvent) -> void:
 	assert(active != null, "active is null")
 	assert(_actives.has(active), "(%s) not added to _actives" % active)
+	assert(!active.get_effect().irremovable, "%s is irremovable, can't remove it" % active)
 	
 	# Set removed in evenmt
 	event._remove_event = true
@@ -1002,12 +1007,14 @@ func _remove_active(active: ActiveAttributeEffect, event: AttributeEvent) -> voi
 
 
 ## Removes all [ActiveAttributeEffect]s from this attribute. Iterates the internal
-## array of actives & removes them one by one.
+## array of actives & removes them one by one. Skips irremovable effects.
 func remove_all_effects() -> void:
 	assert(!_in_monitor_signal_or_hook, "can not call mutating methods on an Attribute" + \
 	"from a hook or while handling a signal prefixed with monitor_")
 	var to_remove: Array[ActiveAttributeEffect] = _actives.duplicate_array()
 	for active: ActiveAttributeEffect in to_remove:
+		if active.get_effect().irremovable:
+			continue
 		var event: AttributeEvent = _create_event(active)
 		_remove_active(active, event)
 		event_occurred.emit(event)
