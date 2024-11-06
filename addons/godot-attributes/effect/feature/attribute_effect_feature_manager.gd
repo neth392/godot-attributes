@@ -38,6 +38,7 @@ func _init() -> void:
 	_loaded_features.append(preload("./has_apply_conditions_feature.gd").new())
 	_loaded_features.append(preload("./has_value_feature.gd").new())
 	_loaded_features.append(preload("./initial_period_feature.gd").new())
+	_loaded_features.append(preload("./irremovable_feature.gd").new())
 	_loaded_features.append(preload("./period_feature.gd").new())
 	_loaded_features.append(preload("./period_modifiers_feature.gd").new())
 	_loaded_features.append(preload("./period_modifier_feature.gd").new())

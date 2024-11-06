@@ -401,6 +401,18 @@ AttributeEffectFeatureManager.i().get_default_value(self, &"duration_modifier"):
 ## used in any of the Attribute system's internals.
 @export var metadata: Dictionary[Variant, Variant]
 
+@export_group("Advanced")
+
+## Prevents the removal of this [AttributeEffect] from [Attribute]s. Will throw
+## an error if an attempt is made to remove it. Designed for internal use within
+## Godot Attributes, but you can use it as well.
+@export var irremovable: bool \
+= AttributeEffectFeatureManager.i().get_default_value(self, &"irremovable"):
+	set(_value):
+		if AttributeEffectFeatureManager.i().validate_user_set_value(self, &"irremovable", _value):
+			irremovable = _value
+			AttributeEffectFeatureManager.i().notify_value_changed(self, &"irremovable")
+
 @export_storage var _loading_end: bool:
 	set(_value):
 		_loading_end = _value

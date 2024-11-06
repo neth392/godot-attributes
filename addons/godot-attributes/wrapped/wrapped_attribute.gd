@@ -1,5 +1,9 @@
 ## An Attribute implementation that has optional max & min [Attribute]s which
 ## determines the range this attribute's current & base values can live within.
+## [br]Automatically adds an [AttributeEffect] of ID "wrapped_attribute_effect" whose configuration
+## is determined by settings set on this instance. It can not be removed, but has no value
+## and has an infinite duration so it will not cause this node to process. It's used
+## to add functionality to support the wrapped values.
 ## [br]NOTE: Parameter of [signal event_occurred] is always of type [WrappedAttributeEvent],
 ## which extends [AttributeEvent].
 @tool
@@ -21,23 +25,28 @@ const HARD_MAX: float = -1.79769e308
 		assert(_value == null || !_in_monitor_signal_or_hook, \
 		"can not change base_min while in a monitor signal or hook")
 		
+		
+		if Engine.is_editor_hint():
+			base_min = _value
+			notify_property_list_changed()
+			update_configuration_warnings()
+			return
+		
+		var has_prev: bool = base_min != null
 		var prev_value: float = get_base_min_value()
 		base_min = _value
-		
-		if !Engine.is_editor_hint():
-			_handle_base_min_change(prev_value)
-		
-		notify_property_list_changed()
+		_handle_base_min_change(has_prev, prev_value)
 
 ## Which value of [member base_min] to use.
 @export var base_min_value_to_use: Attribute.Value:
 	set(_value):
 		if base_min == null || Engine.is_editor_hint():
 			base_min_value_to_use = _value
+			update_configuration_warnings()
 			return
 		var prev_value: float = get_base_min_value()
 		base_min_value_to_use = _value
-		_handle_base_min_change(prev_value)
+		_handle_base_min_change(true, prev_value)
 
 @export_subgroup("Current Value")
 
@@ -151,7 +160,7 @@ func _get_value(attribute: Attribute, value_to_use: Attribute.Value) -> float:
 			return 0.0
 
 
-func _handle_base_min_change(prev_base_min: float) -> void:
+func _handle_base_min_change(has_prev: bool, prev_base_min: float) -> void:
 	var new_base_min: float = get_base_min_value()
 	if base_min != null && _base_value < new_base_min:
 		# TODO wrap base min

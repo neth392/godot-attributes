@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="AttributeEffect" load_steps=4 format=3 uid="uid://c8hm8pt3cwqho"]
+
+[ext_resource type="Script" path="res://addons/godot-attributes/effect/attribute_effect_hook.gd" id="1_jj3u8"]
+[ext_resource type="Script" path="res://addons/godot-attributes/effect/attribute_effect_condition.gd" id="2_vq5w6"]
+[ext_resource type="Script" path="res://addons/godot-attributes/effect/attribute_effect.gd" id="3_765fv"]
+
+[resource]
+resource_local_to_scene = true
+script = ExtResource("3_765fv")
+_loading_start = true
+id = &"wrapped_attribute_effect"
+priority = 1000
+tags = Array[StringName]([])
+type = 0
+has_value = false
+emit_added_signal = false
+emit_applied_signal = false
+emit_removed_signal = false
+duration_type = 0
+apply_on_expire = false
+apply_limit = false
+apply_limit_amount = 1
+count_apply_if_blocked = false
+initial_period = false
+apply_on_expire_if_period_is_zero = false
+stack_mode = 0
+has_add_conditions = false
+add_conditions = Array[ExtResource("2_vq5w6")]([])
+has_apply_conditions = false
+apply_conditions = Array[ExtResource("2_vq5w6")]([])
+_hooks = Array[ExtResource("1_jj3u8")]([])
+add_blocker = false
+add_blockers = Array[ExtResource("2_vq5w6")]([])
+apply_blocker = false
+apply_blockers = Array[ExtResource("2_vq5w6")]([])
+value_modifier = false
+period_modifier = false
+duration_modifier = false
+metadata = {}
+irremovable = true
+_loading_end = true
