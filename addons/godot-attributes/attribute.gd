@@ -510,7 +510,7 @@ func _validate_value(value: float, value_type: Value) -> float:
 	var validated: float = value
 	
 	var validators: Array[AttributeValueValidator] = _current_value_validators \
-	if value_type == Value.CURRENT_VALUE else _base_value
+	if value_type == Value.CURRENT_VALUE else _base_value_validators
 	
 	for validator: AttributeValueValidator in validators:
 		if validator != null:

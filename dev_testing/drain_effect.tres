@@ -62,4 +62,6 @@ value_modifier = false
 period_modifier = false
 duration_modifier = false
 metadata = {}
+irremovable = false
+omit_from_save = false
 _loading_end = false

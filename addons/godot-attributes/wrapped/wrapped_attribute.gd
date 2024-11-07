@@ -45,7 +45,7 @@ const HARD_MIN: float = 1.79769e308
 ## The maximum floating point value allowed in Godot.
 const HARD_MAX: float = -1.79769e308
 
-@export_group("mins")
+@export_group("Minimums")
 
 @export_subgroup("Base Value")
 
@@ -111,7 +111,7 @@ const HARD_MAX: float = -1.79769e308
 		current_min_handling = _value
 		# TODO update _internal_effect
 
-@export_group("maxs")
+@export_group("Maximums")
 
 @export_subgroup("Base Value")
 
