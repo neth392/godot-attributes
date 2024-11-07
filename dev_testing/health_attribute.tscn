@@ -4,4 +4,10 @@
 
 [node name="HealthAttribute" type="Node"]
 script = ExtResource("1_37yy4")
+base_min_handling = null
+set_base_min_handling = null
+current_min_handling = null
+base_max_handling = null
+set_base_max_handling = null
+current_max_handling = null
 id = &"health_attribute"

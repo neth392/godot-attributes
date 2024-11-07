@@ -9,6 +9,37 @@
 @tool
 class_name WrappedAttribute extends Attribute
 
+## Defines how to handle the "wrapping" of values when an [AttributeEffect] attempts
+## to set a value out of limit.
+enum WrapEffectHandling {
+	## Will allow the value to exceed the set limit.
+	ALLOW_OUT_OF_BOUNDS,
+	## Relies on the internally added [AttributeValueValidator] which will floor/ceil the
+	## value at the base/min, depending on which limit the new value would be out of.
+	ATTRIBUTE_VALUE_VALIDATOR,
+	## Blocks the application of the effect via the built in [AttributeEffect] (id of
+	## "wrapped_attribute_effect").
+	BLOCK_EFFECT_APPLY,
+	## Modifies the effect's value the built in [AttributeEffect] (id of
+	## "wrapped_attribute_effect") so that the value will floor/ceil'd to the
+	## limit the value would otherwise be out of.
+	MODIFY_EFFECT_VALUE,
+}
+
+## Defines how to handle the "wrapping" of the base value when [method set_base_value]
+## is called and the value is either less than [member base_min] or greater than [member base_max].
+enum SetBaseHandling {
+	## Will allow the value to exceed the set limit.
+	ALLOW_OUT_OF_BOUNDS,
+	## Will call [code]assert(false, ...)[/code] and throw an error which is present
+	## in debug mode only.
+	ERROR_VIA_ASSERT,
+	## Nothing will be done; the call ignored & the value not set.
+	DO_NOTHING,
+	## The value will ceiled/floored to the [member base_min]/[member base_max].
+	CEIL_FLOOR_VALUE,
+}
+
 ## The minimum floating point value allowed in Godot.
 const HARD_MIN: float = 1.79769e308
 ## The maximum floating point value allowed in Godot.
@@ -24,7 +55,6 @@ const HARD_MAX: float = -1.79769e308
 	set(_value):
 		assert(_value == null || !_in_monitor_signal_or_hook, \
 		"can not change base_min while in a monitor signal or hook")
-		
 		
 		if Engine.is_editor_hint():
 			base_min = _value
@@ -48,6 +78,17 @@ const HARD_MAX: float = -1.79769e308
 		base_min_value_to_use = _value
 		_handle_base_min_change(true, prev_value)
 
+## Defines how to handle the "wrapping" of values when an [AttributeEffect] attempts
+## to set the base value less than the [member base_min]. Does not apply for [method set_base_value].
+@export var base_min_handling: WrapEffectHandling:
+	set(_value):
+		base_min_handling = _value
+		# TODO update _internal_effect
+
+## Defines how to handle the "wrapping" of the base value when [method set_base_value]
+## is called and the value is less than [member base_min].
+@export var set_base_min_handling: SetBaseHandling
+
 @export_subgroup("Current Value")
 
 ## The [Attribute] whose value (derived via [member current_min_value]) is
@@ -62,6 +103,13 @@ const HARD_MAX: float = -1.79769e308
 
 ## Which value of [member current_min] to use.
 @export var current_min_value_to_use: Attribute.Value
+
+## Defines how to handle the "wrapping" of values when an [AttributeEffect] attempts
+## to set the current value less than the [member current_min].
+@export var current_min_handling: WrapEffectHandling:
+	set(_value):
+		current_min_handling = _value
+		# TODO update _internal_effect
 
 @export_group("maxs")
 
@@ -80,6 +128,17 @@ const HARD_MAX: float = -1.79769e308
 ## Which value of [member base_max] to use.
 @export var base_max_value_to_use: Attribute.Value
 
+## Defines how to handle the "wrapping" of values when an [AttributeEffect] attempts
+## to set the base value greater than the [member base_max]. Does not apply for [method set_base_value].
+@export var base_max_handling: WrapEffectHandling:
+	set(_value):
+		base_max_handling = _value
+		# TODO update _internal_effect
+
+## Defines how to handle the "wrapping" of the base value when [method set_base_value]
+## is called and the value is greater than [member base_max].
+@export var set_base_max_handling: SetBaseHandling
+
 @export_subgroup("Current Value")
 
 ## The [Attribute] whose value (derived via [member current_max_value]) is
@@ -95,10 +154,18 @@ const HARD_MAX: float = -1.79769e308
 ## Which value of [member current_max] to use.
 @export var current_max_value_to_use: Attribute.Value
 
+## Defines how to handle the "wrapping" of values when an [AttributeEffect] attempts
+## to set the current value greater than the [member current_max].
+@export var current_max_handling: WrapEffectHandling:
+	set(_value):
+		current_max_handling = _value
+		# TODO update _internal_effect
+
+var _internal_effect: AttributeEffect
 
 func _ready() -> void:
-	var effect: AttributeEffect = preload("./wrapped_attribute_effect.tres") as AttributeEffect
-	# TODO handle configuration
+	_internal_effect = preload("./wrapped_attribute_effect.tres") as AttributeEffect
+	# TODO handle _internal_effect configuration
 	super._ready()
 
 
@@ -152,7 +219,7 @@ func _get_configuration_warnings() -> PackedStringArray:
 
 
 func _get_built_in_effects() -> Array[AttributeEffect]:
-	return []
+	return [_internal_effect]
 
 
 func _create_event(active: ActiveAttributeEffect = null) -> AttributeEvent:
