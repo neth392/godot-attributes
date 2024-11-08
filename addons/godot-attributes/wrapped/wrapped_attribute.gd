@@ -11,7 +11,7 @@ class_name WrappedAttribute extends Attribute
 
 ## Defines how to handle the "wrapping" of values when an [AttributeEffect] attempts
 ## to set a value out of limit.
-enum WrapEffectHandling {
+enum EffectHandling {
 	## Will allow the value to exceed the set limit.
 	ALLOW_OUT_OF_BOUNDS,
 	## Relies on the internally added [AttributeValueValidator] which will floor/ceil the
@@ -24,6 +24,11 @@ enum WrapEffectHandling {
 	## "wrapped_attribute_effect") so that the value will floor/ceil'd to the
 	## limit the value would otherwise be out of.
 	MODIFY_EFFECT_VALUE,
+}
+
+## Defines how to handle the value of one of the limit [Attribute]s changing.
+enum ValueHandling {
+	
 }
 
 ## Defines how to handle the "wrapping" of the base value when [method set_base_value]
@@ -61,10 +66,12 @@ const HARD_MAX: float = -1.79769e308
 			notify_property_list_changed()
 			update_configuration_warnings()
 			return
+		AttributeUtil.disconnect_safely(base_min.event_occurred, _on_base_min_value_changed)
 		
 		var has_prev: bool = base_min != null
 		var prev_value: float = get_base_min_value()
 		base_min = _value
+		AttributeUtil.connect_safely(base_min.event_occurred, _on_base_min_value_changed)
 		_handle_base_min_change(has_prev, prev_value)
 
 ## Which value of [member base_min] to use.
@@ -80,10 +87,13 @@ const HARD_MAX: float = -1.79769e308
 
 ## Defines how to handle the "wrapping" of values when an [AttributeEffect] attempts
 ## to set the base value less than the [member base_min]. Does not apply for [method set_base_value].
-@export var base_min_handling: WrapEffectHandling:
+@export var base_min_effect_handling: EffectHandling:
 	set(_value):
-		base_min_handling = _value
+		base_min_effect_handling = _value
 		# TODO update _internal_effect
+
+## Defines how to handle the value of [member base_min] changing.
+@export var base_min_change_handling: ValueHandling
 
 ## Defines how to handle the "wrapping" of the base value when [method set_base_value]
 ## is called and the value is less than [member base_min].
@@ -106,7 +116,7 @@ const HARD_MAX: float = -1.79769e308
 
 ## Defines how to handle the "wrapping" of values when an [AttributeEffect] attempts
 ## to set the current value less than the [member current_min].
-@export var current_min_handling: WrapEffectHandling:
+@export var current_min_handling: EffectHandling:
 	set(_value):
 		current_min_handling = _value
 		# TODO update _internal_effect
@@ -130,7 +140,7 @@ const HARD_MAX: float = -1.79769e308
 
 ## Defines how to handle the "wrapping" of values when an [AttributeEffect] attempts
 ## to set the base value greater than the [member base_max]. Does not apply for [method set_base_value].
-@export var base_max_handling: WrapEffectHandling:
+@export var base_max_handling: EffectHandling:
 	set(_value):
 		base_max_handling = _value
 		# TODO update _internal_effect
@@ -156,7 +166,7 @@ const HARD_MAX: float = -1.79769e308
 
 ## Defines how to handle the "wrapping" of values when an [AttributeEffect] attempts
 ## to set the current value greater than the [member current_max].
-@export var current_max_handling: WrapEffectHandling:
+@export var current_max_handling: EffectHandling:
 	set(_value):
 		current_max_handling = _value
 		# TODO update _internal_effect
@@ -244,6 +254,29 @@ func _handle_base_min_change(has_prev: bool, prev_base_min: float) -> void:
 		pass
 
 
+func _on_base_min_value_changed(event: AttributeEvent) -> void:
+	# TODO
+	pass
+
+
+func _on_base_max_value_changed(event: AttributeEvent) -> void:
+	# TODO
+	pass
+
+
+func _on_current_min_value_changed(event: AttributeEvent) -> void:
+	# TODO
+	pass
+
+
+func _on_current_max_value_changed(event: AttributeEvent) -> void:
+	# TODO
+	pass
+
+####################
+## Public Methods ##
+####################
+
 ## Returns true if [member base_min] is not null & thus there is a minimum for 
 ## this [Attribute]'s base value.
 func has_base_min() -> bool:
@@ -294,3 +327,27 @@ func has_current_max() -> bool:
 ## [code]null[/code], [constant WrappedAttribute.HARD_MAX] is returned.
 func get_current_max_value() -> float:
 	return HARD_MAX if !has_current_max() else _get_value(current_max, current_max_value_to_use)
+
+
+## Returns true if [member base_min] is set and this attribute's base value is
+## less than or equal to it.
+func is_base_value_at_min() -> bool:
+	return has_base_min() && get_base_value() <= get_base_min_value()
+
+
+## Returns true if [member base_max] is set and this attribute's base value is
+## greater than or equal to it.
+func is_base_value_at_max() -> bool:
+	return has_base_max() && get_base_value() >= get_base_max_value()
+
+
+## Returns true if [member base_min] is set and this attribute's base value is
+## less than or equal to it.
+func is_current_value_at_min() -> bool:
+	return has_current_min() && get_current_value() <= get_current_min_value()
+
+
+## Returns true if [member current_max] is set and this attribute's current value is
+## greater than or equal to it.
+func is_current_value_at_max() -> bool:
+	return has_current_max() && get_current_value() >= get_current_max_value()

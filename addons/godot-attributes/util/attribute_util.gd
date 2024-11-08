@@ -35,6 +35,15 @@ static func get_ticks_seconds() -> float:
 	return Time.get_ticks_usec() / 1_000_000.0
 
 
+static func connect_safely(_signal: Signal, _callable: Callable) -> void:
+	if !_signal.is_connected(_callable):
+		_signal.connect(_callable)
+
+
+static func disconnect_safely(_signal: Signal, _callable: Callable) -> void:
+	if _signal.is_connected(_callable):
+		_signal.disconnect(_callable)
+
 
 class Reference extends Object:
 	var ref: Variant
