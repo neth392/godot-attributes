@@ -493,7 +493,7 @@ func _process_active(active: ActiveAttributeEffect) -> void:
 			active._remaining_period += AttributeModifiedValueGetter.period().get_modified(self, active)
 	
 	# Emit the event
-	event_occurred.emit(event)
+	_emit_event(event)
 
 ## Returns the [AttributeContainer] this [Attribute] belongs to, null if there
 ## is no container (which shouldn't happen with proper [Node] management).
@@ -578,7 +578,7 @@ func update_current_value() -> void:
 	var event: AttributeEvent = _create_event()
 	event._new_base_value = _base_value # Base value won't change here
 	_update_current_value(event)
-	event_occurred.emit(event)
+	_emit_event(event)
 
 
 func _update_current_value(event: AttributeEvent) -> void:
@@ -758,7 +758,7 @@ func add_active(active: ActiveAttributeEffect) -> void:
 	if active.get_effect().is_instant():
 		active._last_add_result = AddEffectResult.INSTANT_CANT_ADD
 		_apply_permanent_active(active, current_tick, event)
-		event_occurred.emit(event)
+		_emit_event(event)
 		return
 	
 	# At this point it will be added (isn't instant)
@@ -769,12 +769,12 @@ func add_active(active: ActiveAttributeEffect) -> void:
 	active.get_effect().stack_mode == AttributeEffect.StackMode.DENY_ERROR) and \
 	has_effect(active.get_effect()):
 		active._last_add_result = AddEffectResult.STACK_DENIED
-		event_occurred.emit(event)
+		_emit_event(event)
 		return
 	
 	# Check add conditions & blockers
 	if !AttributeConditionTester.add().test(self, active, event):
-		event_occurred.emit(event)
+		_emit_event(event)
 		return
 	
 	# Handle COMBINE stacking (only if a active of the same effect already exists)
@@ -787,7 +787,7 @@ func add_active(active: ActiveAttributeEffect) -> void:
 		active._last_add_result = AddEffectResult.STACKED
 		
 		_set_active_stack_count(existing, existing._stack_count + active._stack_count, event)
-		event_occurred.emit(event)
+		_emit_event(event)
 		return
 	
 	# Initialize if not done so
@@ -843,7 +843,7 @@ func add_active(active: ActiveAttributeEffect) -> void:
 			active._remaining_period += AttributeModifiedValueGetter.period().get_modified(self, active)
 	
 	# Emit the event
-	event_occurred.emit(event)
+	_emit_event(event)
 
 
 ######################
@@ -858,7 +858,7 @@ func add_active(active: ActiveAttributeEffect) -> void:
 func set_active_stack_count(active: ActiveAttributeEffect, new_stack_count: int) -> void:
 	var event: AttributeEvent = _create_event(active)
 	_set_active_stack_count(active, new_stack_count, event)
-	event_occurred.emit(event)
+	_emit_event(event)
 
 
 ## Sets the stack count of [param active] to [param new_stack_count]. The active's
@@ -932,7 +932,7 @@ func remove_effect(effect: AttributeEffect) -> int:
 				var event: AttributeEvent = _create_event(active)
 				_remove_active(active, event)
 				removed.ref += 1
-				event_occurred.emit(event)
+				_emit_event(event)
 	)
 	return removed.ref
 
@@ -949,7 +949,7 @@ func remove_effects(effects: Array[AttributeEffect]) -> int:
 				var event: AttributeEvent = _create_event(active)
 				_remove_active(active, event)
 				removed.ref += 1
-				event_occurred.emit(event)
+				_emit_event(event)
 	)
 	return removed.ref
 
@@ -975,7 +975,7 @@ func remove_active(active: ActiveAttributeEffect) -> bool:
 		return false
 	var event: AttributeEvent = _create_event(active)
 	_remove_active(active, event)
-	event_occurred.emit(event)
+	_emit_event(event)
 	return true
 
 
@@ -1030,7 +1030,7 @@ func remove_all_effects() -> void:
 			continue
 		var event: AttributeEvent = _create_event(active)
 		_remove_active(active, event)
-		event_occurred.emit(event)
+		_emit_event(event)
 
 ######################
 ## Applying Actives ##
@@ -1099,6 +1099,10 @@ func _apply_permanent_active(active: ActiveAttributeEffect, current_tick: int, e
 
 func _create_event(active: ActiveAttributeEffect = null) -> AttributeEvent:
 	return AttributeEvent.new(self, active)
+
+
+func _emit_event(event: AttributeEvent) -> void:
+	event_occurred.emit(event)
 
 
 ###################

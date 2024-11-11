@@ -9,11 +9,18 @@
 @tool
 class_name WrappedAttribute extends Attribute
 
+enum WrapLimitType {
+	## No limit.
+	NONE,
+	## A fixed value is set in the editor.
+	FIXED,
+	## Another [Attribute]'s value is derived for the limit.
+	ATTRIBUTE,
+}
+
 ## Defines how to handle the "wrapping" of values when an [AttributeEffect] attempts
 ## to set a value out of limit.
-enum WrapEffectHandling {
-	## Will allow the value to exceed the set limit.
-	ALLOW_OUT_OF_BOUNDS,
+enum EffectWrapMode {
 	## Relies on the internally added [AttributeValueValidator] which will floor/ceil the
 	## value at the base/min, depending on which limit the new value would be out of.
 	ATTRIBUTE_VALUE_VALIDATOR,
@@ -29,6 +36,8 @@ enum WrapEffectHandling {
 ## Defines how to handle the "wrapping" of the base value when [method set_base_value]
 ## is called and the value is either less than [member base_min] or greater than [member base_max].
 enum SetBaseHandling {
+	## The value will ceiled/floored to the [member base_min]/[member base_max].
+	CEIL_FLOOR_VALUE,
 	## Will allow the value to exceed the set limit.
 	ALLOW_OUT_OF_BOUNDS,
 	## Will call [code]assert(false, ...)[/code] and throw an error which is present
@@ -36,8 +45,6 @@ enum SetBaseHandling {
 	ERROR_VIA_ASSERT,
 	## Nothing will be done; the call ignored & the value not set.
 	DO_NOTHING,
-	## The value will ceiled/floored to the [member base_min]/[member base_max].
-	CEIL_FLOOR_VALUE,
 }
 
 ## The minimum floating point value allowed in Godot.
@@ -49,34 +56,69 @@ const HARD_MAX: float = -1.79769e308
 
 @export_subgroup("Base Value")
 
+## Determines the type of limit used for the base value's minimum.
+@export var base_min_type: WrapLimitType:
+	set(_value):
+		assert(!_in_monitor_signal_or_hook, \
+		"can't change base_min_type while in a monitor signal or hook")
+		base_min_type = _value
+		
+		if _value != WrapLimitType.ATTRIBUTE:
+			base_min_attribute = null
+		
+		var has_prev: bool = has_base_min()
+		var prev_base_min: float = HARD_MIN if !has_prev else _get_base_min_value()
+		
+		
+		
+		notify_property_list_changed()
+		update_configuration_warnings()
+
+## The fixed floating point value which is the least value (inclusive) this 
+## attribute's base value can reach.
+@export var base_min_fixed: float:
+	set(_value):
+		assert(!_in_monitor_signal_or_hook, \
+		"can't change base_min_fixed while in a monitor signal or hook")
+		
+		# Type not fixed, skip update logic
+		if base_min_type != WrapLimitType.FIXED:
+			# Warn in debug mode
+			if OS.is_debug_build():
+				push_warning("base_min_type != WrapLimitType.FIXED but base_min_fixed was set")
+			base_min_fixed = _value
+			return
+		
+		base_min_fixed = _value
+		# TODO handle base min change
+
 ## The [Attribute] whose value (derived via [member base_min_value]) is
 ## the least value (inclusive) this attribute's base value can reach.
-@export var base_min: Attribute:
+@export var base_min_attribute: Attribute:
 	set(_value):
-		assert(_value == null || !_in_monitor_signal_or_hook, \
-		"can not change base_min while in a monitor signal or hook")
+		assert(!_in_monitor_signal_or_hook, \
+		"can't change base_min_attribute while in a monitor signal or hook")
+		assert(_value == null || base_min_type == WrapLimitType.ATTRIBUTE,
+		"can't set base_min_attribute to non-null when base_min_type != WrapLimitType.ATTRIBUTE")
 		
-		if Engine.is_editor_hint():
-			base_min = _value
+		if Engine.is_editor_hint() || _value == null:
+			base_min_attribute = _value
 			notify_property_list_changed()
 			update_configuration_warnings()
 			return
 		
-		var has_prev: bool = base_min != null
-		var prev_value: float = get_base_min_value()
-		base_min = _value
-		_handle_base_min_change(has_prev, prev_value)
+		base_min_attribute = _value
+		# TODO handle base min change
 
-## Which value of [member base_min] to use.
+## Which value of [member base_min_attribute] to use; current or base value.
 @export var base_min_value_to_use: Attribute.Value:
 	set(_value):
-		if base_min == null || Engine.is_editor_hint():
+		# Type not Attribute or base min attribute not set, skip update logic
+		if base_min_type != WrapLimitType.FIXED || !has_base_min():
 			base_min_value_to_use = _value
-			update_configuration_warnings()
-			return
-		var prev_value: float = get_base_min_value()
-		base_min_value_to_use = _value
-		_handle_base_min_change(true, prev_value)
+			pass
+		
+		# TODO handle base min change
 
 ## Defines how to handle the "wrapping" of values when an [AttributeEffect] attempts
 ## to set the base value less than the [member base_min]. Does not apply for [method set_base_value].
@@ -89,78 +131,6 @@ const HARD_MAX: float = -1.79769e308
 ## is called and the value is less than [member base_min].
 @export var set_base_min_handling: SetBaseHandling
 
-@export_subgroup("Current Value")
-
-## The [Attribute] whose value (derived via [member current_min_value]) is
-## the least value (inclusive) this attribute's current value can reach.
-@export var current_min: Attribute:
-	set(_value):
-		assert(_value == null || !_in_monitor_signal_or_hook, \
-		"can not change current_min while in a monitor signal or hook")
-		
-		current_min = _value
-		notify_property_list_changed()
-
-## Which value of [member current_min] to use.
-@export var current_min_value_to_use: Attribute.Value
-
-## Defines how to handle the "wrapping" of values when an [AttributeEffect] attempts
-## to set the current value less than the [member current_min].
-@export var current_min_handling: WrapEffectHandling:
-	set(_value):
-		current_min_handling = _value
-		# TODO update _internal_effect
-
-@export_group("Maximums")
-
-@export_subgroup("Base Value")
-
-## The [Attribute] whose value (derived via [member base_max_value]) is
-## the greatest value (inclusive) this attribute's base value can reach.
-@export var base_max: Attribute:
-	set(_value):
-		assert(_value == null || !_in_monitor_signal_or_hook, \
-		"can not change base_max while in a monitor signal or hook")
-		
-		base_max = _value
-		notify_property_list_changed()
-
-## Which value of [member base_max] to use.
-@export var base_max_value_to_use: Attribute.Value
-
-## Defines how to handle the "wrapping" of values when an [AttributeEffect] attempts
-## to set the base value greater than the [member base_max]. Does not apply for [method set_base_value].
-@export var base_max_handling: WrapEffectHandling:
-	set(_value):
-		base_max_handling = _value
-		# TODO update _internal_effect
-
-## Defines how to handle the "wrapping" of the base value when [method set_base_value]
-## is called and the value is greater than [member base_max].
-@export var set_base_max_handling: SetBaseHandling
-
-@export_subgroup("Current Value")
-
-## The [Attribute] whose value (derived via [member current_max_value]) is
-## the greatest value (inclusive) this attribute's current value can reach.
-@export var current_max: Attribute:
-	set(_value):
-		assert(_value == null || !_in_monitor_signal_or_hook, \
-		"can not change current_max while in a monitor signal or hook")
-		
-		current_max = _value
-		notify_property_list_changed()
-
-## Which value of [member current_max] to use.
-@export var current_max_value_to_use: Attribute.Value
-
-## Defines how to handle the "wrapping" of values when an [AttributeEffect] attempts
-## to set the current value greater than the [member current_max].
-@export var current_max_handling: WrapEffectHandling:
-	set(_value):
-		current_max_handling = _value
-		# TODO update _internal_effect
-
 var _internal_effect: AttributeEffect
 
 func _ready() -> void:
@@ -170,25 +140,16 @@ func _ready() -> void:
 
 
 func _validate_property(property: Dictionary) -> void:
-	if property.name == "base_min_value_to_use":
-		if base_min == null:
+	if property.name == "base_min_fixed":
+		if base_min_type != WrapLimitType.FIXED:
 			property.usage = PROPERTY_USAGE_NO_EDITOR
 		return
 	
-	if property.name == "current_min_value_to_use":
-		if current_min == null:
+	if property.name == "base_min_attribute" || property.name == "base_min_value_to_use":
+		if base_min_type != WrapLimitType.ATTRIBUTE:
 			property.usage = PROPERTY_USAGE_NO_EDITOR
 		return
 	
-	if property.name == "base_max_value_to_use":
-		if base_max == null:
-			property.usage = PROPERTY_USAGE_NO_EDITOR
-		return
-	
-	if property.name == "current_max_value_to_use":
-		if current_max == null:
-			property.usage = PROPERTY_USAGE_NO_EDITOR
-		return
 	super._validate_property(property)
 
 
@@ -199,21 +160,6 @@ func _get_configuration_warnings() -> PackedStringArray:
 	if has_base_min() && _base_value < base_min_value:
 		warnings.append("_base_value (%s) is < base_min's value of (%s)" \
 		% [_base_value, base_min_value])
-	
-	var base_max_value: float = get_base_max_value()
-	if has_base_max() && _base_value > base_max_value:
-		warnings.append("_base_value (%s) is > base_max's value of (%s)" \
-		% [_base_value, base_max_value])
-	
-	var current_min_value: float = get_current_min_value()
-	if has_current_min() && _current_value < current_min_value:
-		warnings.append("_current_value (%s) is < current_min's value of (%s)" \
-		% [_current_value, current_min_value])
-	
-	var current_max_value: float = get_current_max_value()
-	if has_current_max() && _current_value > current_max_value:
-		warnings.append("_current_value (%s) is > current_max's value of (%s)" \
-		% [_current_value, current_max_value])
 	
 	return warnings
 
@@ -226,7 +172,7 @@ func _create_event(active: ActiveAttributeEffect = null) -> AttributeEvent:
 	return WrappedAttributeEvent.new(self, active)
 
 
-func _get_value(attribute: Attribute, value_to_use: Attribute.Value) -> float:
+func _get_attribute_value(attribute: Attribute, value_to_use: Attribute.Value) -> float:
 	match value_to_use:
 		Attribute.Value.CURRENT_VALUE:
 			return attribute.get_current_value()
@@ -237,60 +183,37 @@ func _get_value(attribute: Attribute, value_to_use: Attribute.Value) -> float:
 			return 0.0
 
 
+func _get_base_min_value() -> float:
+	assert(has_base_min(), "no base_min set")
+	if base_min_type == WrapLimitType.FIXED:
+		return base_min_fixed
+	else:
+		return _get_attribute_value(base_min_attribute, base_min_value_to_use)
+
+
 func _handle_base_min_change(has_prev: bool, prev_base_min: float) -> void:
-	var new_base_min: float = get_base_min_value()
-	if base_min != null && _base_value < new_base_min:
-		# TODO wrap base min
-		pass
+	# TODO
+	pass
 
 
-## Returns true if [member base_min] is not null & thus there is a minimum for 
-## this [Attribute]'s base value.
+## Returns true if there is a minimum for the base value.
 func has_base_min() -> bool:
-	return base_min != null
+	return base_min_attribute != null if base_min_type == WrapLimitType.ATTRIBUTE \
+	else base_min_type != WrapLimitType.NONE
 
 
 ## Returns the floating point value for this [Attribute]'s base value minimum, derived
 ## from [member base_min] and [member base_min_value_to_use]. If [member base_min] is 
 ## [code]null[/code], [constant WrappedAttribute.HARD_MIN] is returned.
 func get_base_min_value() -> float:
-	return HARD_MIN if !has_base_min() else _get_value(base_min, base_min_value_to_use)
-
-
-## Returns true if [member base_max] is not null & thus there is a maximum for 
-## this [Attribute]'s base value.
-func has_base_max() -> bool:
-	return base_max != null
-
-
-## Returns the floating point value for this [Attribute]'s base value maximum, derived
-## from [member base_max] and [member base_max_value_to_use]. If [member base_max] is 
-## [code]null[/code], [constant WrappedAttribute.HARD_MAX] is returned.
-func get_base_max_value() -> float:
-	return HARD_MAX if !has_base_max() else _get_value(base_max, base_max_value_to_use)
-
-
-## Returns true if [member current_min] is not null & thus there is a minimum for 
-## this [Attribute]'s current value.
-func has_current_min() -> bool:
-	return current_min != null
-
-
-## Returns the floating point value for this [Attribute]'s current value minimum, derived
-## from [member current_min] and [member current_min_value_to_use]. If [member current_min] is 
-## [code]null[/code], [constant WrappedAttribute.HARD_MIN] is returned.
-func get_current_min_value() -> float:
-	return HARD_MIN if !has_current_min() else _get_value(current_min, current_min_value_to_use)
-
-
-## Returns true if [member current_max] is not null & thus there is a maximum for 
-## this [Attribute]'s current value.
-func has_current_max() -> bool:
-	return current_max != null
-
-
-## Returns the floating point value for this [Attribute]'s current value maximum, derived
-## from [member current_max] and [member current_max_value_to_use]. If [member current_max] is 
-## [code]null[/code], [constant WrappedAttribute.HARD_MAX] is returned.
-func get_current_max_value() -> float:
-	return HARD_MAX if !has_current_max() else _get_value(current_max, current_max_value_to_use)
+	match base_min_type:
+		WrapLimitType.NONE:
+			return HARD_MIN
+		WrapLimitType.FIXED:
+			return base_min_fixed
+		WrapLimitType.ATTRIBUTE:
+			return HARD_MAX if base_min_attribute == null \
+			else _get_attribute_value(base_min_attribute, base_min_value_to_use)
+		_:
+			assert(false, "no implementation for WrapLimitType %s" % base_min_type)
+			return HARD_MIN
