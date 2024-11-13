@@ -535,8 +535,10 @@ func _set_base_value_pre_validated(validated_new_base_value: float, event: Attri
 		return
 	
 	# Set new base value
+	_handle_base_value_change(_base_value, validated_new_base_value, event)
 	_base_value = validated_new_base_value
 	event._new_base_value = _base_value
+	
 	
 	# Emit monitor signal
 	#_in_monitor_signal_or_hook = true
@@ -545,6 +547,14 @@ func _set_base_value_pre_validated(validated_new_base_value: float, event: Attri
 	
 	# Update the current value
 	_update_current_value(event)
+
+
+func _handle_base_value_change(prev_value: float, new_value: float, event: AttributeEvent) -> void:
+	pass
+
+
+func _handle_current_value_change(prev_value: float, new_value: float, event: AttributeEvent) -> void:
+	pass
 
 
 ## Returns the current value, which is the [member base_value] affected by
@@ -598,12 +608,8 @@ func _update_current_value(event: AttributeEvent) -> void:
 	)
 	
 	if _current_value != new_current_value.ref:
-		var prev_current_value: float = _current_value
+		_handle_current_value_change(_current_value, new_current_value.ref, event)
 		_current_value = new_current_value.ref
-		
-		#_in_monitor_signal_or_hook = true
-		#monitor_current_value_changed.emit(prev_current_value)
-		#_in_monitor_signal_or_hook = false
 	
 	event._new_current_value = _current_value
 

@@ -1,7 +1,7 @@
 class_name WrappedAttributeEvent extends AttributeEvent
 
 var _base_hit_min: bool = false
-var _base_min_changed: bool = false
+var _base_left_min: bool = false
 var _has_prev_base_min: bool = false
 var _has_new_base_min: bool = false
 var _prev_base_min: float
@@ -24,4 +24,4 @@ func is_base_hit_min_event() -> bool:
 
 ## Returns true if the base mininum's value changed.
 func is_base_min_changed_event() -> bool:
-	return _base_min_changed
+	return _prev_base_min != _new_base_min

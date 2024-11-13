@@ -32,18 +32,25 @@ const HARD_MAX: float = -1.79769e308
 	set(_value):
 		assert(!_in_monitor_signal_or_hook, \
 		"can't change base_min_type while in a monitor signal or hook")
-		base_min_type = _value
 		
+		if Engine.is_editor_hint():
+			base_min_type = _value
+			if base_min_type != WrapLimitType.ATTRIBUTE:
+				base_min_attribute = null
+			notify_property_list_changed()
+			update_configuration_warnings()
+			return
+		
+		var has_prev: bool = has_base_min()
+		var prev: float = _get_base_min_value() if has_prev else HARD_MIN
+		
+		base_min_type = _value
 		if _value != WrapLimitType.ATTRIBUTE:
 			base_min_attribute = null
 		
-		var has_prev: bool = has_base_min()
-		var prev_base_min: float = HARD_MIN if !has_prev else _get_base_min_value()
-		
-		
-		
-		notify_property_list_changed()
-		update_configuration_warnings()
+		var event: WrappedAttributeEvent = _create_event()
+		_handle_base_min_change(has_prev, prev, has_base_min(), _get_base_min_value(), event)
+		_emit_event(event)
 
 ## The fixed floating point value which is the least value (inclusive) this 
 ## attribute's base value can reach.
@@ -194,6 +201,23 @@ func _get_attribute_value(attribute: Attribute, value_to_use: Attribute.Value) -
 			return 0.0
 
 
+###########################
+## Value Change Handling ##
+###########################
+
+func _handle_base_value_change(prev_value: float, new_value: float, event: AttributeEvent) -> void:
+	var wrapped_event: WrappedAttributeEvent = event as WrappedAttributeEvent
+	
+	if has_base_min():
+		var base_min_value: float = _get_base_min_value()
+		if prev_value > base_min_value && new_value <= base_min_value:
+			wrapped_event._base_hit_min = true
+
+
+func _handle_current_value_change(prev_value: float, new_value: float, event: AttributeEvent) -> void:
+	pass
+
+
 ##############
 ## Base Min ##
 ##############
@@ -206,15 +230,35 @@ func _get_base_min_value() -> float:
 		return _get_attribute_value(base_min_attribute, base_min_value_to_use)
 
 
-func _handle_base_min_change(has_prev: bool, prev_base_min: float) -> void:
-	# TODO
-	pass
+func _handle_base_min_change(has_prev: bool, prev_base_min: float, has_new: bool, 
+new_base_min: float, event: WrappedAttributeEvent) -> void:
+	event._has_prev_base_min = has_prev
+	event._has_new_base_min = has_new
+	event._prev_base_min = prev_base_min
+	event._new_base_min = new_base_min
+	
+	# Cache base value in case it is changed below
+	var prev_base_value: float = _base_value
+	
+	# Wrap the base value if below new min
+	if has_new && prev_base_value < new_base_min:
+		var new_base_value: float = _validate_base_value(prev_base_value)
+		_set_base_value_pre_validated(new_base_value, event)
+	
+	# Base leaving/hitting min
+	var was_base_at_min: bool = has_prev && prev_base_value <= new_base_min
+	var hit_base_min: bool = has_new && _base_value <= new_base_min
+	event._base_hit_min = !was_base_at_min && hit_base_min
+	event._base_left_min = was_base_at_min && !hit_base_min
 
 
-## Returns true if there is a minimum for the base value.
+## Returns true if [member base_min_type] does not equal [enum WrapLimitType.NONE],
+## and if [member base_min_attribute] is not null if [member base_min_type] is
+## is [enum WrapLimitType.ATTRIBUTE].
 func has_base_min() -> bool:
-	return base_min_attribute != null if base_min_type == WrapLimitType.ATTRIBUTE \
-	else base_min_type != WrapLimitType.NONE
+	if base_min_type == WrapLimitType.ATTRIBUTE:
+		return base_min_attribute != null
+	return base_min_type != WrapLimitType.NONE
 
 
 ## Returns the floating point value for this [Attribute]'s base value minimum, derived
