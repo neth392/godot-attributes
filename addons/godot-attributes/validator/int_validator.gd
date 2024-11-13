@@ -16,7 +16,7 @@ enum Rounding {
 ## How attribute values are rounded.
 @export var rounding: Rounding
 
-func _validate(value: float) -> float:
+func _validate(attribute: Attribute, value: float, value_type: Attribute.Value) -> float:
 	match rounding:
 		Rounding.NEAREST:
 			return roundi(value)

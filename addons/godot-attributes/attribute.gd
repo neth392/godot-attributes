@@ -77,71 +77,8 @@ enum SamePrioritySortingMethod {
 ## Emitted when any change to this [Attribute] is made, such as the base and/or current value
 ## changing, or an [ActiveAttributeEffect] was added, applied, and/or removed. The
 ## [param attribute_event] contains all of the information related to what changes took
-## place since the last event was emitted. Unlike signals prefixed with [i]monitor_[/i], 
-## connections to this signal can safely invoke their own changes on this [Attribute] 
-## without breaking the internal logic or event ordering as this event is always 
-## emitted when it is safe to do so. It is also more reliable than the monitor signals
-## due to the preserved ordering.
+## place since the last event was emitted.
 signal event_occurred(attribute_event: AttributeEvent)
-
-######################
-### Monitor Signals ##
-######################
-#
-### Emitted when the value returned by [method get_current_value] changes.[br]
-### WARNING: Any changes made to this [Attribute] when handling this signal will
-### result in an error thrown unless call_deferred is used. If you wish to modify 
-### the [Attribute] while handling this, use [signal event_occurred].
-#signal monitor_current_value_changed(prev_current_value: float)
-#
-### Emitted when [member _base_value] changes. [param active] is what caused the
-### change, or null if [method set_base_value] was used directly.[br]
-### WARNING: Any changes made to this [Attribute] when handling this signal will
-### result in an error thrown. If you wish to modify the [Attribute] during this signal,
-### use [signal event_occurred] instead & check [method AttributeEvent.base_value_changed].
-#signal monitor_base_value_changed(prev_base_value: float, active: ActiveAttributeEffect)
-#
-### Emitted after the [param active] was added to this [Attribute]. Not called for instant
-### effects.[br]
-### WARNING: Any changes made to this [Attribute] when handling this signal will
-### result in an error thrown. If you wish to modify the [Attribute] during this signal,
-### use [signal event_occurred] instead & check [method AttributeEvent.active_added].
-#signal monitor_active_added(active: ActiveAttributeEffect)
-#
-### Emitted when the [param active] is applied. Only emitted for [enum AttributeEffect.Type.PERMANENT]
-### effects, not for [enum AttributeEffect.Type.TEMPORARY].[br]
-### WARNING: Any changes made to this [Attribute] when handling this signal will
-### result in an error thrown. If you wish to modify the [Attribute] during this signal,
-### use [signal event_occurred] instead & check [method AttributeEvent.active_applied].
-#signal monitor_active_applied(active: ActiveAttributeEffect)
-#
-### Emitted when the [param active] was removed. To determine if it was manual
-### or due to expiration, see [method ActiveAttributeEffect.expired].[br]
-### WARNING: Any changes made to this [Attribute] when handling this signal will
-### result in an error thrown. If you wish to modify the [Attribute] during this signal,
-### use [signal event_occurred] instead & check [method AttributeEvent.active_removed].
-#signal monitor_active_removed(active: ActiveAttributeEffect)
-#
-### Emitted when the [param active] had its stack count changed.[br]
-### WARNING: Any changes made to this [Attribute] when handling this signal will
-### result in an error thrown. If you wish to modify the [Attribute] during this signal,
-### use [signal event_occurred] instead & check [method AttributeEvent.active_stack_count_changed].
-#signal monitor_active_stack_count_changed(active: ActiveAttributeEffect, previous_stack_count: int)
-#
-### Emitted after [param blocked] was blocked from being added to
-### this [Attribute] by an [AttributeEffectCondition], accessible via 
-### [method ActiveAttributeEffect.get_last_blocked_by]. [param blocked_by] is the owner
-### of that condition, and could (but not always in the case of BLOCKER effects) be the same
-### as [param blocked].[br]
-### WARNING: Any changes made to this [Attribute] when handling this signal will
-### result in an error thrown. If you wish to modify the [Attribute] during this signal,
-### use [signal event_occurred] instead & check [method AttributeEvent.active_add_blocked].
-#signal monitor_active_add_blocked(blocked: ActiveAttributeEffect)
-#
-### Emitted after [param blocked] was blocked from being applied to
-### this [Attribute] by an [AttributeEffectCondition], accessible via 
-### [method ActiveAttributeEffect.get_last_blocked_by].
-#signal monitor_active_apply_blocked(blocked: ActiveAttributeEffect)
 
 ## The ID of the attribute.
 @export var id: StringName:
@@ -277,10 +214,8 @@ var _current_value: float:
 
 var _paused_at: int
 
-# Internal flag to prevent mutations to this attribute while a signal prefixed with "monitor_"
-# is currently being emitted. Used to prevent logic-breaking changes from code executed outside
-# of this class.
-var _in_monitor_signal_or_hook: bool = false
+# Internal flag to prevent mutations to this attribute while calling hooks.
+var _in_hook: bool = false
 
 var _frame_skipping_enabled: bool = false
 var _skipped_frames: int = 0
@@ -492,6 +427,7 @@ func _process_active(active: ActiveAttributeEffect) -> void:
 	# Emit the event
 	_emit_event(event)
 
+
 ## Returns the [AttributeContainer] this [Attribute] belongs to, null if there
 ## is no container (which shouldn't happen with proper [Node] management).
 func get_container() -> AttributeContainer:
@@ -514,8 +450,7 @@ func get_base_value() -> float:
 ## the current value, and true is returned. If the new value is the same as the current
 ## value, nothing occurs and false is returned.
 func set_base_value(new_base_value: float) -> bool:
-	assert(!_in_monitor_signal_or_hook, "can not call mutating methods on an Attribute" + \
-	"from a hook or while handling a signal prefixed with monitor_")
+	assert(!_in_hook, "can not call mutating methods on an Attribute while in a hook")
 	
 	# Validate the new base value
 	var validated_new_base_value: float = _validate_base_value(new_base_value)
@@ -538,12 +473,6 @@ func _set_base_value_pre_validated(validated_new_base_value: float, event: Attri
 	_handle_base_value_change(_base_value, validated_new_base_value, event)
 	_base_value = validated_new_base_value
 	event._new_base_value = _base_value
-	
-	
-	# Emit monitor signal
-	#_in_monitor_signal_or_hook = true
-	#monitor_base_value_changed.emit(event._prev_base_value, null)
-	#_in_monitor_signal_or_hook = false
 	
 	# Update the current value
 	_update_current_value(event)
@@ -569,8 +498,7 @@ func get_current_value() -> float:
 ## a TEMPORARY effect is added/removed, but this can be called manually to update
 ## the value automatically.
 func update_current_value() -> void:
-	assert(!_in_monitor_signal_or_hook, "can not call mutating methods on an Attribute" + \
-	"from a hook or while handling a signal prefixed with monitor_")
+	assert(!_in_hook, "can not call mutating methods on an Attribute while in a hook")
 	var event: AttributeEvent = _create_event()
 	event._new_base_value = _base_value # Base value won't change here
 	_update_current_value(event)
@@ -712,16 +640,14 @@ func find_first_active_by_effect(effect: AttributeEffect) -> ActiveAttributeEffe
 
 ## TODO Fix docs
 func add_effect(effect: AttributeEffect) -> void:
-	assert(!_in_monitor_signal_or_hook, "can not call mutating methods on an Attribute" + \
-	"from a hook or while handling a signal prefixed with monitor_")
+	assert(!_in_hook, "can not call mutating methods on an Attribute while in a hook")
 	assert(allow_effects, "allow_effects is false for %s" % self)
 	add_active(effect.create_active_effect())
 
 
 ## TODO Fix docs
 func add_effects(effects: Array[AttributeEffect], sort_by_priority: bool = true) -> void:
-	assert(!_in_monitor_signal_or_hook, "can not call mutating methods on an Attribute" + \
-	"from a hook or while handling a signal prefixed with monitor_")
+	assert(!_in_hook, "can not call mutating methods on an Attribute while in a hook")
 	assert(allow_effects, "allow_effects is false for %s" % self)
 	assert(!effects.has(null), "effects has null element")
 	var actives: Array[ActiveAttributeEffect] = []
@@ -731,8 +657,7 @@ func add_effects(effects: Array[AttributeEffect], sort_by_priority: bool = true)
 
 ## TODO Fix docs
 func add_actives(actives: Array[ActiveAttributeEffect], sort_by_priority: bool = true) -> void:
-	assert(!_in_monitor_signal_or_hook, "can not call mutating methods on an Attribute" + \
-	"from a hook or while handling a signal prefixed with monitor_")
+	assert(!_in_hook, "can not call mutating methods on an Attribute while in a hook")
 	assert(allow_effects, "allow_effects is false for %s" % self)
 	assert(!actives.has(null), "actives has null element")
 	
@@ -751,8 +676,7 @@ func add_actives(actives: Array[ActiveAttributeEffect], sort_by_priority: bool =
 
 ## TODO fix docs
 func add_active(active: ActiveAttributeEffect) -> void:
-	assert(!_in_monitor_signal_or_hook, "can not call mutating methods on an Attribute" + \
-	"from a hook or while handling a signal prefixed with monitor_")
+	assert(!_in_hook, "can not call mutating methods on an Attribute while in a hook")
 	assert(allow_effects, "allow_effects is false for %s" % self)
 	assert(active != null, "active is null")
 	assert(!_actives.has(active), "%s already added to this attribute or another" % active)
@@ -815,9 +739,9 @@ func add_active(active: ActiveAttributeEffect) -> void:
 	"active (%s) has a remaining_duration <= 0.0" % active)
 	
 	# Run pre_add hooks
-	_in_monitor_signal_or_hook = true
+	_in_hook = true
 	_run_hooks(AttributeEffectHook._Function.BEFORE_ACTIVE_ADDED, active, event)
-	_in_monitor_signal_or_hook = false
+	_in_hook = false
 	
 	# At this point it can be added
 	active._last_add_result = AddEffectResult.SUCCESS
@@ -834,11 +758,9 @@ func add_active(active: ActiveAttributeEffect) -> void:
 	_effect_counts[active.get_effect().id] = new_count
 	
 	# Run hooks & emit signal
-	_in_monitor_signal_or_hook = true
+	_in_hook = true
 	_run_hooks(AttributeEffectHook._Function.AFTER_ACTIVE_ADDED, active, event)
-	#if active.get_effect().emit_added_signal:
-		#monitor_active_added.emit(active)
-	_in_monitor_signal_or_hook = false
+	_in_hook = false
 	
 	# Update current value if a temporary active is added & has value
 	if active.get_effect().is_temporary() && active.get_effect().has_value:
@@ -887,18 +809,14 @@ func _set_active_stack_count(active: ActiveAttributeEffect, new_stack_count: int
 	active._stack_count = new_stack_count
 	event._new_active_stack_count = new_stack_count
 	
-	#_in_monitor_signal_or_hook = true
-	#monitor_active_stack_count_changed.emit(active, previous_stack_count)
-	#_in_monitor_signal_or_hook = false
-	
 	# Update current value if existing is a temporary active w/ a value
 	if active.get_effect().is_temporary() && active.get_effect().has_value:
 		_update_current_value(event)
 	
-	_in_monitor_signal_or_hook = true
+	_in_hook = true
 	_run_hooks(AttributeEffectHook._Function.AFTER_ACTIVE_STACK_CHANGED, active, event,
 	[previous_stack_count])
-	_in_monitor_signal_or_hook = false
+	_in_hook = false
 
 
 func set_active_remaining_duration(active: ActiveAttributeEffect, new_remaining_duration: float) -> void:
@@ -935,8 +853,7 @@ event: AttributeEvent) -> void:
 ## Removes all [ActiveAttributeEffect]s whose effect equals [param effect].
 ## Returns the number of [ActiveAttributeEffect]s removed.
 func remove_effect(effect: AttributeEffect) -> int:
-	assert(!_in_monitor_signal_or_hook, "can not call mutating methods on an Attribute" + \
-	"from a hook or while handling a signal prefixed with monitor_")
+	assert(!_in_hook, "can not call mutating methods on an Attribute while in a hook")
 	var removed: AttributeUtil.Reference = AttributeUtil.Reference.new(0)
 	_actives.for_each_allow_mutations(
 		func(active: ActiveAttributeEffect) -> void:
@@ -952,8 +869,7 @@ func remove_effect(effect: AttributeEffect) -> int:
 ## Removes all [ActiveAttributeEffect]s whose effect is present in [param effects]. 
 ## Returns the number of [ActiveAttributeEffect]s removed.
 func remove_effects(effects: Array[AttributeEffect]) -> int:
-	assert(!_in_monitor_signal_or_hook, "can not call mutating methods on an Attribute" + \
-	"from a hook or while handling a signal prefixed with monitor_")
+	assert(!_in_hook, "can not call mutating methods on an Attribute while in a hook")
 	var removed: AttributeUtil.Reference = AttributeUtil.Reference.new(0)
 	_actives.for_each_allow_mutations(
 		func(active: ActiveAttributeEffect) -> void:
@@ -970,8 +886,7 @@ func remove_effects(effects: Array[AttributeEffect]) -> int:
 ## that were present & removed. An [AttributeEvent] is emitted for each removed active, via
 ## [signal event_occurred].
 func remove_actives(actives: Array[ActiveAttributeEffect]) -> int:
-	assert(!_in_monitor_signal_or_hook, "can not call mutating methods on an Attribute" + \
-	"from a hook or while handling a signal prefixed with monitor_")
+	assert(!_in_hook, "can not call mutating methods on an Attribute while in a hook")
 	var removed: int = 0
 	for active: ActiveAttributeEffect in actives:
 		if remove_active(active):
@@ -981,8 +896,7 @@ func remove_actives(actives: Array[ActiveAttributeEffect]) -> int:
 
 ## Removes the [param active], returning true if removed, false if not.
 func remove_active(active: ActiveAttributeEffect) -> bool:
-	assert(!_in_monitor_signal_or_hook, "can not call mutating methods on an Attribute" + \
-	"from a hook or while handling a signal prefixed with monitor_")
+	assert(!_in_hook, "can not call mutating methods on an Attribute while in a hook")
 	if active == null || !has_active(active):
 		return false
 	var event: AttributeEvent = _create_event(active)
@@ -1000,9 +914,9 @@ func _remove_active(active: ActiveAttributeEffect, event: AttributeEvent) -> voi
 	event._remove_event = true
 	
 	# Run PRE_REMOVE hooks
-	_in_monitor_signal_or_hook = true
+	_in_hook = true
 	_run_hooks(AttributeEffectHook._Function.BEFORE_ACTIVE_REMOVED, active, event)
-	_in_monitor_signal_or_hook = false
+	_in_hook = false
 	
 	# Erase from array
 	_actives.erase(active)
@@ -1019,12 +933,9 @@ func _remove_active(active: ActiveAttributeEffect, event: AttributeEvent) -> voi
 			_effect_counts[active.get_effect().id] = new_count
 	
 	# Run REMOVED hooks
-	_in_monitor_signal_or_hook = true
+	_in_hook = true
 	_run_hooks(AttributeEffectHook._Function.AFTER_ACTIVE_REMOVED, active, event)
-	# Emit monitor signal
-	#if active.get_effect().emit_removed_signal:
-		#monitor_active_removed.emit(active)
-	_in_monitor_signal_or_hook = false
+	_in_hook = false
 	
 	# Update current value if is TEMPORARY w/ value
 	if active.get_effect().is_temporary() && active.get_effect().has_value:
@@ -1034,8 +945,7 @@ func _remove_active(active: ActiveAttributeEffect, event: AttributeEvent) -> voi
 ## Removes all [ActiveAttributeEffect]s from this attribute. Iterates the internal
 ## array of actives & removes them one by one. Skips irremovable effects.
 func remove_all_effects() -> void:
-	assert(!_in_monitor_signal_or_hook, "can not call mutating methods on an Attribute" + \
-	"from a hook or while handling a signal prefixed with monitor_")
+	assert(!_in_hook, "can not call mutating methods on an Attribute while in a hook")
 	var to_remove: Array[ActiveAttributeEffect] = _actives.duplicate_array()
 	for active: ActiveAttributeEffect in to_remove:
 		if active.get_effect().irremovable:
@@ -1095,13 +1005,10 @@ func _apply_permanent_active(active: ActiveAttributeEffect, current_tick: int, e
 	
 	_set_base_value_pre_validated(active._last_final_attribute_value, event)
 	
-	_in_monitor_signal_or_hook = true
+	_in_hook = true
 	# Run hooks
 	_run_hooks(AttributeEffectHook._Function.AFTER_ACTIVE_APPLIED, active, event)
-	# Emit signal
-	#if active.get_effect().emit_applied_signal:
-		#monitor_active_applied.emit(active)
-	_in_monitor_signal_or_hook = false
+	_in_hook = false
 
 ####################
 ## AttributeEvent ##
