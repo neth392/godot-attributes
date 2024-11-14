@@ -439,6 +439,18 @@ func get_container() -> AttributeContainer:
 ##########################
 
 
+## Returns the value of this attribute based on [param value_type].
+func get_value(value_type: Attribute.Value) -> float:
+	match value_type:
+		Attribute.Value.CURRENT_VALUE:
+			return get_current_value()
+		Attribute.Value.BASE_VALUE:
+			return get_base_value()
+		_:
+			assert(false, "no implementation for value_type (%s)" % value_type)
+			return 0.0
+
+
 ## Returns the base value of this attribute.
 func get_base_value() -> float:
 	return _base_value
