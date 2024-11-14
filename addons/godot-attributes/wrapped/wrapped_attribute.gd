@@ -36,7 +36,7 @@ const HARD_MAX: float = -1.79769e308
 		
 		base_min_type = _value
 		
-		WrappedAttributeLimit.base_min().post_set_type(self, has_prev, prev, prev_type)
+		WrappedAttributeLimit.base_min().after_set_type(self, has_prev, prev, prev_type)
 
 
 ## The fixed floating point value which is the least value (inclusive) this 
@@ -70,20 +70,9 @@ const HARD_MAX: float = -1.79769e308
 	set(_value):
 		assert(!_in_hook, "can't change base_min_value_to_use while in a hook")
 		
-		if Engine.is_editor_hint() \
-		or base_min_type != WrapLimitType.ATTRIBUTE \
-		or base_min_attribute == null \
-		or base_min_value_to_use == _value:
-			base_min_value_to_use = _value
-			return
-		
-		var prev_value: float = _get_attribute_value(base_min_attribute, base_min_value_to_use)
+		var prev_value_to_use: Attribute.Value = base_min_value_to_use
 		base_min_value_to_use = _value
-		var new_value: float = _get_attribute_value(base_min_attribute, base_min_value_to_use)
-		
-		var event: WrappedAttributeEvent = _create_event()
-		#_handle_base_min_change(true, prev_value, true, new_value, event)
-		_emit_event(event)
+		WrappedAttributeLimit.base_min().after_set_value_to_use(self, prev_value_to_use)
 
 ## If true, [AttributeEffect]s whose values will push the base value below
 ## the base minimum value are blocked from applying via an internal [AttributeEffect]
@@ -105,7 +94,7 @@ const HARD_MAX: float = -1.79769e308
 		
 		base_max_type = _value
 		
-		WrappedAttributeLimit.base_max().post_set_type(self, has_prev, prev, prev_type)
+		WrappedAttributeLimit.base_max().after_set_type(self, has_prev, prev, prev_type)
 
 
 ## The fixed floating point value which is the greatest value (inclusive) this 
@@ -126,57 +115,21 @@ const HARD_MAX: float = -1.79769e308
 		assert(_value == null || base_max_type == WrapLimitType.ATTRIBUTE,
 		"can't set base_max_attribute to non-null when base_max_type != WrapLimitType.ATTRIBUTE")
 		
-		# Do nothing if value is the same
-		if base_max_attribute == _value:
-			return
+		WrappedAttributeLimit.base_max().before_set_attribute(self, base_max_attribute, _value)
 		
-		# Disonnect signal
-		if base_max_attribute != null:
-			AttributeUtil.disconnect_safely(base_max_attribute.event_occurred, _on_base_max_value_changed)
-		
-		if Engine.is_editor_hint() || base_max_type != WrapLimitType.ATTRIBUTE:
-			base_max_attribute = _value
-			notify_property_list_changed()
-			update_configuration_warnings()
-			return
-		
-		var has_prev: bool = base_max_attribute != null
-		var prev_value: float = _get_attribute_value(base_max_attribute, base_max_value_to_use) \
-		if has_prev else HARD_MAX
-		
+		var prev_attribute: Attribute = base_max_attribute
 		base_max_attribute = _value
 		
-		var has_new: bool = base_max_attribute != null
-		var new_value: float = _get_attribute_value(base_max_attribute, base_max_value_to_use) \
-		if has_new else HARD_MIN
-		
-		var event: WrappedAttributeEvent = _create_event()
-		_handle_base_max_change(has_prev, prev_value, has_new, new_value, event)
-		
-		if base_max_attribute != null:
-			AttributeUtil.connect_safely(base_max_attribute.event_occurred, _on_base_max_value_changed)
-		
-		_emit_event(event)
+		WrappedAttributeLimit.base_max().after_set_attribute(self, prev_attribute, base_max_attribute)
 
 ## Which value of [member base_max_attribute] to use; current or base value.
 @export var base_max_value_to_use: Attribute.Value:
 	set(_value):
 		assert(!_in_hook, "can't change base_max_value_to_use while in a hook")
 		
-		if Engine.is_editor_hint() \
-		or base_max_type != WrapLimitType.ATTRIBUTE \
-		or base_max_attribute == null \
-		or base_max_value_to_use == _value:
-			base_max_value_to_use = _value
-			return
-		
-		var prev_value: float = _get_attribute_value(base_max_attribute, base_max_value_to_use)
+		var prev_value_to_use: Attribute.Value = base_max_value_to_use
 		base_max_value_to_use = _value
-		var new_value: float = _get_attribute_value(base_max_attribute, base_max_value_to_use)
-		
-		var event: WrappedAttributeEvent = _create_event()
-		_handle_base_max_change(true, prev_value, true, new_value, event)
-		_emit_event(event)
+		WrappedAttributeLimit.base_max().after_set_value_to_use(self, prev_value_to_use)
 
 ## If true, [AttributeEffect]s whose values will push the base value above
 ## the base maximum value are blocked from applying via an internal [AttributeEffect]
@@ -226,25 +179,8 @@ func _validate_property(property: Dictionary) -> void:
 func _get_configuration_warnings() -> PackedStringArray:
 	var warnings: PackedStringArray = super._get_configuration_warnings()
 	
-	# Base min
-	if has_base_min():
-		var base_min_value: float = _get_base_min_value()
-		if _base_value < base_min_value:
-			warnings.append("_base_value (%s) is < base_min's value of (%s)" \
-			% [_base_value, base_min_value])
-	
-	if base_min_type == WrapLimitType.ATTRIBUTE && base_min_attribute == null:
-		warnings.append("base_min_type set to ATTRIBUTE but base_min_attribute is null")
-	
-	# Base max
-	if has_base_max():
-		var base_max_value: float = _get_base_max_value()
-		if _base_value > base_max_value:
-			warnings.append("_base_value (%s) is > base_max's value of (%s)" \
-			% [_base_value, base_max_value])
-	
-	if base_max_type == WrapLimitType.ATTRIBUTE && base_max_attribute == null:
-		warnings.append("base_max_type set to ATTRIBUTE but base_max_attribute is null")
+	WrappedAttributeLimit.base_min().append_warnings(self, warnings)
+	WrappedAttributeLimit.base_max().append_warnings(self, warnings)
 	
 	return warnings
 
@@ -299,11 +235,19 @@ func _validate_current_value(value: float) -> float:
 
 func _handle_base_value_change(prev_value: float, new_value: float, event: AttributeEvent) -> void:
 	var wrapped_event: WrappedAttributeEvent = event as WrappedAttributeEvent
-	
 	if has_base_min():
 		var base_min_value: float = _get_base_min_value()
 		if prev_value > base_min_value && new_value <= base_min_value:
 			wrapped_event._base_hit_min = true
+		elif prev_value <= base_min_value && new_value > base_min_value:
+			wrapped_event._base_left_max == true
+	
+	if has_base_max():
+		var base_max_value: float = _get_base_max_value()
+		if prev_value < base_max_value && new_value >= base_max_value:
+			wrapped_event._base_hit_max = true
+		elif prev_value >= base_max_value && new_value < base_max_value:
+			wrapped_event._base_left_max = true
 
 
 func _handle_current_value_change(prev_value: float, new_value: float, event: AttributeEvent) -> void:
@@ -351,7 +295,7 @@ func get_base_min_value() -> float:
 			return base_min_fixed
 		WrapLimitType.ATTRIBUTE:
 			return HARD_MIN if base_min_attribute == null \
-			else _get_attribute_value(base_min_attribute, base_min_value_to_use)
+			else base_min_attribute.get_value(base_min_value_to_use)
 		_:
 			assert(false, "no implementation for WrapLimitType %s" % base_min_type)
 			return HARD_MIN
@@ -366,38 +310,18 @@ func _get_base_max_value() -> float:
 	if base_max_type == WrapLimitType.FIXED:
 		return base_max_fixed
 	else:
-		return _get_attribute_value(base_max_attribute, base_max_value_to_use)
-
-
-func _handle_base_max_change(has_prev: bool, prev_base_max: float, has_new: bool, 
-new_base_max: float, event: WrappedAttributeEvent) -> void:
-	event._has_prev_base_max = has_prev
-	event._has_new_base_max = has_new
-	event._prev_base_max = prev_base_max
-	event._new_base_max = new_base_max
-	
-	# Cache base value in case it is changed below
-	var prev_base_value: float = _base_value
-	
-	# Wrap the base value if greater than new max
-	if has_new && prev_base_value > new_base_max:
-		var new_base_value: float = _validate_base_value(prev_base_value)
-		_set_base_value_pre_validated(new_base_value, event)
-	
-	# Base leaving/hitting max
-	var was_base_at_max: bool = has_prev && prev_base_value >= new_base_max
-	var hit_base_max: bool = has_new && _base_value >= new_base_max
-	event._base_hit_max = !was_base_at_max && hit_base_max
-	event._base_left_max = was_base_at_max && !hit_base_max
+		return base_max_attribute.get_value(base_max_value_to_use)
 
 
 func _on_base_max_value_changed(event: AttributeEvent) -> void:
 	if !event.base_value_changed():
 		return
 	var wrapped_event: WrappedAttributeEvent = _create_event() as WrappedAttributeEvent
-	_handle_base_max_change(true, event.get_prev_base_value(), true, event.get_new_base_value(), wrapped_event)
+	
+	WrappedAttributeLimit.base_max().handle_limit_value_change(self, true, 
+	event.get_prev_base_value(), true, event.get_new_base_value(), wrapped_event)
+	
 	_emit_event(wrapped_event)
-
 
 ## Returns true if [member base_max_type] does not equal [enum WrapLimitType.NONE],
 ## and if [member base_max_attribute] is not null if [member base_max_type] is
@@ -417,7 +341,7 @@ func get_base_max_value() -> float:
 			return base_max_fixed
 		WrapLimitType.ATTRIBUTE:
 			return HARD_MAX if base_max_attribute == null \
-			else _get_attribute_value(base_max_attribute, base_max_value_to_use)
+			else base_max_attribute.get_value(base_max_value_to_use)
 		_:
 			assert(false, "no implementation for WrapLimitType %s" % base_max_type)
 			return HARD_MAX
