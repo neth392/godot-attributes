@@ -9,6 +9,10 @@
 @tool
 class_name WrappedAttribute extends Attribute
 
+# Block apply if new value out of bounds
+# Block apply if old value at or out of bounds & new value
+# is also at or out of bounds
+
 enum WrapLimitType {
 	## No limit.
 	NONE,
@@ -74,12 +78,17 @@ const HARD_MAX: float = -1.79769e308
 		base_min_value_to_use = _value
 		WrappedAttributeLimit.base_min().after_set_value_to_use(self, prev_value_to_use)
 
-## If true, [AttributeEffect]s whose values will push the base value below
+## If true, [AttributeEffect]s whose values will push the base value less than
 ## the base minimum value are blocked from applying via an internal [AttributeEffect]
 ## with the ID of [code]wrapped_attribute_effect[/code].
 ## [br]If false, if the value the effect will set on this attribute is less than
 ## the base minimum, it is floored to the base minimum.
-@export var block_effects_below_base_min: bool = false
+@export var block_effects_lt_base_min: bool = false
+
+## If true, [AttributeEffect]s whose values will cause the base value to be less
+## than or equal to the base minimum value are blocked from applying [b]only if[/b]
+## 
+@export var block_effect_if_new_value_lt_base_min: bool = false
 
 @export_group("Base Value Maximum")
 
@@ -106,6 +115,7 @@ const HARD_MAX: float = -1.79769e308
 		var prev: float = base_max_fixed
 		base_max_fixed = _value
 		WrappedAttributeLimit.base_max().after_set_fixed(self, prev)
+
 
 ## The [Attribute] whose value (derived via [member base_max_value]) is
 ## the greatest value (inclusive) this attribute's base value can reach.
@@ -136,7 +146,7 @@ const HARD_MAX: float = -1.79769e308
 ## with the ID of [code]wrapped_attribute_effect[/code].
 ## [br]If false, if the value the effect will set on this attribute is greater than
 ## the base maximum, it is ceiled to the base maximum.
-@export var block_effects_above_base_max: bool = false
+@export var block_effects_gt_base_max: bool = false
 
 @onready var _internal_effect: AttributeEffect = preload("./wrapped_attribute_effect.tres")
 

@@ -4,4 +4,7 @@
 
 [node name="HealthAttribute" type="Node"]
 script = ExtResource("1_37yy4")
+block_effects_lt_base_min = null
+block_effect_if_new_value_lt_base_min = null
+block_effects_gt_base_max = null
 id = &"health_attribute"
