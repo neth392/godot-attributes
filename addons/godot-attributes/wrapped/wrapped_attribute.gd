@@ -114,6 +114,7 @@ const HARD_MAX: float = -1.79769e308
 		
 		WrappedAttributeLimit.base_max().after_set_attribute(self, prev_attribute, base_max_attribute)
 
+
 ## Which value of [member base_max_attribute] to use; current or base value.
 @export var base_max_value_to_use: Attribute.Value:
 	set(_value):

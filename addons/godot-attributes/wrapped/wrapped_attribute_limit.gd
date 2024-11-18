@@ -6,6 +6,7 @@
 class_name WrappedAttributeLimit extends RefCounted
 
 static var _base_value_accessor: AttributeValueAccessor = BaseValueAccessor.new()
+static var _current_value_accessor: AttributeValueAccessor = CurrentValueAccessor.new()
 
 static var _min_limit_interface: LimitInterface = MinLimit.new()
 static var _max_limit_interface: LimitInterface = MaxLimit.new()
@@ -236,6 +237,7 @@ class AttributeValueAccessor extends RefCounted:
 		assert(false, "_get_attribute_value not implemented")
 		return 0.0
 	
+	
 	func _validate_and_set_attribute_value(instance: WrappedAttribute, value: float, 
 	event: WrappedAttributeEvent) -> float:
 		assert(false, "_validate_and_set_attribute_value not implemented")
@@ -262,6 +264,22 @@ class BaseValueAccessor extends AttributeValueAccessor:
 	
 	func _get_value_display_name() -> String:
 		return "base_value"
+
+
+class CurrentValueAccessor extends AttributeValueAccessor:
+	
+	func _get_attribute_value(instance: WrappedAttribute) -> float:
+		return instance._current_value
+	
+	
+	func _validate_and_set_attribute_value(instance: WrappedAttribute, value: float, 
+	event: WrappedAttributeEvent) -> float:
+		instance._update_current_value(event)
+		return instance._current_value
+	
+	
+	func _get_value_display_name() -> String:
+		return "current_value"
 
 
 class LimitInterface extends RefCounted:
@@ -428,3 +446,57 @@ class BaseMaxLimit extends WrappedAttributeLimit:
 	
 	func _get_limit_display_name() -> String:
 		return "base_max"
+
+
+class CurrentMinLimit extends WrappedAttributeLimit:
+	
+	func _init() -> void:
+		super._init(WrappedAttributeLimit._current_value_accessor, 
+		WrappedAttributeLimit._min_limit_interface)
+	
+	# TODO resume here
+	func _get_limit_type(instance: WrappedAttribute) -> WrappedAttribute.WrapLimitType:
+		return instance.base_min_type 
+	
+	
+	func _get_fixed(instance: WrappedAttribute) -> float:
+		return instance.base_min_fixed
+	
+	
+	func _get_limit_value(instance: WrappedAttribute) -> float:
+		return instance._get_base_min_value()
+	
+	
+	func _has_limit(instance: WrappedAttribute) -> bool:
+		return instance.has_base_min()
+	
+	
+	func _nullify_attribute(instance: WrappedAttribute) -> void:
+		instance.base_min_attribute = null
+	
+	
+	func _populate_event(event: WrappedAttributeEvent, has_prev_limit: bool, has_new_limit: bool, 
+	prev_limit_value: float, new_limit_value: float, hit_limit: bool, left_limit: bool) -> void:
+		
+		event._has_prev_base_min = has_prev_limit
+		event._has_new_base_min = has_new_limit
+		event._prev_base_min = prev_limit_value
+		event._new_base_min = new_limit_value
+		event._base_hit_min = hit_limit
+		event._base_left_min = left_limit
+	
+	
+	func _get_limit_attribute(instance: WrappedAttribute) -> Attribute:
+		return instance.base_min_attribute
+	
+	
+	func _get_limit_value_to_use(instance: WrappedAttribute) -> Attribute.Value:
+		return instance.base_min_value_to_use
+	
+	
+	func _get_limit_attribute_signal_handler(instance: WrappedAttribute) -> Callable:
+		return instance._on_base_min_value_changed
+	
+	
+	func _get_limit_display_name() -> String:
+		return "base_min"
