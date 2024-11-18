@@ -5,13 +5,13 @@
 @tool
 class_name WrappedAttributeLimit extends RefCounted
 
-static var _base_min: WrappedAttributeLimit = BaseMinLimit.new()
-static var _base_max: WrappedAttributeLimit = BaseMaxLimit.new()
-
 static var _base_value_accessor: AttributeValueAccessor = BaseValueAccessor.new()
 
 static var _min_limit_interface: LimitInterface = MinLimit.new()
 static var _max_limit_interface: LimitInterface = MaxLimit.new()
+
+static var _base_min: WrappedAttributeLimit = BaseMinLimit.new()
+static var _base_max: WrappedAttributeLimit = BaseMaxLimit.new()
 
 static func base_min() -> WrappedAttributeLimit:
 	return _base_min
