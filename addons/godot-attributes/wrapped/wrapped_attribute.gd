@@ -1,17 +1,12 @@
 ## An Attribute implementation that has optional max & min [Attribute]s which
 ## determines the range this attribute's current & base values can live within.
-## [br]Automatically adds an [AttributeEffect] of ID "wrapped_attribute_effect" whose configuration
-## is determined by settings set on this instance. It can not be removed, but has no value
-## and has an infinite duration so it will not cause this node to process. It's used
-## to add functionality to support the wrapped values.
+## Whenever a limit is set on the base or current value, that value can not
+## exceed its limit and is internally wrapped to the limit if it were to otherwise
+## exceed it.
 ## [br]NOTE: Parameter of [signal event_occurred] is always of type [WrappedAttributeEvent],
 ## which extends [AttributeEvent].
 @tool
 class_name WrappedAttribute extends Attribute
-
-# Block apply if new value out of bounds
-# Block apply if old value at or out of bounds & new value
-# is also at or out of bounds
 
 enum WrapLimitType {
 	## No limit.
@@ -78,25 +73,12 @@ const HARD_MAX: float = -1.79769e308
 		base_min_value_to_use = _value
 		WrappedAttributeLimit.base_min().after_set_value_to_use(self, prev_value_to_use)
 
-## If true, [AttributeEffect]s whose values will push the base value less than
-## the base minimum value are blocked from applying via an internal [AttributeEffect]
-## with the ID of [code]wrapped_attribute_effect[/code].
-## [br]If false, if the value the effect will set on this attribute is less than
-## the base minimum, it is floored to the base minimum.
-@export var block_effects_lt_base_min: bool = false
-
-## If true, [AttributeEffect]s whose values will cause the base value to be less
-## than or equal to the base minimum value are blocked from applying [b]only if[/b]
-## 
-@export var block_effect_if_new_value_lt_base_min: bool = false
-
 @export_group("Base Value Maximum")
 
 ## Determines the type of limit used for the base value's maximum.
 @export var base_max_type: WrapLimitType:
 	set(_value):
 		assert(!_in_hook, "can't change base_max_type while in a hook")
-		
 		var prev_type: WrapLimitType = base_max_type
 		var has_prev: bool = has_base_max()
 		var prev: float = _get_base_max_value() if has_prev else HARD_MIN
@@ -141,14 +123,6 @@ const HARD_MAX: float = -1.79769e308
 		base_max_value_to_use = _value
 		WrappedAttributeLimit.base_max().after_set_value_to_use(self, prev_value_to_use)
 
-## If true, [AttributeEffect]s whose values will push the base value above
-## the base maximum value are blocked from applying via an internal [AttributeEffect]
-## with the ID of [code]wrapped_attribute_effect[/code].
-## [br]If false, if the value the effect will set on this attribute is greater than
-## the base maximum, it is ceiled to the base maximum.
-@export var block_effects_gt_base_max: bool = false
-
-@onready var _internal_effect: AttributeEffect = preload("./wrapped_attribute_effect.tres")
 
 func _validate_property(property: Dictionary) -> void:
 	# Base Min
@@ -206,10 +180,6 @@ func _get_configuration_warnings() -> PackedStringArray:
 	WrappedAttributeLimit.base_max().append_warnings(self, warnings)
 	
 	return warnings
-
-
-func _get_built_in_effects() -> Array[AttributeEffect]:
-	return [_internal_effect]
 
 
 func _create_event(active: ActiveAttributeEffect = null) -> AttributeEvent:

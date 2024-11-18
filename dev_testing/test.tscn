@@ -14,12 +14,9 @@ script = ExtResource("2_2qnf1")
 [node name="WrappedAttribute" type="Node" parent="AttributeContainer" node_paths=PackedStringArray("base_max_attribute")]
 script = ExtResource("3_nepym")
 base_min_type = 1
-block_effects_lt_base_min = null
-block_effect_if_new_value_lt_base_min = null
 base_max_type = 2
 base_max_fixed = 100.0
 base_max_attribute = NodePath("../MaxAttribute")
-block_effects_gt_base_max = null
 id = &"test"
 _base_value = 100.0
 metadata/_custom_type_script = ExtResource("3_nepym")
