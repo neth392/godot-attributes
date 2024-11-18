@@ -3,17 +3,17 @@
 @tool
 class_name AttributeEffectValue extends AttributeEffectModifierArray
 
-## The floating point value
-@export var _value: float
+## The floating point value, unmodified.
+@export var unmodified_value: float
 
 
-func _init(value: float = 0.0) -> void:
-	_value = value
+func _init(_unmodified_value: float = 0.0) -> void:
+	unmodified_value = _unmodified_value
 
 
 ## Returns the raw, unmodified value.
 func get_raw() -> float:
-	return _value
+	return unmodified_value
 
 
 ## Returns [member value] modified by [member modifiers].

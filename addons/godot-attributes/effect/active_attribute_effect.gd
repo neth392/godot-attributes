@@ -170,6 +170,13 @@ func get_pending_final_attribute_value() -> float:
 	return _pending_final_attribute_value
 
 
+## Returns [method get_pending_raw_attribute_value] - [method get_pending_prior_attribute_value]
+## which returns the [b]raw[/b] total difference this effect will have on the [Attribute] before
+## applying to it, not accounting for validation of the new attribute value.
+func get_pending_raw_difference() -> float:
+	return _pending_raw_attribute_value - _pending_prior_attribute_value
+
+
 ## Returns [method get_pending_final_attribute_value] - [method get_pending_prior_attribute_value]
 ## which returns the total difference this effect will have on the [Attribute] before
 ## applying to it.
@@ -195,6 +202,13 @@ func get_last_raw_attribute_value() -> float:
 ## Returns the final, validated value of the [Attribute] after this effect was last applied to it.
 func get_last_final_attribute_value() -> float:
 	return _last_final_attribute_value
+
+
+## Returns [method get_last_raw_attribute_value] - [method get_last_prior_attribute_value]
+## which returns the [b]raw[/b] total difference this effect had on the [Attribute]'s value when it
+## was last applied to it, not accounting for validation of the set attribute value.
+func get_last_raw_difference() -> float:
+	return _pending_raw_attribute_value - _pending_prior_attribute_value
 
 
 ## Returns [method get_last_final_attribute_value] - [method get_last_prior_attribute_value]

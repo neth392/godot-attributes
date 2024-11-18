@@ -9,12 +9,12 @@
 
 [sub_resource type="Resource" id="Resource_x2jii"]
 script = ExtResource("5_lqo07")
-_value = 10.0
+unmodified_value = 0.0
 _modifiers = Array[ExtResource("3_tj3qk")]([])
 
 [sub_resource type="Resource" id="Resource_qe5ik"]
 script = ExtResource("5_lqo07")
-_value = 0.0
+unmodified_value = 0.0
 _modifiers = Array[ExtResource("3_tj3qk")]([])
 
 [sub_resource type="Resource" id="Resource_lp0q4"]
@@ -57,4 +57,6 @@ value_modifier = false
 period_modifier = false
 duration_modifier = false
 metadata = {}
+irremovable = false
+omit_from_save = false
 _loading_end = false

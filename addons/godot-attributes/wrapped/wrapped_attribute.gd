@@ -177,7 +177,20 @@ func _validate_property(property: Dictionary) -> void:
 
 
 func _get_configuration_warnings() -> PackedStringArray:
+	print("UPDATE WARNINGS")
 	var warnings: PackedStringArray = super._get_configuration_warnings()
+	
+	# Warn if Base Min > Base Max
+	if has_base_min() && has_base_max():
+		print("HAS BOTH")
+		var base_min_value: float = _get_base_min_value()
+		var base_max_value: float = _get_base_max_value()
+		if base_min_value > base_max_value:
+			print("OUT OF BOUNDS")
+			warnings.append("base_min's value (%s) is > base_max's value (%s)" \
+			% [base_min_value, base_max_value])
+	
+	# TODO current
 	
 	WrappedAttributeLimit.base_min().append_warnings(self, warnings)
 	WrappedAttributeLimit.base_max().append_warnings(self, warnings)

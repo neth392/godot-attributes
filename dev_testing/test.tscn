@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=3 uid="uid://cxaciuxmlpkcv"]
+[gd_scene load_steps=5 format=3 uid="uid://cxaciuxmlpkcv"]
 
 [ext_resource type="Script" path="res://dev_testing/test.gd" id="1_4c6uj"]
 [ext_resource type="Script" path="res://addons/godot-attributes/attribute_container.gd" id="2_2qnf1"]
 [ext_resource type="Script" path="res://addons/godot-attributes/wrapped/wrapped_attribute.gd" id="3_nepym"]
+[ext_resource type="Script" path="res://addons/godot-attributes/attribute.gd" id="4_7vbli"]
 
 [node name="Test" type="Node"]
 script = ExtResource("1_4c6uj")
@@ -10,6 +11,20 @@ script = ExtResource("1_4c6uj")
 [node name="AttributeContainer" type="Node" parent="."]
 script = ExtResource("2_2qnf1")
 
-[node name="WrappedAttribute" type="Node" parent="AttributeContainer"]
+[node name="WrappedAttribute" type="Node" parent="AttributeContainer" node_paths=PackedStringArray("base_max_attribute")]
 script = ExtResource("3_nepym")
+base_min_type = 1
+block_effects_below_base_min = true
+base_max_type = 2
+base_max_fixed = 100.0
+base_max_attribute = NodePath("../MaxAttribute")
+block_effects_above_base_max = true
+id = &"test"
+_base_value = 100.0
 metadata/_custom_type_script = ExtResource("3_nepym")
+
+[node name="MaxAttribute" type="Node" parent="AttributeContainer"]
+script = ExtResource("4_7vbli")
+id = &"max"
+_base_value = 100.0
+metadata/_custom_type_script = ExtResource("4_7vbli")

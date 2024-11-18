@@ -81,7 +81,6 @@ func get_prev_active_stack_count() -> int:
 
 
 func active_stack_count_changed() -> bool:
-	assert(_active_effect != null, "_active_effect is null for this event")
 	return _new_active_stack_count != _prev_active_stack_count
 
 

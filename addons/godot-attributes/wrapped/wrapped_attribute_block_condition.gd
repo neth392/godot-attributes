@@ -7,6 +7,6 @@ func _meets_condition(attribute: Attribute, active: ActiveAttributeEffect) -> bo
 		return true
 	
 	if attribute is WrappedAttribute:
-		if attribute.block_effects_below_base_min
+		pass
 	
 	return true
