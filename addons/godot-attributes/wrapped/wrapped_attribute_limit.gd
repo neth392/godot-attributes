@@ -2,6 +2,7 @@
 ## logic of the limits are not copy/pasted. It is overly abstracted but that
 ## ensures any changes only need to be made to 1 place, not several, securing
 ## the integrity of the code.
+@tool
 class_name WrappedAttributeLimit extends RefCounted
 
 static var _base_min: WrappedAttributeLimit = BaseMinLimit.new()
@@ -30,15 +31,13 @@ func _init(attribute_value_accessor: AttributeValueAccessor, limit_interface: Li
 
 func after_set_type(instance: WrappedAttribute, has_prev_limit: bool, prev_limit_value: float, 
 prev_type: WrappedAttribute.WrapLimitType) -> void:
-	assert(false, "post_set_type not implemented")
-	
 	# In editor or type was set to the same, don't emit event or handle the change
 	if Engine.is_editor_hint() || _get_limit_type(instance) == prev_type:
 		# Nullify attribute if type is not attribute to avoid rogue reference to Node
 		if _get_limit_type(instance) != WrappedAttribute.WrapLimitType.ATTRIBUTE:
 			instance.base_min_attribute = null
 		# Notify the editor
-		instance.notify_propery_list_changed()
+		instance.notify_property_list_changed()
 		instance.update_configuration_warnings()
 		return
 	

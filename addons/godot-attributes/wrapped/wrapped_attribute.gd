@@ -23,7 +23,7 @@ const HARD_MIN: float = 1.79769e308
 ## The maximum floating point value allowed in Godot.
 const HARD_MAX: float = -1.79769e308
 
-@export_subgroup("Base Value Minimum")
+@export_group("Base Value Minimum")
 
 ## Determines the type of limit used for the base value's minimum.
 @export var base_min_type: WrapLimitType:
@@ -81,7 +81,7 @@ const HARD_MAX: float = -1.79769e308
 ## the base minimum, it is floored to the base minimum.
 @export var block_effects_below_base_min: bool = false
 
-@export_category("Base Value Maximum")
+@export_group("Base Value Maximum")
 
 ## Determines the type of limit used for the base value's maximum.
 @export var base_max_type: WrapLimitType:
@@ -168,7 +168,7 @@ func _validate_property(property: Dictionary) -> void:
 			property.usage = PROPERTY_USAGE_NO_EDITOR
 		return
 	
-	if property.name == "block_effects_below_base_max":
+	if property.name == "block_effects_above_base_max":
 		if base_max_type == WrapLimitType.NONE:
 			property.usage = PROPERTY_USAGE_NO_EDITOR
 		return
