@@ -13,12 +13,20 @@ static var _max_limit_interface: LimitInterface = MaxLimit.new()
 
 static var _base_min: WrappedAttributeLimit = BaseMinLimit.new()
 static var _base_max: WrappedAttributeLimit = BaseMaxLimit.new()
+static var _current_min: WrappedAttributeLimit = CurrentMinLimit.new()
+static var _current_max: WrappedAttributeLimit = CurrentMaxLimit.new()
 
 static func base_min() -> WrappedAttributeLimit:
 	return _base_min
 
 static func base_max() -> WrappedAttributeLimit:
 	return _base_max
+
+static func current_min() -> WrappedAttributeLimit:
+	return _current_min
+
+static func current_max() -> WrappedAttributeLimit:
+	return _current_max
 
 
 var _attribute_value_accessor: AttributeValueAccessor
@@ -48,9 +56,9 @@ prev_type: WrappedAttribute.WrapLimitType) -> void:
 		_nullify_attribute(instance)
 	
 	var event: WrappedAttributeEvent = instance._create_event()
-	var has_new_limit: bool = _has_limit(instance)
+	var has_new_limit: bool = has_limit(instance)
 	
-	var new_limit_value: float = _get_limit_value(instance) if has_new_limit \
+	var new_limit_value: float = get_limit_value_unsafe(instance) if has_new_limit \
 	else _limit_interface._get_hard_limit()
 	
 	handle_limit_value_change(instance, has_prev_limit, prev_limit_value, has_new_limit,
@@ -167,8 +175,8 @@ event: WrappedAttributeEvent) -> void:
 
 func append_warnings(instance: WrappedAttribute, warnings: PackedStringArray) -> void:
 	# Warn if initial value is out of bounds
-	if _has_limit(instance):
-		var limit_value: float = _get_limit_value(instance)
+	if has_limit(instance):
+		var limit_value: float = get_limit_value_unsafe(instance)
 		var attribute_value: float = _attribute_value_accessor._get_attribute_value(instance)
 		
 		if _limit_interface._is_out_of_bounds(attribute_value, limit_value):
@@ -182,6 +190,40 @@ func append_warnings(instance: WrappedAttribute, warnings: PackedStringArray) ->
 		warnings.append("base_min_type set to ATTRIBUTE but base_min_attribute is null")
 
 
+func get_limit_value(instance: WrappedAttribute) -> float:
+	match _get_limit_type(instance):
+		WrappedAttribute.WrapLimitType.NONE:
+			return _limit_interface._get_hard_limit()
+		WrappedAttribute.WrapLimitType.FIXED:
+			return _get_fixed(instance)
+		WrappedAttribute.WrapLimitType.ATTRIBUTE:
+			var attribute: Attribute = _get_limit_attribute(instance)
+			return _limit_interface._get_hard_limit() if attribute == null \
+			else attribute.get_value(_get_limit_value_to_use(instance))
+		_:
+			assert(false, "no implementation for WrapLimitType %s" % _get_limit_type(instance))
+			return _limit_interface._get_hard_limit()
+
+
+func get_limit_value_unsafe(instance: WrappedAttribute) -> float:
+	assert(has_limit(instance), "no %s limit for instance (%s)" \
+	% [_get_limit_display_name(), instance])
+	var type: WrappedAttribute.WrapLimitType = _get_limit_type(instance)
+	if type == WrappedAttribute.WrapLimitType.FIXED:
+		return _get_fixed(instance)
+	return _get_limit_attribute(instance).get_value(_get_limit_value_to_use(instance))
+
+
+func has_limit(instance: WrappedAttribute) -> bool:
+	match _get_limit_type(instance):
+		WrappedAttribute.WrapLimitType.ATTRIBUTE:
+			return _get_limit_attribute(instance) != null
+		WrappedAttribute.WrapLimitType.FIXED:
+			return true
+		_:
+			return false
+
+
 func _get_limit_type(instance: WrappedAttribute) -> WrappedAttribute.WrapLimitType:
 	assert(false, "_get_limit_type not implemented")
 	return -1
@@ -190,16 +232,6 @@ func _get_limit_type(instance: WrappedAttribute) -> WrappedAttribute.WrapLimitTy
 func _get_fixed(instance: WrappedAttribute) -> float:
 	assert(false, "_get_fixed not implemented")
 	return 0.0
-
-
-func _get_limit_value(instance: WrappedAttribute) -> float:
-	assert(false, "_get_limit_value not implemented")
-	return 0.0
-
-
-func _has_limit(instance: WrappedAttribute) -> bool:
-	assert(false, "_has_limit not implemented")
-	return false
 
 
 func _nullify_attribute(instance: WrappedAttribute) -> void:
@@ -315,8 +347,8 @@ class MinLimit extends LimitInterface:
 	
 	
 	func _is_out_of_bounds(value: float, limit: float) -> bool:
-		return value < limit
 	
+		return value < limit
 	
 	func _get_oob_operator_display() -> String:
 		return "<"
@@ -353,14 +385,6 @@ class BaseMinLimit extends WrappedAttributeLimit:
 	
 	func _get_fixed(instance: WrappedAttribute) -> float:
 		return instance.base_min_fixed
-	
-	
-	func _get_limit_value(instance: WrappedAttribute) -> float:
-		return instance._get_base_min_value()
-	
-	
-	func _has_limit(instance: WrappedAttribute) -> bool:
-		return instance.has_base_min()
 	
 	
 	func _nullify_attribute(instance: WrappedAttribute) -> void:
@@ -409,14 +433,6 @@ class BaseMaxLimit extends WrappedAttributeLimit:
 		return instance.base_max_fixed
 	
 	
-	func _get_limit_value(instance: WrappedAttribute) -> float:
-		return instance._get_base_max_value()
-	
-	
-	func _has_limit(instance: WrappedAttribute) -> bool:
-		return instance.has_base_max()
-	
-	
 	func _nullify_attribute(instance: WrappedAttribute) -> void:
 		instance.base_max_attribute = null
 	
@@ -454,49 +470,87 @@ class CurrentMinLimit extends WrappedAttributeLimit:
 		super._init(WrappedAttributeLimit._current_value_accessor, 
 		WrappedAttributeLimit._min_limit_interface)
 	
-	# TODO resume here
+	
 	func _get_limit_type(instance: WrappedAttribute) -> WrappedAttribute.WrapLimitType:
-		return instance.base_min_type 
+		return instance.current_min_type
 	
 	
 	func _get_fixed(instance: WrappedAttribute) -> float:
-		return instance.base_min_fixed
-	
-	
-	func _get_limit_value(instance: WrappedAttribute) -> float:
-		return instance._get_base_min_value()
-	
-	
-	func _has_limit(instance: WrappedAttribute) -> bool:
-		return instance.has_base_min()
+		return instance.current_min_fixed
 	
 	
 	func _nullify_attribute(instance: WrappedAttribute) -> void:
-		instance.base_min_attribute = null
+		instance.current_min_attribute = null
 	
 	
 	func _populate_event(event: WrappedAttributeEvent, has_prev_limit: bool, has_new_limit: bool, 
 	prev_limit_value: float, new_limit_value: float, hit_limit: bool, left_limit: bool) -> void:
 		
-		event._has_prev_base_min = has_prev_limit
-		event._has_new_base_min = has_new_limit
-		event._prev_base_min = prev_limit_value
-		event._new_base_min = new_limit_value
-		event._base_hit_min = hit_limit
-		event._base_left_min = left_limit
+		event._has_prev_current_min = has_prev_limit
+		event._has_new_current_min = has_new_limit
+		event._prev_current_min = prev_limit_value
+		event._new_current_min = new_limit_value
+		event._current_hit_min = hit_limit
+		event._current_left_min = left_limit
 	
 	
 	func _get_limit_attribute(instance: WrappedAttribute) -> Attribute:
-		return instance.base_min_attribute
+		return instance.current_min_attribute
 	
 	
 	func _get_limit_value_to_use(instance: WrappedAttribute) -> Attribute.Value:
-		return instance.base_min_value_to_use
+		return instance.current_min_value_to_use
 	
 	
 	func _get_limit_attribute_signal_handler(instance: WrappedAttribute) -> Callable:
-		return instance._on_base_min_value_changed
+		return instance._on_current_min_value_changed
 	
 	
 	func _get_limit_display_name() -> String:
-		return "base_min"
+		return "current_min"
+
+
+class CurrentMaxLimit extends WrappedAttributeLimit:
+	
+	func _init() -> void:
+		super._init(WrappedAttributeLimit._current_value_accessor, 
+		WrappedAttributeLimit._max_limit_interface)
+	
+	
+	func _get_limit_type(instance: WrappedAttribute) -> WrappedAttribute.WrapLimitType:
+		return instance.current_max_type
+	
+	
+	func _get_fixed(instance: WrappedAttribute) -> float:
+		return instance.current_max_fixed
+	
+	
+	func _nullify_attribute(instance: WrappedAttribute) -> void:
+		instance.current_max_attribute = null
+	
+	
+	func _populate_event(event: WrappedAttributeEvent, has_prev_limit: bool, has_new_limit: bool, 
+	prev_limit_value: float, new_limit_value: float, hit_limit: bool, left_limit: bool) -> void:
+		
+		event._has_prev_current_max = has_prev_limit
+		event._has_new_current_max = has_new_limit
+		event._prev_current_max = prev_limit_value
+		event._new_current_max = new_limit_value
+		event._current_hit_max = hit_limit
+		event._current_left_max = left_limit
+	
+	
+	func _get_limit_attribute(instance: WrappedAttribute) -> Attribute:
+		return instance.current_max_attribute
+	
+	
+	func _get_limit_value_to_use(instance: WrappedAttribute) -> Attribute.Value:
+		return instance.current_max_value_to_use
+	
+	
+	func _get_limit_attribute_signal_handler(instance: WrappedAttribute) -> Callable:
+		return instance._on_current_max_value_changed
+	
+	
+	func _get_limit_display_name() -> String:
+		return "current_max"
