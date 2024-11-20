@@ -26,21 +26,22 @@ func _ready():
 		health_attribute.event_occurred.connect(_event_base_hit_min)
 		health_attribute.event_occurred.connect(_event_base_left_min)
 		health_attribute.event_occurred.connect(_event_base_min_changed)
+		
 		health_attribute.event_occurred.connect(_event_base_hit_max)
 		health_attribute.event_occurred.connect(_event_base_left_max)
 		health_attribute.event_occurred.connect(_event_base_max_changed)
+		
+		health_attribute.event_occurred.connect(_event_current_hit_min)
+		health_attribute.event_occurred.connect(_event_current_left_min)
+		health_attribute.event_occurred.connect(_event_current_min_changed)
+		
+		health_attribute.event_occurred.connect(_event_current_hit_max)
+		health_attribute.event_occurred.connect(_event_current_left_max)
+		health_attribute.event_occurred.connect(_event_current_max_changed)
 	
 	var drain_effect: AttributeEffect = load("res://dev_testing/drain_effect.tres") as AttributeEffect
 	
-	var max_attribute: Attribute = $AttributeContainer/MaxAttribute
-	var new_drain: AttributeEffect = drain_effect.duplicate(true)
-	new_drain.initial_period = true
-	new_drain.value.unmodified_value = 1.0
-	
-	max_attribute.add_effect(new_drain)
-	
 	health_attribute.add_effect(drain_effect)
-
 
 
 func _print(message: String) -> void:
@@ -143,3 +144,45 @@ func _event_base_max_changed(event: WrappedAttributeEvent) -> void:
 		return
 	_print("EVENT: base_max_changed, prev_base_max=%s, new_base_max=%s" \
 	% [event.get_prev_base_max(), event.get_new_base_max()])
+
+
+func _event_current_hit_min(event: WrappedAttributeEvent) -> void:
+	if !event.is_current_hit_min_event():
+		return
+	_print("EVENT: current_hit_min, current=%s, min=%s" \
+	% [health_attribute.get_current_value(), health_attribute.get_current_min_value()])
+
+
+func _event_current_left_min(event: WrappedAttributeEvent) -> void:
+	if !event.is_current_left_min_event():
+		return
+	_print("EVENT: current_left_min, current=%s, min=%s" \
+	% [health_attribute.get_current_value(), health_attribute.get_current_min_value()])
+
+
+func _event_current_min_changed(event: WrappedAttributeEvent) -> void:
+	if !event.is_current_min_changed_event():
+		return
+	_print("EVENT: current_min_changed, prev_current_min=%s, new_current_min=%s" \
+	% [event.get_prev_current_min(), event.get_new_current_min()])
+
+
+func _event_current_hit_max(event: WrappedAttributeEvent) -> void:
+	if !event.is_current_hit_max_event():
+		return
+	_print("EVENT: current_hit_max, current=%s, max=%s" \
+	% [health_attribute.get_current_value(), health_attribute.get_current_max_value()])
+
+
+func _event_current_left_max(event: WrappedAttributeEvent) -> void:
+	if !event.is_current_left_max_event():
+		return
+	_print("EVENT: current_left_max, current=%s, max=%s" \
+	% [health_attribute.get_current_value(), health_attribute.get_current_max_value()])
+
+
+func _event_current_max_changed(event: WrappedAttributeEvent) -> void:
+	if !event.is_current_max_changed_event():
+		return
+	_print("EVENT: current_max_changed, prev_current_max=%s, new_current_max=%s" \
+	% [event.get_prev_current_max(), event.get_new_current_max()])

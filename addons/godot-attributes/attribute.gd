@@ -518,7 +518,7 @@ func update_current_value() -> void:
 
 
 func _update_current_value(event: AttributeEvent) -> void:
-	var new_current_value: AttributeUtil.Reference = AttributeUtil.Reference.new(_base_value)
+	var new_current_value: AttributeUtil.Reference = AttributeUtil.Reference.new(_validate_current_value(_base_value))
 	_actives.temporaries_w_value.for_each_allow_mutations(
 		func(active: ActiveAttributeEffect) -> void:
 			# Skip if not added or is expired
