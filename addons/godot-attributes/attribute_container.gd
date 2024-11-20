@@ -38,6 +38,7 @@ func _enter_tree() -> void:
 	if Engine.is_editor_hint():
 		return
 	child_entered_tree.connect(_on_child_entered_tree)
+	child_exiting_tree.connect(_on_child_exited_tree)
 
 
 func _ready() -> void:
@@ -49,6 +50,7 @@ func _exit_tree() -> void:
 	if Engine.is_editor_hint():
 		return
 	child_entered_tree.disconnect(_on_child_entered_tree)
+	child_exiting_tree.disconnect(_on_child_exited_tree)
 	_attributes.clear()
 
 
