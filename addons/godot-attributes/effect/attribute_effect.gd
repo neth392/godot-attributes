@@ -434,6 +434,8 @@ var _block_runtime_modifications: bool = false:
 	set(value):
 		_block_runtime_modifications = true
 
+
+## Constructs a new instance with [member id] as [param _id].
 func _init(_id: StringName = "") -> void:
 	_ignore_loading = true
 	_loading_start = true

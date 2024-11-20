@@ -19,18 +19,17 @@ func after_all() -> void:
 	AttributeEffectFeatureManager._instance = null
 
 
-func test_assert_every_feature_is_registered(file_name = use_parameters(file_paths)) -> void:
+func tes_every_feature_is_registered(file_name = use_parameters(file_paths)) -> void:
 	var exists: bool = false
 	var string: String = ""
 	for feature: AttributeEffectFeature in AttributeEffectFeatureManager.i()._features_by_property.values():
-		print(feature.get_script().resource_path.get_file())
 		if feature.get_script().resource_path.get_file() == file_name:
 			exists = true
 			break
 	assert_true(exists, "feature file not registered: %s" % file_name)
 
 
-func test_assert_default_values_all_compatible() -> void:
+func test_default_values_all_compatible() -> void:
 	# TODO implement
 	pass_test("NOT YET IMPLEMENTED")
 	pass

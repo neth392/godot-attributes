@@ -7,8 +7,8 @@
 @icon("res://addons/godot-attributes/assets/attribute_icon.svg")
 class_name Attribute extends Node
 
-## Helper function currently for [method Time.get_ticks_usec], created so that
-## it can be swapped to other time units if deemed necessary.
+# Helper function currently for [method Time.get_ticks_usec], created so that
+# it can be swapped to other time units if deemed necessary.
 static func _get_ticks() -> int:
 	return Time.get_ticks_usec()
 
