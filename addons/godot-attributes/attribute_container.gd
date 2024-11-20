@@ -28,6 +28,12 @@ signal tag_removed(tag: StringName)
 var _attributes: Dictionary = {}
 var _tags: Dictionary = {}
 
+
+## Constructs a new instance with [member id] as [param _id].
+func _init(_id: StringName = &"") -> void:
+	id = _id
+
+
 func _enter_tree() -> void:
 	if Engine.is_editor_hint():
 		return

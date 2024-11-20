@@ -7,9 +7,6 @@
 @icon("res://addons/godot-attributes/assets/attribute_icon.svg")
 class_name Attribute extends Node
 
-## Internal time unit used.
-const INTERNAL_TIME_UNIT: AttributeUtil.TimeUnit = AttributeUtil.TimeUnit.MICROSECONDS
-
 ## Helper function currently for [method Time.get_ticks_usec], created so that
 ## it can be swapped to other time units if deemed necessary.
 static func _get_ticks() -> int:
@@ -219,6 +216,12 @@ var _in_hook: bool = false
 
 var _frame_skipping_enabled: bool = false
 var _skipped_frames: int = 0
+
+
+## Constructs a new instance with [member id] as [param _id].
+func _init(_id: StringName = &"") -> void:
+	id = _id
+
 
 ###################
 ## Tree Handling ##
