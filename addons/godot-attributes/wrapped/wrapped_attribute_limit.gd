@@ -41,19 +41,16 @@ limit_interface: LimitInterface) -> void:
 
 func after_set_type(instance: WrappedAttribute, has_prev_limit: bool, prev_limit_value: float, 
 prev_type: WrappedAttribute.WrapLimitType) -> void:
+	# Nullify attribute if type is not attribute to avoid rogue reference to Node
+	if _get_limit_type(instance) != WrappedAttribute.WrapLimitType.ATTRIBUTE:
+		_nullify_attribute(instance)
+	
 	# In editor or type was set to the same, don't emit event or handle the change
 	if Engine.is_editor_hint() || _get_limit_type(instance) == prev_type:
-		# Nullify attribute if type is not attribute to avoid rogue reference to Node
-		if _get_limit_type(instance) != WrappedAttribute.WrapLimitType.ATTRIBUTE:
-			instance.base_min_attribute = null
 		# Notify the editor
 		instance.notify_property_list_changed()
 		instance.update_configuration_warnings()
 		return
-	
-	# Nullify attribute if type is not attribute to avoid rogue reference to Node
-	if _get_limit_type(instance) != WrappedAttribute.WrapLimitType.ATTRIBUTE:
-		_nullify_attribute(instance)
 	
 	var event: WrappedAttributeEvent = instance._create_event()
 	var has_new_limit: bool = has_limit(instance)
