@@ -61,6 +61,8 @@ func _event_base_value_changed(event: AttributeEvent) -> void:
 		return
 	_print("EVENT: base_value_changed: new_value=%s, prev_base_value=%s, active=%s" \
 	% [event.get_new_base_value(), event.get_prev_base_value(), event.get_active_effect()])
+	if event.get_new_base_value() <= 50.0:
+		pass
 
 
 func _event_active_added(event: AttributeEvent) -> void:

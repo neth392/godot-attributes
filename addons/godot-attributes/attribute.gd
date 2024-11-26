@@ -180,6 +180,7 @@ signal event_occurred(attribute_event: AttributeEvent)
 		default_effects = value
 		update_configuration_warnings()
 
+
 # Cluster of all added [ActiveAttributeEffect]s.
 @export_storage var _actives: ActiveAttributeEffectCluster
 

@@ -11,11 +11,11 @@ static func i() -> AttributeEffectFeatureManager:
 		_instance = AttributeEffectFeatureManager.new()
 	return _instance
 
-var _loaded_features: Array[AttributeEffectFeature]
 var _features_by_property: Dictionary[StringName, AttributeEffectFeature]
 var _depended_on_by: Dictionary[StringName, Array]
 
 func _init() -> void:
+	var _loaded_features: Array[AttributeEffectFeature] = []
 	_loaded_features.append(preload("./add_blocker_feature.gd").new())
 	_loaded_features.append(preload("./add_blockers_feature.gd").new())
 	_loaded_features.append(preload("./add_conditions_feature.gd").new())
@@ -74,9 +74,6 @@ func _init() -> void:
 				_depended_on_by[depends_on._get_property_name()] = [feature]
 			else:
 				_depended_on_by[depends_on._get_property_name()].append(feature)
-	
-	# Clear loaded features
-	_loaded_features.clear()
 
 
 ## Returns true if the [param property_name] represents an [AttributeEffectFeature].

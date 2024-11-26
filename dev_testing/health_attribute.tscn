@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://dydmsuva3dhor"]
 
-[ext_resource type="Script" path="res://addons/godot-attributes/wrapped/wrapped_attribute.gd" id="1_37yy4"]
+[ext_resource type="Script" uid="uid://cqavjmekkmvp2" path="res://addons/godot-attributes/wrapped/wrapped_attribute.gd" id="1_37yy4"]
 
 [node name="HealthAttribute" type="Node"]
 script = ExtResource("1_37yy4")
