@@ -16,11 +16,16 @@ var container: AttributeContainer
 var attribute: Attribute
 
 var _container_instance_mode: InstanceMode
+var _double_container: bool = false
 var _attribute_instance_mode: InstanceMode
+var _double_attribute: bool = false
 
-func _init(container_instance: InstanceMode, attribute_instance: InstanceMode) -> void:
+func _init(container_instance: InstanceMode, double_container: bool, attribute_instance: InstanceMode,
+double_attribute: bool) -> void:
 	_container_instance_mode = container_instance
+	_double_container = double_container
 	_attribute_instance_mode = attribute_instance
+	_double_attribute = double_attribute
 
 
 func before_all() -> void:
@@ -40,29 +45,43 @@ func before_each() -> void:
 
 
 func after_all() -> void:
-	if _attribute_instance_mode == InstanceMode.BEFORE_ALL:
-		remove_child(attribute)
-		attribute.free()
-		attribute = null
-	if _container_instance_mode == InstanceMode.BEFORE_ALL:
-		remove_child(container)
-		container.free()
-		container = null
+	_destroy_attribute()
+	_destroy_container()
 
 
 func _create_container() -> void:
-	if container != null:
-		remove_child(container)
-		container.free()
-	container = AttributeContainer.new(CONTAINER_ID)
+	_destroy_container()
+	container = AttributeContainer.new(CONTAINER_ID) if !_double_container else partial_double_container()
 	watch_signals(container)
 	add_child(container)
 
 
 func _create_attribute() -> void:
-	if attribute != null:
-		container.remove_child(attribute)
-		attribute.free()
-	attribute = Attribute.new(ATTRIBUTE_ID)
+	_destroy_attribute()
+	attribute = Attribute.new(ATTRIBUTE_ID) if !_double_attribute else partial_double_attribute()
 	watch_signals(attribute)
 	container.add_child(attribute)
+
+
+func _destroy_container() -> void:
+	if container != null:
+		if container.is_inside_tree():
+			remove_child(container)
+		container.free()
+		container = null
+
+
+func _destroy_attribute() -> void:
+	if attribute != null:
+		if attribute.is_inside_tree():
+			container.remove_child(attribute)
+		attribute.free()
+	attribute = null
+
+
+func partial_double_container() -> AttributeContainer:
+	return partial_double(AttributeContainer).new(CONTAINER_ID)
+
+
+func partial_double_attribute() -> Attribute:
+	return partial_double(Attribute).new(ATTRIBUTE_ID)

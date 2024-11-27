@@ -2,7 +2,7 @@ extends AttributeDepdententTest
 
 
 func _init() -> void:
-	super._init(InstanceMode.BEFORE_ALL, InstanceMode.BEFORE_EACH)
+	super._init(InstanceMode.BEFORE_ALL, false, InstanceMode.BEFORE_EACH, false)
 
 
 func test_ticks_to_second() -> void:
