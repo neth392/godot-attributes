@@ -45,3 +45,12 @@ use_parameters(AttributeEffectFeatureManager.i()._features_by_property.values())
 	assert_true(feature._value_meets_requirements(default_value, test_effect),
 	"default_value (%s) of feature (%s) does meet requirements, returned string = %s" \
 	% [default_value, feature, feature._get_requirements_string(default_value)])
+
+
+func test_initial_effect_value_meets_requirements(feature: AttributeEffectFeature = 
+use_parameters(AttributeEffectFeatureManager.i()._features_by_property.values())) -> void:
+	
+	var value: Variant = test_effect.get(feature._get_property_name())
+	assert_true(feature._value_meets_requirements(value, test_effect),
+	"initial effect value (%s) of feature (%s) does meet requirements, returned string = %s" \
+	% [value, feature, feature._get_requirements_string(value)])

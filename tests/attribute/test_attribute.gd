@@ -1,8 +1,22 @@
 extends AttributeDepdententTest
 
 
+func _init() -> void:
+	super._init(InstanceMode.BEFORE_ALL, InstanceMode.BEFORE_EACH)
+
+
 func test_ticks_to_second() -> void:
 	assert_eq(5.0, Attribute._ticks_to_seconds(5_000_000), "_ticks_to_seconds calculation error")
+
+
+func test_id_changed_signal_is_omitted_if_new_id_is_different() -> void:
+	attribute.id = ATTRIBUTE_ID + "_new"
+	assert_signal_emitted_with_parameters(attribute, "id_changed", [ATTRIBUTE_ID])
+
+
+func test_id_changed_signal_not_omitted_if_new_id_is_same() -> void:
+	attribute.id = ATTRIBUTE_ID
+	assert_signal_not_emitted(attribute, "id_changed")
 
 
 func test_not_processing_with_no_effects() -> void:

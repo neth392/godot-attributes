@@ -71,6 +71,9 @@ enum SamePrioritySortingMethod {
 ## Attribute Event ##
 #####################
 
+## Emitted when [member id] changes.
+signal id_changed(prev_id: StringName)
+
 ## Emitted when any change to this [Attribute] is made, such as the base and/or current value
 ## changing, or an [ActiveAttributeEffect] was added, applied, and/or removed. The
 ## [param attribute_event] contains all of the information related to what changes took
@@ -80,8 +83,11 @@ signal event_occurred(attribute_event: AttributeEvent)
 ## The ID of the attribute.
 @export var id: StringName:
 	set(_value):
+		var prev_id: StringName = id
 		id = _value
 		update_configuration_warnings()
+		if id != prev_id:
+			id_changed.emit(prev_id)
 
 ## The base value of the attribute which permanent effects will apply to.
 ## [br]WARNING: Setting this directly (excluding in the editor inactivetor) can break the 

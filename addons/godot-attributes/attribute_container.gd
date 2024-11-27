@@ -4,6 +4,9 @@
 @icon("res://addons/godot-attributes/assets/attribute_container_icon.svg")
 class_name AttributeContainer extends Node
 
+## Emitted when [member id] changes.
+signal id_changed(prev_id: StringName)
+
 ## Emitted when the [param attribute] is added to this container.
 signal attribute_added(attribute: Attribute)
 
@@ -20,13 +23,16 @@ signal tag_removed(tag: StringName)
 @export var id: StringName:
 	set(value):
 		assert(!is_node_ready(), "can not change id at runtime")
+		var prev_id: StringName = id
 		id = value
+		if id != prev_id:
+			id_changed.emit(prev_id)
 
 ## Tags to be added to the internal _tags [Dictionary] in _ready.
 @export var default_tags: PackedStringArray
 
-var _attributes: Dictionary = {}
-var _tags: Dictionary = {}
+var _attributes: Dictionary[StringName, WeakRef] = {}
+var _tags: Dictionary[StringName, Variant] = {}
 
 
 ## Constructs a new instance with [member id] as [param _id].
@@ -129,6 +135,7 @@ func _on_child_entered_tree(child: Node) -> void:
 		assert(!child.id.is_empty(), "child (%s)'s id is empty" % child.name)
 		assert(!_attributes.has(child.id), "duplicate Attribute ids found (%s)" % child.id)
 		_attributes[child.id] = weakref(child)
+		AttributeUtil.connect_safely(child.id_changed, _on_attribute_id_changed)
 		attribute_added.emit(child)
 
 
@@ -136,5 +143,19 @@ func _on_child_exited_tree(child: Node) -> void:
 	if !is_inside_tree():
 		return
 	if child is Attribute:
+		AttributeUtil.disconnect_safely(child.id_changed, _on_attribute_id_changed)
 		_attributes.erase(child.id)
 		attribute_removed.emit(child)
+
+
+func _on_attribute_id_changed(prev_id: StringName) -> void:
+	var attribute_ref: WeakRef = _attributes[prev_id]
+	var attribute: Attribute = attribute_ref.get_ref() as Attribute
+	if attribute == null:
+		_attributes.erase(prev_id)
+		return
+	assert(!_attributes.has(attribute.id), ("a child Attribute's id changed from '%s' to '%s'" + \
+	"but another child Attribute with new id '%s' already exists") \
+	% [prev_id, attribute.id, attribute.id])
+	_attributes.erase(prev_id)
+	_attributes[attribute.id] = weakref(attribute)
