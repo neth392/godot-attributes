@@ -1,6 +1,8 @@
 # Godot Attributes
 
-This addon is a WIP. There are still a few issues to work out, and a *lot* of unit tests need to be written due to the complexity of the system.
+This addon is a WIP. It is complete with the exception of multiplayer. Unit tests are being written whenever I have free time, which currently isn't much. As far as manual testing no issues have been noticed, but not everything has been tested; especially in terms of saving & loading attributes.
+
+Documentation will eventually be written, but most of the code is annotated quite heavily (much of it is outdated and that is another TODO). If you want to use it just start with creating an `Attribute` node, use its public facing API (no `_methods`), and `AttributeEffect` resources.
 
 ## Main Features
 - `Attribute` Node that contains two floating point values, a base value and a current value.
