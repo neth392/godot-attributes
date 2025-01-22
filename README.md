@@ -1,3 +1,5 @@
+### Not currently working on this project as I have migrated to learning Ruby/Rails for professional purposes, hoping to eventually to return to working with Godot.
+
 # Godot Attributes
 
 This addon is a WIP. It is complete with the exception of multiplayer. Unit tests are being written whenever I have free time, which currently isn't much. As far as manual testing no issues have been noticed, but not everything has been tested; especially in terms of saving & loading attributes.
